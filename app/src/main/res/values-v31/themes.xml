@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 이상의 시스템 시작 화면: 주황 바탕에 흰 심볼 (앱 시작 화면과 같은 색) -->
+    <style name="Theme.Ieo" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ieo_orange</item>
+        <item name="android:windowSplashScreenBackground">@color/ieo_orange</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_white</item>
+    </style>
+</resources>

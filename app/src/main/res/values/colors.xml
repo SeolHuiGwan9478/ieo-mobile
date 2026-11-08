@@ -1,0 +1,6 @@
+<resources>
+    <color name="ieo_black">#000000</color>
+    <color name="ieo_white">#FFFFFF</color>
+    <!-- 브랜드 주황 (Orange 500). 앱 아이콘 배경 -->
+    <color name="ieo_orange">#FF6C37</color>
+</resources>

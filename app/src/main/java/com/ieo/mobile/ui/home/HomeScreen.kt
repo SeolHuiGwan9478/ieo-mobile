@@ -1,0 +1,109 @@
+package com.ieo.mobile.ui.home
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ieo.mobile.domain.trip.Trip
+import com.ieo.mobile.ui.common.DayTimeFormatter
+import com.ieo.mobile.ui.common.formatWon
+import com.ieo.mobile.ui.component.IeoSymbol
+import com.ieo.mobile.ui.component.PrimaryButton
+import com.ieo.mobile.ui.notification.NotificationBell
+import com.ieo.mobile.ui.theme.CanvasGray
+import com.ieo.mobile.ui.theme.IeoStatus
+import com.ieo.mobile.ui.theme.Orange50
+import com.ieo.mobile.ui.theme.Orange700
+import com.ieo.mobile.ui.theme.TextMid
+import com.ieo.mobile.ui.theme.TextStrong
+import com.ieo.mobile.ui.theme.White
+import com.ieo.mobile.ui.trip.TripCard
+import com.ieo.mobile.ui.vehicle.VehicleSummaryRow
+import com.ieo.mobile.ui.vehicle.VehiclesState
+
+/** 홈 (M07). 수익은 장부를 연결하면 더한다 */
+@Composable
+fun HomeScreen(
+    name: String?,
+    vehicles: VehiclesState,
+    nextTrip: Trip?,
+    monthNet: Long?,
+    owed: Long,
+    invitationCount: Int,
+    onInvitations: () -> Unit,
+    onEarnings: () -> Unit,
+    onScan: () -> Unit,
+    onVehicles: () -> Unit,
+    onOpenTrip: (Trip) -> Unit,
+    onFindOrders: () -> Unit,
+    unreadNotifications: Int = 0,
+    onNotifications: () -> Unit = {},
+) {
+    val labels = remember { DayTimeFormatter() }
+    Column(
+        Modifier.fillMaxSize().background(CanvasGray).verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            IeoSymbol(size = 32.dp)
+            Text(name?.takeIf { it.isNotBlank() }?.let { "${it}님" } ?: "이에오", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.weight(1f))
+            NotificationBell(unreadNotifications, onNotifications)
+        }
+        if (invitationCount > 0) {
+            Column(Modifier.fillMaxWidth().background(Orange50, RoundedCornerShape(20.dp)).clickable(onClick = onInvitations).padding(20.dp)) {
+                Text("단골 요청 ${invitationCount}건이 왔어요", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
+                Text("눌러서 답해 주세요", fontSize = 16.sp, color = TextMid)
+            }
+        }
+        if (monthNet != null) {
+            Column(
+                Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).clickable(onClick = onEarnings).padding(20.dp),
+            ) {
+                Text("이번 달 순수익", fontSize = 16.sp, color = TextMid)
+                Text(formatWon(monthNet), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                if (owed > 0) Text("못 받은 돈 ${formatWon(owed)}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning)
+            }
+        }
+        if (nextTrip != null) {
+            TripCard(nextTrip, labels) { onOpenTrip(nextTrip) }
+        } else {
+            Section {
+                Text("오늘 잡힌 배차가 없어요", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                Spacer(Modifier.height(10.dp))
+                PrimaryButton("오더 찾기", onFindOrders)
+            }
+        }
+        Section {
+            Text("차량에 로그인", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            Text("차량 화면의 QR을 찍으면 돼요", fontSize = 16.sp, color = TextMid)
+            Spacer(Modifier.height(12.dp))
+            PrimaryButton("QR 찍기", onScan)
+        }
+        Section { VehicleSummaryRow(vehicles, onVehicles) }
+    }
+}
+
+@Composable
+private fun Section(content: @Composable () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) { content() }
+}

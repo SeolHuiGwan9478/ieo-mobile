@@ -1,0 +1,597 @@
+package com.ieo.mobile.ui
+
+import com.ieo.mobile.domain.proof.DeliveryProof
+import com.ieo.mobile.domain.proof.DeliveryProofStatus
+import com.ieo.mobile.domain.proof.ProofLink
+import com.ieo.mobile.domain.proof.ProofRepository
+import com.ieo.mobile.domain.proof.WaitRecord
+import com.ieo.mobile.ui.proof.ProofScreen
+import com.ieo.mobile.ui.proof.ProofViewModel
+import com.ieo.mobile.domain.site.HeightCheck
+import com.ieo.mobile.domain.site.HeightLevel
+import com.ieo.mobile.domain.site.SiteAttributeKey
+import com.ieo.mobile.domain.site.SiteAttributes
+import com.ieo.mobile.domain.site.SiteCard
+import com.ieo.mobile.domain.site.SiteNote
+import com.ieo.mobile.domain.site.SiteRepository
+import com.ieo.mobile.domain.site.SiteStats
+import com.ieo.mobile.ui.site.SiteCardScreen
+import com.ieo.mobile.ui.site.SiteCardViewModel
+import androidx.compose.foundation.layout.Box
+import com.ieo.mobile.domain.notification.AppNotification
+import com.ieo.mobile.domain.notification.NotificationRepository
+import com.ieo.mobile.domain.notification.NotificationSeenStore
+import com.ieo.mobile.domain.notification.NotificationStreamEvent
+import com.ieo.mobile.domain.notification.NotificationType
+import com.ieo.mobile.ui.notification.NotificationBanner
+import com.ieo.mobile.ui.notification.NotificationBell
+import com.ieo.mobile.ui.notification.NotificationsScreen
+import com.ieo.mobile.ui.notification.NotificationsViewModel
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Density
+import com.github.takahirom.roborazzi.captureRoboImage
+import com.ieo.mobile.core.network.ApiError
+import com.ieo.mobile.core.network.ApiResult
+import com.ieo.mobile.domain.account.Account
+import com.ieo.mobile.domain.account.AccountRepository
+import com.ieo.mobile.domain.auth.AuthRepository
+import com.ieo.mobile.domain.auth.Consent
+import com.ieo.mobile.domain.auth.ExistingAccount
+import com.ieo.mobile.domain.auth.PhoneVerification
+import com.ieo.mobile.domain.expense.Expense
+import com.ieo.mobile.domain.expense.ExpenseCategory
+import com.ieo.mobile.domain.expense.ExpenseRepository
+import com.ieo.mobile.domain.ledger.DailySummary
+import com.ieo.mobile.domain.ledger.ExtraIncome
+import com.ieo.mobile.domain.ledger.LedgerEntry
+import com.ieo.mobile.domain.ledger.LedgerRepository
+import com.ieo.mobile.domain.ledger.ManualEntry
+import com.ieo.mobile.domain.ledger.Receivables
+import com.ieo.mobile.domain.link.DriverLink
+import com.ieo.mobile.domain.link.DriverLinkRepository
+import com.ieo.mobile.domain.link.DriverLinkStatus
+import com.ieo.mobile.domain.order.BrokerMetrics
+import com.ieo.mobile.domain.order.CargoCategory
+import com.ieo.mobile.domain.order.DispatchRequest
+import com.ieo.mobile.domain.order.DispatchRequestStatus
+import com.ieo.mobile.domain.order.GeoPoint
+import com.ieo.mobile.domain.order.Order
+import com.ieo.mobile.domain.order.OrderRepository
+import com.ieo.mobile.domain.order.OrderSite
+import com.ieo.mobile.domain.order.ReportType
+import com.ieo.mobile.domain.recommendation.RecommendationPreference
+import com.ieo.mobile.domain.recommendation.RecommendationRepository
+import com.ieo.mobile.domain.trip.NewTrip
+import com.ieo.mobile.domain.trip.PaymentType
+import com.ieo.mobile.domain.trip.PlaceSearch
+import com.ieo.mobile.domain.trip.StopChoice
+import com.ieo.mobile.domain.trip.StopType
+import com.ieo.mobile.domain.trip.Trip
+import com.ieo.mobile.domain.trip.TripRepository
+import com.ieo.mobile.domain.trip.TripStatus
+import com.ieo.mobile.domain.trip.TripStop
+import com.ieo.mobile.domain.trip.VisitedSite
+import com.ieo.mobile.domain.vehicle.BodyType
+import com.ieo.mobile.domain.vehicle.NewVehicle
+import com.ieo.mobile.domain.vehicle.Tonnage
+import com.ieo.mobile.domain.vehicle.Vehicle
+import com.ieo.mobile.domain.vehicle.VehicleRepository
+import com.ieo.mobile.ui.home.HomeScreen
+import com.ieo.mobile.ui.login.LoginScreen
+import com.ieo.mobile.ui.login.LoginViewModel
+import com.ieo.mobile.ui.link.LinksScreen
+import com.ieo.mobile.ui.link.LinksViewModel
+import com.ieo.mobile.ui.my.MyScreen
+import com.ieo.mobile.ui.my.MyViewModel
+import com.ieo.mobile.ui.ledger.LedgerOverlay
+import com.ieo.mobile.ui.ledger.LedgerScreen
+import com.ieo.mobile.ui.ledger.LedgerViewModel
+import com.ieo.mobile.ui.order.OrderDetailScreen
+import com.ieo.mobile.ui.order.OrdersScreen
+import com.ieo.mobile.ui.order.OrdersViewModel
+import com.ieo.mobile.ui.recommendation.RecommendationScreen
+import com.ieo.mobile.ui.recommendation.RecommendationViewModel
+import com.ieo.mobile.ui.theme.IeoTheme
+import com.ieo.mobile.ui.trip.RegisterTripScreen
+import com.ieo.mobile.ui.trip.RegisterTripViewModel
+import com.ieo.mobile.ui.trip.TripDetailScreen
+import com.ieo.mobile.ui.trip.TripsScreen
+import com.ieo.mobile.ui.trip.TripsViewModel
+import com.ieo.mobile.ui.vehicle.VehiclesScreen
+import com.ieo.mobile.ui.vehicle.VehiclesState
+import com.ieo.mobile.ui.vehicle.VehiclesViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/** 폰 없이 휴대폰 크기(390×844)로 화면을 그려 build/screens에 PNG로 남긴다 */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], qualifiers = "w390dp-h844dp-port-xxhdpi")
+class ScreenshotTest {
+
+    @get:Rule
+    val compose = createComposeRule()
+
+    private class FakeAuth(val existing: ExistingAccount? = null, val verifyFail: Boolean = false) : AuthRepository {
+        override suspend fun requestCode(phone: String) = ApiResult.Success<String?>("381942")
+        override suspend fun verify(phone: String, code: String) =
+            if (verifyFail) ApiResult.Failure(ApiError.Server(400, "AUTH_400_CODE", "인증번호가 맞지 않아요. 4번 더 틀리면 10분 동안 다시 받을 수 없어요"))
+            else ApiResult.Success(PhoneVerification("t", existing))
+        override suspend fun login(phoneToken: String) = ApiResult.Success(Unit)
+        override suspend fun signUp(phoneToken: String, name: String, consents: Set<Consent>, vehicle: NewVehicle?) = ApiResult.Success(Unit)
+        override fun finishSignUp() = Unit
+    }
+
+    private fun shot(name: String, viewModel: LoginViewModel? = null, content: @Composable () -> Unit = { LoginScreen(viewModel!!) }) {
+        compose.setContent {
+            IeoTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { content() } }
+        }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/$name.png")
+    }
+
+    private fun toCode(vm: LoginViewModel, code: String = "381942") {
+        vm.start()
+        vm.onPhoneChange("01012345678")
+        vm.requestCode()
+        compose.waitForIdle()
+        vm.onCodeChange(code)
+    }
+
+    @Test
+    fun M01_시작() = shot("M01_start", LoginViewModel(FakeAuth()))
+
+    @Test
+    fun V01_번호() {
+        val vm = LoginViewModel(FakeAuth())
+        vm.start()
+        vm.onPhoneChange("0101234567")
+        shot("V01_phone", vm)
+    }
+
+    @Test
+    fun V02_인증번호() {
+        val vm = LoginViewModel(FakeAuth())
+        toCode(vm, "3819")
+        shot("V02_code", vm)
+    }
+
+    @Test
+    fun V03_틀림() {
+        val vm = LoginViewModel(FakeAuth(verifyFail = true))
+        toCode(vm)
+        vm.verify()
+        compose.waitForIdle()
+        shot("V03_error", vm)
+    }
+
+    @Test
+    fun V04_약관() {
+        val vm = LoginViewModel(FakeAuth())
+        toCode(vm)
+        vm.verify()
+        compose.waitForIdle()
+        Consent.entries.filter { it.required }.forEach(vm::toggleConsent)
+        shot("V04_terms", vm)
+    }
+
+    @Test
+    fun V06_기본정보() {
+        val vm = LoginViewModel(FakeAuth())
+        toCode(vm)
+        vm.verify()
+        compose.waitForIdle()
+        vm.agreeToTerms()
+        vm.onNameChange("김도윤")
+        vm.nameDone()
+        vm.onPlateChange("경기82사1234")
+        shot("V06_info", vm)
+    }
+
+    @Test
+    fun V07_완료() {
+        val vm = LoginViewModel(FakeAuth())
+        toCode(vm)
+        vm.verify()
+        compose.waitForIdle()
+        vm.agreeToTerms()
+        vm.onNameChange("김도윤")
+        vm.onPlateChange("경기82사1234")
+        vm.signUp()
+        compose.waitForIdle()
+        shot("V07_done", vm)
+    }
+
+    @Test
+    fun M11_내정보() {
+        val accounts = object : AccountRepository {
+            override suspend fun me() = ApiResult.Success(Account("김도윤", "01012345678"))
+            override suspend fun rename(name: String) = ApiResult.Success(Account(name, "01012345678"))
+            override suspend fun withdraw() = ApiResult.Success(Unit)
+            override fun signOut() = Unit
+        }
+        val vm = MyViewModel(accounts)
+        shot("M11_my", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 1, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}) })
+    }
+
+    private val sample = Vehicle(1, "경기82사1234", Tonnage.TON_5, BodyType.CARGO, 3.6, isDefault = true, isLinkedToCar = true)
+    private val other = Vehicle(2, "경기80바5678", Tonnage.TON_11, BodyType.WING, null, isDefault = false)
+
+    private fun vehicles(): VehiclesViewModel = VehiclesViewModel(object : VehicleRepository {
+        override suspend fun list() = ApiResult.Success(listOf(sample, other))
+        override suspend fun add(vehicle: NewVehicle) = ApiResult.Success(Unit)
+        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?) = ApiResult.Success(Unit)
+        override suspend fun setDefault(vehicleId: Long) = ApiResult.Success(Unit)
+        override suspend fun delete(vehicleId: Long) = ApiResult.Success(Unit)
+    })
+
+    @Test
+    fun 내차량_목록() {
+        val vm = vehicles()
+        shot("VH_list", content = { VehiclesScreen(vm, onBack = {}) })
+    }
+
+    @Test
+    fun M06_차량추가() {
+        val vm = vehicles()
+        compose.waitForIdle()
+        vm.openAdd()
+        vm.stepHeight(0.1)
+        shot("M06_add", content = { VehiclesScreen(vm, onBack = {}) })
+    }
+
+    @Test
+    fun 차량고치기() {
+        val vm = vehicles()
+        compose.waitForIdle()
+        vm.openEdit(sample)
+        shot("VH_edit", content = { VehiclesScreen(vm, onBack = {}) })
+    }
+
+    private fun order(id: Long, route: Pair<String, String>, fare: Long, payment: String, days: Int?, mine: Boolean = false, cargo: CargoCategory? = null) = Order(
+        id = id,
+        brokerName = "□□로지스틱스",
+        pickup = OrderSite(route.first, "경기 화성시 향남읍 발안산단", 37.0, 127.0),
+        dropoff = OrderSite(route.second, "경남 창원시 성산구 성주동", 35.2, 128.6),
+        pickupFrom = Instant.now().plusSeconds(3 * 3600),
+        pickupUntil = Instant.now().plusSeconds(4 * 3600),
+        dropoffBy = Instant.now().plusSeconds(11 * 3600),
+        tonnageLabel = "5톤",
+        bodyTypeLabel = "카고",
+        cargoType = "건축 자재",
+        weightKg = 4800,
+        loadingMethodLabel = "지게차",
+        fare = fare,
+        paymentTypeLabel = payment,
+        expectedPaymentDays = 25,
+        distanceMeters = 18_000,
+        myRequest = if (mine) DispatchRequest(9, id, DispatchRequestStatus.PENDING, Instant.now().plusSeconds(540)) else null,
+        cargoCategory = cargo,
+        brokerMetrics = BrokerMetrics(published = days != null, avgPaymentDays = days, latePaymentPercent = days?.let { 8 }, avgWaitMinutes = days?.let { 35 }),
+    )
+
+    private fun orders(): OrdersViewModel = OrdersViewModel(object : OrderRepository {
+        override suspend fun openOrders(limit: Int, near: GeoPoint?) = ApiResult.Success(listOf(
+            order(1, "화성 향남" to "창원 성산", 580_000, "인수증", 25),
+            order(2, "평택 포승" to "부산 강서", 550_000, "선불", null),
+            order(3, "평택 청북" to "대구 북구", 470_000, "인수증", 12, mine = true),
+            order(4, "오산 가장" to "광주 광산", 410_000, "선불", 9, cargo = CargoCategory.MOVING),
+        ))
+        override suspend fun request(orderId: Long) = ApiResult.Failure(ApiError.Network)
+        override suspend fun withdraw(requestId: Long) = ApiResult.Failure(ApiError.Network)
+        override suspend fun report(orderId: Long, type: ReportType) = ApiResult.Success(Unit)
+    }, location = { GeoPoint(37.0, 127.0) })
+
+    @Test
+    fun M08_오더목록() {
+        val vm = orders()
+        shot("M08_orders", content = { OrdersScreen(vm, askLocation = false) })
+    }
+
+    @Test
+    fun M09_오더상세() {
+        val vm = orders()
+        vm.refresh()
+        compose.waitForIdle()
+        vm.open(1)
+        shot("M09_detail", content = { OrderDetailScreen(vm.state.value.selected!!, vm.state.value, vm) })
+    }
+
+    @Test
+    fun 오더상세_요청중() {
+        val vm = orders()
+        vm.refresh()
+        compose.waitForIdle()
+        vm.open(3)
+        shot("M09_requested", content = { OrderDetailScreen(vm.state.value.selected!!, vm.state.value, vm) })
+    }
+
+    private fun trip(id: Long, status: TripStatus, manual: Boolean = false) = Trip(
+        id, status, 450_000, "인수증", "○○물류", "경기82사1234",
+        TripStop("평택 포승", "경기 평택시 포승읍 평택항로 156", Instant.now().plusSeconds(3600)),
+        TripStop("대구 성서", "대구 달서구 성서공단로 11", null),
+        isManual = manual, createdAt = Instant.now(),
+    )
+
+    private val tripRepo = object : TripRepository {
+        override suspend fun list() = ApiResult.Success(listOf(trip(1, TripStatus.IN_TRANSIT), trip(2, TripStatus.SCHEDULED, manual = true), trip(3, TripStatus.COMPLETED)))
+        override suspend fun visitedSites() = ApiResult.Success(listOf(VisitedSite(1, "평택 포승", "경기 평택시 포승읍"), VisitedSite(2, "대구 성서", "대구 달서구")))
+        override suspend fun register(trip: NewTrip) = ApiResult.Success(Unit)
+        override suspend fun cancel(tripId: Long) = ApiResult.Success(Unit)
+    }
+
+    private val places = object : PlaceSearch {
+        override suspend fun search(query: String) = listOf(StopChoice.New(query, "경기도 화성시 향남읍 발안공단로 1", 37.0, 126.9))
+        override suspend fun here() = StopChoice.New("여기", "경기도 김포시 고촌읍", 37.6, 126.7)
+    }
+
+    @Test
+    fun 배차목록() {
+        val vm = TripsViewModel(tripRepo)
+        shot("TR_list", content = { TripsScreen(vm, onRegister = {}) })
+    }
+
+    @Test
+    fun 배차상세() {
+        val vm = TripsViewModel(tripRepo)
+        compose.waitForIdle()
+        vm.open(2)
+        shot("TR_detail", content = { TripDetailScreen(vm.state.value.selected!!, vm.state.value, vm) })
+    }
+
+    @Test
+    fun 배차등록_장소() {
+        val vm = RegisterTripViewModel(tripRepo, places)
+        compose.waitForIdle()
+        shot("TR_reg_place", content = { RegisterTripScreen(vm, {}, {}) })
+    }
+
+    @Test
+    fun 배차등록_운임() {
+        val vm = RegisterTripViewModel(tripRepo, places)
+        compose.waitForIdle()
+        vm.choose(StopChoice.Known(1, "평택 포승", "경기 평택시"))
+        vm.choose(StopChoice.Known(2, "대구 성서", "대구 달서구"))
+        vm.whenDone()
+        vm.addFare(45)
+        shot("TR_reg_money", content = { RegisterTripScreen(vm, {}, {}) })
+    }
+
+    @Test
+    fun 배차등록_시각() {
+        val vm = RegisterTripViewModel(tripRepo, places)
+        compose.waitForIdle()
+        vm.choose(StopChoice.Known(1, "평택 포승", "경기 평택시"))
+        vm.choose(StopChoice.Known(2, "대구 성서", "대구 달서구"))
+        shot("TR_reg_when", content = { RegisterTripScreen(vm, {}, {}) })
+    }
+
+    /** 시스템 글자 크기를 키워도 깨지지 않는지 본다 */
+    @Test
+    fun 큰글씨_오더() {
+        val vm = orders()
+        shot("LARGE_orders", content = {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale = 1.4f)) { OrdersScreen(vm, askLocation = false) }
+        })
+    }
+
+    @Test
+    fun 큰글씨_배차등록() {
+        val vm = RegisterTripViewModel(tripRepo, places)
+        compose.waitForIdle()
+        shot("LARGE_register", content = {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale = 1.4f)) { RegisterTripScreen(vm, {}, {}) }
+        })
+    }
+
+    private val day = LocalDate.now(ZoneId.of("Asia/Seoul"))
+
+    private fun entry(id: Long, paid: Boolean, overdue: Boolean, broker: String) = LedgerEntry(
+        id, true, day.minusDays(id), "평택 포승 → 대구 성서", 450_000, PaymentType.RECEIPT, broker, 280, 40, day.plusDays(20), paid, overdue,
+        listOf(ExtraIncome(id * 10, StopType.PICKUP, "평택 포승", 30_000, false)),
+    )
+
+    private fun ledger() = LedgerViewModel(object : LedgerRepository {
+        override suspend fun today() = ApiResult.Success(DailySummary(day, 1, 320_000))
+        override suspend fun receivables() = ApiResult.Success(Receivables(870_000, 450_000, 30_000, listOf(entry(1, false, true, "△△로지스"), entry(2, false, false, "○○물류"))))
+        override suspend fun entries(from: LocalDate, to: LocalDate) = ApiResult.Success(
+            listOf(entry(1, false, true, "△△로지스"), entry(2, false, false, "○○물류"), entry(3, true, false, "한빛물류")) +
+                (1L..5L).map { entry(40 + it, true, false, "한빛물류").copy(workDate = day.minusMonths(it), fare = 2_000_000L + it * 500_000) },
+        )
+        override suspend fun setPaid(entryId: Long, paid: Boolean) = ApiResult.Success(entry(1, paid, false, "△△로지스"))
+        override suspend fun setExtraIncomePaid(extraIncomeId: Long, paid: Boolean) = ApiResult.Success(Unit)
+        override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType) = ApiResult.Success(entry)
+        override suspend fun addManual(entry: ManualEntry) = ApiResult.Success(entry(9, false, false, "x"))
+    }, object : ExpenseRepository {
+        override suspend fun expenses(from: LocalDate, to: LocalDate) = ApiResult.Success(listOf(
+            Expense(1, day, ExpenseCategory.FUEL, 180_000, null), Expense(2, day, ExpenseCategory.TOLL, 32_000, "대구 톨"), Expense(3, day.minusDays(1), ExpenseCategory.MEAL, 9_000, null),
+        ))
+        override suspend fun add(category: ExpenseCategory, amount: Long, memo: String?) = ApiResult.Success(Expense(9, day, category, amount, memo))
+    })
+
+    @Test
+    fun M10_수익() {
+        val vm = ledger()
+        shot("M10_earnings", content = { LedgerScreen(vm) })
+    }
+
+    @Test
+    fun 장부상세() {
+        val vm = ledger()
+        compose.waitForIdle()
+        vm.openEntry(vm.state.value.entries.first())
+        shot("LG_detail", content = { LedgerOverlay(vm) })
+    }
+
+    @Test
+    fun 못받은돈() {
+        val vm = ledger()
+        compose.waitForIdle()
+        vm.openReceivables()
+        shot("LG_owed", content = { LedgerOverlay(vm) })
+    }
+
+    @Test
+    fun 경비추가() {
+        val vm = ledger()
+        compose.waitForIdle()
+        vm.openExpense()
+        vm.addAmount(100_000)
+        shot("LG_expense", content = { LedgerOverlay(vm) })
+    }
+
+    @Test
+    fun 단골() {
+        val vm = LinksViewModel(object : DriverLinkRepository {
+            override suspend fun invitations() = ApiResult.Success(listOf(DriverLink(1, "한빛물류", DriverLinkStatus.PENDING, Instant.now().plusSeconds(86_400 * 3), null)))
+            override suspend fun links() = ApiResult.Success(listOf(DriverLink(2, "○○물류", DriverLinkStatus.LINKED, null, Instant.now().minusSeconds(86_400))))
+            override suspend fun accept(linkId: Long) = ApiResult.Failure(ApiError.Network)
+            override suspend fun decline(linkId: Long) = ApiResult.Success(Unit)
+            override suspend fun unlink(linkId: Long) = ApiResult.Success(Unit)
+        })
+        shot("LK_list", content = { LinksScreen(vm, onBack = {}) })
+    }
+
+    @Test
+    fun 알림() {
+        val now = java.time.Instant.now()
+        val items = listOf(
+            AppNotification(3, NotificationType.DISPATCH_CONFIRMED, "한빛물류에서 배차를 확정했어요. 이천 물류센터에서 부산 신항까지, 내 배차에 넣었어요", 1, now.minusSeconds(120)),
+            AppNotification(2, NotificationType.DISPATCH_DECLINED, "평택항에서 대전 복합터미널까지 가는 배차는 마감됐어요", 2, now.minusSeconds(7200)),
+            AppNotification(1, NotificationType.DISPATCH_EXPIRED, "안산 공단에서 광주 하남까지 가는 배차 요청이 10분 안에 확정되지 않았어요", 3, now.minusSeconds(200_000)),
+        )
+        val store = object : NotificationSeenStore { override var lastSeenId: Long? = 2 }
+        val vm = NotificationsViewModel(object : NotificationRepository {
+            override suspend fun recent() = ApiResult.Success(items)
+            override fun stream(after: Long?) = kotlinx.coroutines.flow.emptyFlow<NotificationStreamEvent>()
+        }, store)
+        vm.load()
+        compose.waitForIdle()
+        vm.open()
+        shot("NT_inbox", content = {
+            Box(Modifier.fillMaxSize()) {
+                NotificationsScreen(vm, onOpen = {}, onBack = {})
+                Box(Modifier.align(androidx.compose.ui.Alignment.BottomCenter)) { NotificationBanner(items[0], onDismiss = {}) }
+                Box(Modifier.align(androidx.compose.ui.Alignment.TopEnd)) { NotificationBell(12, onClick = {}) }
+            }
+        })
+    }
+
+    private fun siteVm() = SiteCardViewModel(object : SiteRepository {
+        val now = java.time.Instant.now()
+        override suspend fun card(siteId: Long) = ApiResult.Success(
+            SiteCard(
+                1, "평택 포승 물류센터", "경기 평택시 포승읍 평택항로 156", 36.9, 126.8,
+                SiteAttributes(3.5, true, false, now.minusSeconds(7200)),
+                HeightCheck(HeightLevel.BLOCKED, 3.8, 3.5),
+                SiteStats(42, 25, 12),
+                listOf(
+                    SiteNote(2, "정문 말고 후문으로 들어가요. 오전엔 줄이 길어요", 3, false, now.minusSeconds(86_400)),
+                    SiteNote(1, "경비실에 차 번호 말하면 열어 줘요", 0, true, now.minusSeconds(600)),
+                ),
+            ),
+        )
+        override suspend fun addAttribute(siteId: Long, key: SiteAttributeKey, value: String) = ApiResult.Success(SiteAttributes())
+        override suspend fun addNote(siteId: Long, text: String) = ApiResult.Success(SiteNote(9, text, 0, true, now))
+    })
+
+    @Test
+    fun 현장정보() {
+        val vm = siteVm()
+        vm.open(1)
+        compose.waitForIdle()
+        shot("ST_view", content = { SiteCardScreen(vm) })
+    }
+
+    @Test
+    fun 현장정보고치기() {
+        val vm = siteVm()
+        vm.open(1)
+        compose.waitForIdle()
+        vm.startEdit()
+        shot("ST_edit", content = { SiteCardScreen(vm) })
+    }
+
+    @Test
+    fun 현장메모() {
+        val vm = siteVm()
+        vm.open(1)
+        compose.waitForIdle()
+        vm.startNote()
+        vm.setNote("후문은 저녁 6시에 닫아요")
+        shot("ST_note", content = { SiteCardScreen(vm) })
+    }
+
+    private fun proofVm(signed: Boolean, noWaits: Boolean = false) = ProofViewModel(object : ProofRepository {
+        val now = java.time.Instant.now()
+        override suspend fun waits(tripId: Long) = ApiResult.Success(
+            if (noWaits) emptyList() else listOf(
+                WaitRecord(StopType.PICKUP, "평택 포승", now.minusSeconds(14_400), now.minusSeconds(6_600), now.minusSeconds(4_000), 130, 10_000, true, false),
+                WaitRecord(StopType.DROPOFF, "대구 성서", now.minusSeconds(1_500), null, null, null, null, true, false),
+            ),
+        )
+        val proof = DeliveryProof("http://x/r/a", if (signed) DeliveryProofStatus.SIGNED else DeliveryProofStatus.PENDING, "김수하".takeIf { signed }, now.takeIf { signed }, null, 0, null)
+        override suspend fun waitProofLink(tripId: Long, stop: StopType) = ApiResult.Success(ProofLink("http://x/w/a", now))
+        override suspend fun deliveryProof(tripId: Long) = ApiResult.Success<DeliveryProof?>(proof)
+        override suspend fun issueDeliveryProof(tripId: Long) = ApiResult.Success(proof)
+        override suspend fun uploadPaperPhoto(tripId: Long, jpeg: ByteArray) = ApiResult.Success(proof)
+    })
+
+    @Test
+    fun 증빙() {
+        val vm = proofVm(false)
+        vm.open(1)
+        compose.waitForIdle()
+        shot("PF_pending", content = { ProofScreen(vm, onClose = {}) })
+    }
+
+    @Test
+    fun 증빙인수증() {
+        val vm = proofVm(false, noWaits = true)
+        vm.open(1, paperAllowed = false)
+        compose.waitForIdle()
+        vm.shareDeliveryLink()
+        compose.waitForIdle()
+        vm.shareConsumed()
+        shot("PF_receipt", content = { ProofScreen(vm, onClose = {}) })
+    }
+
+    @Test
+    fun 증빙완료() {
+        val vm = proofVm(true, noWaits = true)
+        vm.open(1)
+        compose.waitForIdle()
+        shot("PF_signed", content = { ProofScreen(vm, onClose = {}) })
+    }
+
+    @Test
+    fun 추천설정() {
+        val vm = RecommendationViewModel(object : RecommendationRepository {
+            override suspend fun preference() = ApiResult.Success(RecommendationPreference(true, 30, 200_000, setOf(CargoCategory.MOVING)))
+            override suspend fun save(preference: RecommendationPreference) = ApiResult.Success(preference)
+        })
+        compose.waitForIdle()
+        vm.stepRadius(5)
+        shot("RC_settings", content = { RecommendationScreen(vm, onBack = {}) })
+    }
+
+    @Test
+    fun 홈() {
+        shot("M07_home", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), trip(1, TripStatus.IN_TRANSIT), 4_120_000, 870_000, 1, {}, {}, {}, {}, {}, {}) })
+    }
+}
