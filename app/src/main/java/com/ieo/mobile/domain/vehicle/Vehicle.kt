@@ -34,6 +34,7 @@ data class NewVehicle(
     val tonnage: Tonnage,
     val bodyType: BodyType,
     val heightMeters: Double? = null,
+    val dimensions: VehicleDimensions = VehicleDimensions(),
 )
 
 data class Vehicle(
@@ -45,6 +46,7 @@ data class Vehicle(
     val isDefault: Boolean,
     /** 차량 앱에서 이 트럭과 연결됐다 (VEH-004) */
     val isLinkedToCar: Boolean = false,
+    val dimensions: VehicleDimensions = VehicleDimensions(),
 ) {
     val label: String get() = "${tonnage.label} ${bodyType.label}"
 
@@ -74,7 +76,13 @@ interface VehicleRepository {
     suspend fun add(vehicle: NewVehicle): ApiResult<Unit>
 
     /** 번호는 바꿀 수 없다 */
-    suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?): ApiResult<Unit>
+    suspend fun update(
+        vehicleId: Long,
+        tonnage: Tonnage,
+        bodyType: BodyType,
+        heightMeters: Double?,
+        dimensions: VehicleDimensions = VehicleDimensions(),
+    ): ApiResult<Unit>
 
     suspend fun setDefault(vehicleId: Long): ApiResult<Unit>
 

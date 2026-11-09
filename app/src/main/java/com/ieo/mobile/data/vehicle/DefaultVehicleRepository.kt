@@ -8,6 +8,7 @@ import com.ieo.mobile.domain.vehicle.BodyType
 import com.ieo.mobile.domain.vehicle.NewVehicle
 import com.ieo.mobile.domain.vehicle.Tonnage
 import com.ieo.mobile.domain.vehicle.Vehicle
+import com.ieo.mobile.domain.vehicle.VehicleDimensions
 import com.ieo.mobile.domain.vehicle.VehicleRepository
 import kotlinx.serialization.Serializable
 import retrofit2.Response
@@ -37,11 +38,26 @@ interface VehicleApi {
 }
 
 @Serializable
-data class CreateVehicleRequest(val plateNumber: String, val tonnage: String, val bodyType: String, val heightM: Double? = null)
+data class CreateVehicleRequest(
+    val plateNumber: String,
+    val tonnage: String,
+    val bodyType: String,
+    val heightM: Double? = null,
+    val widthCm: Int? = null,
+    val lengthCm: Int? = null,
+    val totalWeightKg: Int? = null,
+)
 
 /** 높이를 빼고 보내면 서버가 높이를 비운다 */
 @Serializable
-data class UpdateVehicleRequest(val tonnage: String, val bodyType: String, val heightM: Double? = null)
+data class UpdateVehicleRequest(
+    val tonnage: String,
+    val bodyType: String,
+    val heightM: Double? = null,
+    val widthCm: Int? = null,
+    val lengthCm: Int? = null,
+    val totalWeightKg: Int? = null,
+)
 
 @Serializable
 data class VehicleResponse(
@@ -52,6 +68,9 @@ data class VehicleResponse(
     val heightM: Double? = null,
     val defaultVehicle: Boolean = false,
     val pleosLinked: Boolean = false,
+    val widthCm: Int? = null,
+    val lengthCm: Int? = null,
+    val totalWeightKg: Int? = null,
 ) {
     fun toDomain() = Vehicle(
         id = id,
@@ -61,6 +80,7 @@ data class VehicleResponse(
         heightMeters = heightM,
         isDefault = defaultVehicle,
         isLinkedToCar = pleosLinked,
+        dimensions = VehicleDimensions(widthCm, lengthCm, totalWeightKg),
     )
 }
 
@@ -73,11 +93,22 @@ class DefaultVehicleRepository(
         caller.call { api.list() }.mapResponse { list -> list.map(VehicleResponse::toDomain) }
 
     override suspend fun add(vehicle: NewVehicle): ApiResult<Unit> = caller.callOptional {
-        api.add(CreateVehicleRequest(vehicle.plateNumber, vehicle.tonnage.name, vehicle.bodyType.name, vehicle.heightMeters))
+        api.add(CreateVehicleRequest(vehicle.plateNumber, vehicle.tonnage.name, vehicle.bodyType.name, vehicle.heightMeters,
+            vehicle.dimensions.widthCm, vehicle.dimensions.lengthCm, vehicle.dimensions.totalWeightKg))
     }.map { }
 
-    override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?): ApiResult<Unit> =
-        caller.callOptional { api.update(vehicleId, UpdateVehicleRequest(tonnage.name, bodyType.name, heightMeters)) }.map { }
+    override suspend fun update(
+        vehicleId: Long,
+        tonnage: Tonnage,
+        bodyType: BodyType,
+        heightMeters: Double?,
+        dimensions: VehicleDimensions,
+    ): ApiResult<Unit> = caller.callOptional {
+        api.update(
+            vehicleId,
+            UpdateVehicleRequest(tonnage.name, bodyType.name, heightMeters, dimensions.widthCm, dimensions.lengthCm, dimensions.totalWeightKg),
+        )
+    }.map { }
 
     override suspend fun setDefault(vehicleId: Long): ApiResult<Unit> =
         caller.callOptional { api.setDefault(vehicleId) }.map { }

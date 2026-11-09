@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ieo.mobile.domain.vehicle.BodyType
 import com.ieo.mobile.domain.vehicle.Tonnage
+import com.ieo.mobile.domain.vehicle.DimensionRange
 import com.ieo.mobile.domain.vehicle.Vehicle
+import com.ieo.mobile.domain.vehicle.VehicleDimensions
 import com.ieo.mobile.ui.component.BrandChip
 import com.ieo.mobile.ui.component.EmptyState
 import com.ieo.mobile.ui.component.ErrorNotice
@@ -167,12 +169,43 @@ private fun VehicleFormScreen(form: VehicleForm, state: VehiclesState, viewModel
                 TonalButton("+", { viewModel.stepHeight(HEIGHT_STEP) }, modifier = Modifier.width(64.dp))
                 if (form.heightMeters != null) QuietButton("모름", viewModel::clearHeight)
             }
+            Spacer(Modifier.height(18.dp))
+            Label("폭·길이·총중량 (선택) · 안 적으면 톤수 기준으로 계산")
+            val d = form.dimensions
+            DimensionRow("폭", d.widthCm, VehicleDimensions.WIDTH, ::cmAsMeters) { viewModel.onDimensions(d.copy(widthCm = it)) }
+            DimensionRow("길이", d.lengthCm, VehicleDimensions.LENGTH, ::cmAsMeters) { viewModel.onDimensions(d.copy(lengthCm = it)) }
+            DimensionRow("총중량", d.totalWeightKg, VehicleDimensions.TOTAL_WEIGHT, ::kgAsTons) { viewModel.onDimensions(d.copy(totalWeightKg = it)) }
             state.error?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning, modifier = Modifier.padding(top = 14.dp)) }
         }
         Row(Modifier.padding(24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             TonalButton("취소", { viewModel.closeForm() }, modifier = Modifier.weight(1f))
             PrimaryButton("저장", viewModel::save, enabled = form.canSave, busy = state.isBusy, modifier = Modifier.weight(2f))
         }
+    }
+}
+
+private fun cmAsMeters(cm: Int): String = "%.1fm".format(cm / 100.0).replace(".0m", "m")
+
+private fun kgAsTons(kg: Int): String = "${kg / 1_000}톤"
+
+@Composable
+private fun DimensionRow(label: String, value: Int?, range: DimensionRange, format: (Int) -> String, onChange: (Int?) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(bottom = 8.dp),
+    ) {
+        Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong, modifier = Modifier.width(52.dp))
+        TonalButton("−", { onChange(range.next(value, -range.step)) }, modifier = Modifier.width(56.dp))
+        Text(
+            value?.let(format) ?: "모름",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = if (value == null) TextSub else TextStrong,
+            modifier = Modifier.width(66.dp),
+        )
+        TonalButton("+", { onChange(range.next(value, range.step)) }, modifier = Modifier.width(56.dp))
+        if (value != null) QuietButton("모름", { onChange(null) })
     }
 }
 

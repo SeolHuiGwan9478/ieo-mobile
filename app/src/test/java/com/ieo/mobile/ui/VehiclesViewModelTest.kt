@@ -39,7 +39,7 @@ class VehiclesViewModelTest {
             added = vehicle
             return result
         }
-        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?): ApiResult<Unit> {
+        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?, dimensions: com.ieo.mobile.domain.vehicle.VehicleDimensions): ApiResult<Unit> {
             updated = Triple(tonnage, bodyType, heightMeters)
             return result
         }

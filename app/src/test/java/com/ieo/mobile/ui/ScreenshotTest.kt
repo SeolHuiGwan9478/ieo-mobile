@@ -235,7 +235,7 @@ class ScreenshotTest {
     private fun vehicles(): VehiclesViewModel = VehiclesViewModel(object : VehicleRepository {
         override suspend fun list() = ApiResult.Success(listOf(sample, other))
         override suspend fun add(vehicle: NewVehicle) = ApiResult.Success(Unit)
-        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?) = ApiResult.Success(Unit)
+        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?, dimensions: com.ieo.mobile.domain.vehicle.VehicleDimensions) = ApiResult.Success(Unit)
         override suspend fun setDefault(vehicleId: Long) = ApiResult.Success(Unit)
         override suspend fun delete(vehicleId: Long) = ApiResult.Success(Unit)
     })

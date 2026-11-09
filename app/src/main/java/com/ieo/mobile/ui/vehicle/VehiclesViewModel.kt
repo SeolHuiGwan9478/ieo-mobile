@@ -7,6 +7,7 @@ import com.ieo.mobile.domain.vehicle.BodyType
 import com.ieo.mobile.domain.vehicle.NewVehicle
 import com.ieo.mobile.domain.vehicle.Tonnage
 import com.ieo.mobile.domain.vehicle.Vehicle
+import com.ieo.mobile.domain.vehicle.VehicleDimensions
 import com.ieo.mobile.domain.vehicle.VehicleHeight
 import com.ieo.mobile.domain.vehicle.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ data class VehicleForm(
     val tonnage: Tonnage = Tonnage.TON_5,
     val bodyType: BodyType = BodyType.CARGO,
     val heightMeters: Double? = null,
+    val dimensions: VehicleDimensions = VehicleDimensions(),
 ) {
     val canSave get() = editing != null || plateNumber.isNotBlank()
 }
@@ -49,7 +51,7 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
     fun openAdd() = _state.update { it.copy(form = VehicleForm(), error = null) }
 
     fun openEdit(vehicle: Vehicle) = _state.update {
-        it.copy(form = VehicleForm(vehicle, vehicle.plateNumber, vehicle.tonnage, vehicle.bodyType, vehicle.heightMeters), error = null)
+        it.copy(form = VehicleForm(vehicle, vehicle.plateNumber, vehicle.tonnage, vehicle.bodyType, vehicle.heightMeters, vehicle.dimensions), error = null)
     }
 
     /** 입력 화면이 열려 있었으면 닫고 true */
@@ -69,15 +71,17 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
 
     fun clearHeight() = editForm { it.copy(heightMeters = null) }
 
+    fun onDimensions(dimensions: VehicleDimensions) = editForm { it.copy(dimensions = dimensions) }
+
     fun save() {
         val form = _state.value.form ?: return
         if (!form.canSave) return
         change(closeForm = true) {
             val editing = form.editing
             if (editing != null) {
-                vehicles.update(editing.id, form.tonnage, form.bodyType, form.heightMeters)
+                vehicles.update(editing.id, form.tonnage, form.bodyType, form.heightMeters, form.dimensions)
             } else {
-                vehicles.add(NewVehicle(form.plateNumber.trim(), form.tonnage, form.bodyType, form.heightMeters))
+                vehicles.add(NewVehicle(form.plateNumber.trim(), form.tonnage, form.bodyType, form.heightMeters, form.dimensions))
             }
         }
     }
