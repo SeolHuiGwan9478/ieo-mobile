@@ -1,5 +1,11 @@
 package com.ieo.mobile.ui.proof
 
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.CheckCircle
+import com.ieo.mobile.ui.component.StepTimeline
+import com.ieo.mobile.ui.component.IconBadge
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -223,14 +229,6 @@ private fun Card(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun TimeLine(label: String, at: Instant?, labels: DayTimeFormatter) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontSize = 16.sp, color = TextSub)
-        Text(at?.let(labels::dayTime) ?: "—", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-    }
-}
-
-@Composable
 private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, busy: Boolean, onShare: () -> Unit) {
     Card {
         val stop = if (record.stopType == StopType.PICKUP) "상차" else "하차"
@@ -238,10 +236,16 @@ private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, busy: Boolean
         Text(waitHeadline(record), fontSize = 21.sp, lineHeight = 29.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
         val amount = (record.chargeableAmount ?: 0) > 0
         Text(waitChargeText(record), fontSize = 16.sp, lineHeight = 23.sp, fontWeight = if (amount) FontWeight.Bold else FontWeight.Normal, color = if (amount) IeoStatus.colors.done else TextMid)
-        TimeLine("도착", record.arrivedAt, labels)
-        TimeLine("작업 시작", record.workStartedAt, labels)
-        TimeLine("출발", record.departedAt, labels)
-        PrimaryButton("주선사에게 대기 증빙 보내기", onShare, busy = busy, modifier = Modifier.padding(top = 6.dp))
+        StepTimeline(listOf("도착" to labels.time(record.arrivedAt), "작업" to record.workStartedAt?.let(labels::time), "출발" to record.departedAt?.let(labels::time)))
+        PrimaryButton("주선사에게 보내기", onShare, busy = busy, icon = Icons.Outlined.Share, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+@Composable
+private fun DoneTitle() {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        IconBadge(Icons.Outlined.CheckCircle, tint = IeoStatus.colors.done, background = androidx.compose.ui.graphics.Color(0xFFE6F4EA), size = 38.dp)
+        Text("인수 완료", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = IeoStatus.colors.done)
     }
 }
 
@@ -251,22 +255,22 @@ private fun DeliveryCard(state: ProofState, labels: DayTimeFormatter, viewModel:
     Card {
         when {
             delivery?.isSigned == true -> {
-                Text("인수 완료", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = IeoStatus.colors.done)
+                DoneTitle()
                 Text("${delivery.signerName ?: "수하인"}님이 ${labels.dayTime(delivery.signedAt!!)}에 서명했어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
                 delivery.issueNote?.takeIf { it.isNotBlank() }?.let {
                     Text("남긴 이상 사항: $it", fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.warning)
                 }
             }
             delivery?.isDone == true -> {
-                Text("인수 완료", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = IeoStatus.colors.done)
+                DoneTitle()
                 Text("종이 인수증 사진 ${delivery.photoCount}장을 올렸어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
             }
             else -> {
                 Text("아직 서명 전이에요", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
-                Text("수하인에게 링크를 보내면 앱 설치 없이 서명할 수 있어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-                PrimaryButton("수하인에게 서명 링크 보내기", viewModel::shareDeliveryLink, busy = state.busy == ProofAction.DeliveryLink, modifier = Modifier.padding(top = 6.dp))
+                Text("수하인이 링크를 열어 앱 없이 서명해요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
+                PrimaryButton("수하인에게 서명 요청", viewModel::shareDeliveryLink, busy = state.busy == ProofAction.DeliveryLink, icon = Icons.Outlined.Draw, modifier = Modifier.padding(top = 6.dp))
                 if (delivery != null) {
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { QuietButton("서명했는지 확인하기", viewModel::checkSigned) }
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { QuietButton("서명 확인", viewModel::checkSigned) }
                 }
             }
         }
@@ -274,9 +278,10 @@ private fun DeliveryCard(state: ProofState, labels: DayTimeFormatter, viewModel:
             Text("종이 인수증 사진은 하차지에 도착한 뒤 올릴 수 있어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextSub)
         } else if (delivery == null || delivery.canAddPhoto) {
             TonalButton(
-                if (delivery?.isDone == true) "사진 더 올리기" else "서명이 어려우면 종이 인수증 사진 올리기",
+                if (delivery?.isDone == true) "사진 추가" else "종이 인수증 찍기",
                 onPhoto,
                 enabled = state.busy == null,
+                icon = Icons.Outlined.PhotoCamera,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

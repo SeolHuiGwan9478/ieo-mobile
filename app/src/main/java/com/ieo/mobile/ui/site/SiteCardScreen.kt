@@ -1,5 +1,14 @@
 package com.ieo.mobile.ui.site
 
+import androidx.compose.material.icons.outlined.Height
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Construction
+import androidx.compose.material.icons.outlined.LocalParking
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Info
+import com.ieo.mobile.ui.component.InfoTile
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -65,14 +74,19 @@ private fun meters(value: Double): String = "${value.toString().removeSuffix(".0
 private fun yesNo(value: Boolean?): String = when (value) {
     true -> "있어요"
     false -> "없어요"
-    null -> "아직 몰라요"
+    null -> "몰라요"
 }
 
 /** 배차·오더의 상하차지 줄에 붙는 입구. 손끝 크기를 지킨다 */
 @Composable
 fun SiteInfoLink(onClick: () -> Unit) {
-    Box(Modifier.heightIn(min = 48.dp).clickable(onClick = onClick), contentAlignment = Alignment.CenterStart) {
-        Text("현장 정보 보기 ›", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Orange700)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.padding(top = 6.dp).heightIn(min = 48.dp).background(Orange50, RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 14.dp),
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = Orange700, modifier = Modifier.padding(0.dp))
+        Text("현장 정보", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
     }
 }
 
@@ -84,7 +98,7 @@ fun SiteCardScreen(viewModel: SiteCardViewModel) {
     BackHandler(onBack = back)
     val title = when (state.mode) {
         SiteMode.VIEW -> "현장 정보"
-        SiteMode.EDIT_INFO -> "정보 고치기"
+        SiteMode.EDIT_INFO -> "정보 수정"
         SiteMode.WRITE_NOTE -> "메모 남기기"
     }
     Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
@@ -114,18 +128,20 @@ private fun androidx.compose.foundation.layout.ColumnScope.ViewMode(card: SiteCa
             Text(card.address, fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
         }
         HeightNotice(card.height)
-        Section {
-            InfoLine("높이 제한", card.attributes.heightLimitM?.let(::meters) ?: "아직 몰라요")
-            InfoLine("지게차", yesNo(card.attributes.forklift))
-            InfoLine("주차", yesNo(card.attributes.parking))
-            InfoLine("평균 대기", card.stats?.avgWaitMinutes?.let { "${it}분" } ?: "기록이 더 필요해요")
-            card.attributes.updatedAt?.let { Text("${timeAgo(it)} 기사님이 알려 주셨어요", fontSize = 14.sp, color = TextSub) }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoTile(Icons.Outlined.Height, "높이 제한", card.attributes.heightLimitM?.let(::meters) ?: "몰라요", Modifier.weight(1f), card.attributes.heightLimitM != null)
+            InfoTile(Icons.Outlined.Schedule, "평균 대기", card.stats?.avgWaitMinutes?.let { "${it}분" } ?: "기록 부족", Modifier.weight(1f), card.stats?.avgWaitMinutes != null)
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoTile(Icons.Outlined.Construction, "지게차", yesNo(card.attributes.forklift), Modifier.weight(1f), card.attributes.forklift != null)
+            InfoTile(Icons.Outlined.LocalParking, "주차", yesNo(card.attributes.parking), Modifier.weight(1f), card.attributes.parking != null)
+        }
+        card.attributes.updatedAt?.let { Text("${timeAgo(it)} 기사님 제보", fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(horizontal = 4.dp)) }
         state.saved?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done, modifier = Modifier.padding(horizontal = 4.dp)) }
-        TonalButton("지도에서 보기", {
+        TonalButton("지도", {
             val query = Uri.encode(card.name)
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${card.latitude},${card.longitude}?q=${card.latitude},${card.longitude}($query)"))) }
-        }, modifier = Modifier.fillMaxWidth())
+        }, modifier = Modifier.fillMaxWidth(), icon = Icons.Outlined.Map)
         Text("기사님들의 메모", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
         if (card.notes.isEmpty()) {
             Section { Text("아직 메모가 없어요. 첫 메모를 남겨 주세요", fontSize = 16.sp, color = TextMid) }
@@ -134,8 +150,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.ViewMode(card: SiteCa
         Spacer(Modifier.height(4.dp))
     }
     Row(Modifier.fillMaxWidth().background(White).padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        TonalButton("정보 고치기", viewModel::startEdit, modifier = Modifier.weight(1f))
-        PrimaryButton("메모 남기기", viewModel::startNote, modifier = Modifier.weight(1f))
+        TonalButton("정보 수정", viewModel::startEdit, modifier = Modifier.weight(1f), icon = Icons.Outlined.Edit)
+        PrimaryButton("메모", viewModel::startNote, modifier = Modifier.weight(1f), icon = Icons.Outlined.EditNote)
     }
 }
 
@@ -152,14 +168,6 @@ private fun HeightNotice(height: HeightCheck) {
     Column(Modifier.fillMaxWidth().background(background, CardShape).padding(18.dp)) {
         Text(headline, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = color)
         Text("내 차 ${meters(vehicle)} · 제한 ${meters(limit)}", fontSize = 16.sp, color = TextStrong)
-    }
-}
-
-@Composable
-private fun InfoLine(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontSize = 16.sp, color = TextSub)
-        Text(value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
     }
 }
 

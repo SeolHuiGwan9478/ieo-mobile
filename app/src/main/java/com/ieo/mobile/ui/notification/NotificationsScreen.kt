@@ -1,5 +1,11 @@
 package com.ieo.mobile.ui.notification
 
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Schedule
+import com.ieo.mobile.ui.component.IconBadge
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,6 +81,16 @@ fun timeAgo(at: Instant, now: Instant = Instant.now(), zone: ZoneId = ZoneId.sys
 private fun typeColor(type: NotificationType): Color =
     if (type == NotificationType.DISPATCH_CONFIRMED) IeoStatus.colors.done else TextMid
 
+private fun typeIcon(type: NotificationType) = when (type) {
+    NotificationType.DISPATCH_CONFIRMED -> Icons.Outlined.CheckCircle
+    NotificationType.DISPATCH_DECLINED -> Icons.Outlined.Block
+    NotificationType.DISPATCH_EXPIRED -> Icons.Outlined.Schedule
+}
+
+@Composable
+private fun TypeBadge(type: NotificationType) =
+    IconBadge(typeIcon(type), tint = typeColor(type), background = if (type == NotificationType.DISPATCH_CONFIRMED) Color(0xFFE6F4EA) else CanvasGray, size = 38.dp)
+
 /** 홈 머리의 종. 숫자는 9+까지만 */
 @Composable
 fun NotificationBell(unreadCount: Int, onClick: () -> Unit) {
@@ -123,7 +139,8 @@ private fun NotificationRow(item: AppNotification, isNew: Boolean, onClick: () -
         Modifier.fillMaxWidth().background(if (isNew) Orange50 else White, RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TypeBadge(item.type)
             Text(item.type.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = typeColor(item.type), modifier = Modifier.weight(1f))
             if (isNew) Text("새 알림  ", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Orange700)
             Text(timeAgo(item.createdAt), fontSize = 14.sp, color = TextSub)
@@ -151,6 +168,8 @@ fun NotificationBanner(notification: AppNotification, onDismiss: () -> Unit) {
             .padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 4.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
     ) {
+        TypeBadge(notification.type)
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(notification.type.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = typeColor(notification.type))
             Text(notification.message, fontSize = 16.sp, lineHeight = 22.sp, color = TextStrong)

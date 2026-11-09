@@ -105,7 +105,7 @@ private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: Ledge
         }
         Column(Modifier.background(White).padding(horizontal = 20.dp, vertical = 12.dp)) {
             if (entry.paid) {
-                TonalButton("못 받음으로 되돌리기", { viewModel.setPaid(entry, false) }, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth())
+                TonalButton("받기 전으로", { viewModel.setPaid(entry, false) }, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth())
             } else {
                 PrimaryButton("돈 받았어요", { viewModel.setPaid(entry, true) }, busy = state.isBusy)
             }

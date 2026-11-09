@@ -70,7 +70,7 @@ import com.ieo.mobile.domain.vehicle.Tonnage
 import com.ieo.mobile.ui.component.BrandChip
 import com.ieo.mobile.ui.component.FormField
 import com.ieo.mobile.ui.component.Heading
-import com.ieo.mobile.ui.component.IeoSymbol
+import com.ieo.mobile.ui.component.IeoWordmark
 import com.ieo.mobile.ui.component.PrimaryButton
 import com.ieo.mobile.ui.component.QuietButton
 import com.ieo.mobile.ui.component.StepLabel
@@ -129,10 +129,8 @@ fun LoginScreen(viewModel: LoginViewModel) {
 private fun StartScreen(onStart: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Orange600).safeDrawingPadding().padding(horizontal = 24.dp)) {
         Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            IeoSymbol(size = 88.dp, background = White, foreground = Orange600)
-            Spacer(Modifier.height(20.dp))
-            Text("이에오", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = White)
-            Spacer(Modifier.height(8.dp))
+            IeoWordmark(width = 200.dp, color = White)
+            Spacer(Modifier.height(16.dp))
             Text("끝나는 곳에서, 다음이 이어집니다", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = White)
         }
         // TODO: 앱용 Google 키를 받으면 로그인을 연결한다. 지금은 눌러도 아무 일도 없다
@@ -149,7 +147,7 @@ private fun StartScreen(onStart: () -> Unit) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.fillMaxWidth().height(60.dp)
-                .border(2.dp, White, StartButtonShape)
+                .background(Orange700, StartButtonShape)
                 .clickable(onClick = onStart),
         ) {
             Text("휴대폰 번호로 계속하기", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = White)
@@ -459,7 +457,7 @@ private fun ExistingAccountDialog(account: ExistingAccount, state: LoginState, v
             }
             ErrorLine(state.error)
             Spacer(Modifier.height(16.dp))
-            PrimaryButton("이 계정으로 로그인", viewModel::login, busy = state.isBusy)
+            PrimaryButton("로그인", viewModel::login, busy = state.isBusy)
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { QuietButton("처음으로", viewModel::restart) }
         }
     }

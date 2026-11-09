@@ -1,5 +1,8 @@
 package com.ieo.mobile.ui.home
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import com.ieo.mobile.ui.component.ActionRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -90,12 +93,7 @@ fun HomeScreen(
                 PrimaryButton("오더 찾기", onFindOrders)
             }
         }
-        Section {
-            Text("차량에 로그인", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-            Text("차량 화면의 QR을 찍으면 돼요", fontSize = 16.sp, color = TextMid)
-            Spacer(Modifier.height(12.dp))
-            PrimaryButton("QR 찍기", onScan)
-        }
+        ActionRow(Icons.Outlined.QrCodeScanner, "차량에 로그인", "차량 화면의 QR 찍기", onScan)
         Section { VehicleSummaryRow(vehicles, onVehicles) }
     }
 }

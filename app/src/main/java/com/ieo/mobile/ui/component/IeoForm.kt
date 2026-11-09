@@ -1,5 +1,7 @@
 package com.ieo.mobile.ui.component
 
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,7 +47,7 @@ private val ChipOffLine = Color(0xFFD1D6DB)
 
 /** 화면의 주요 행동. [busy]면 진행 표시를 돌리고 누르지 못한다 */
 @Composable
-fun PrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, busy: Boolean = false) {
+fun PrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, busy: Boolean = false, icon: ImageVector? = null) {
     Button(
         onClick = onClick,
         enabled = enabled && !busy,
@@ -56,20 +58,24 @@ fun PrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true, mo
         if (busy) {
             CircularProgressIndicator(color = TextMid, strokeWidth = 3.dp, modifier = Modifier.size(24.dp))
         } else {
+            icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(24.dp)) }
             Text(text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier) {
+fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, icon: ImageVector? = null) {
     Button(
         onClick = onClick,
         enabled = enabled,
         shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(containerColor = CanvasGray, contentColor = TextMid),
         modifier = modifier.heightIn(min = 60.dp),
-    ) { Text(text, fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+    ) {
+        icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(22.dp)) }
+        Text(text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable

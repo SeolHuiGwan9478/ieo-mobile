@@ -1,5 +1,8 @@
 package com.ieo.mobile.ui.trip
 
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Description
+import com.ieo.mobile.ui.component.ActionRow
 import com.ieo.mobile.ui.component.TonalButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -105,7 +108,7 @@ fun TripsScreen(viewModel: TripsViewModel, onRegister: () -> Unit, labels: DayTi
                 Section("지난 운행", state.past, labels, viewModel)
             }
         }
-        Box(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) { PrimaryButton("다른 앱 배차 등록", onRegister) }
+        Box(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) { PrimaryButton("배차 직접 등록", onRegister, icon = Icons.Outlined.Add) }
     }
 }
 
@@ -159,7 +162,7 @@ fun TripDetailScreen(trip: Trip, state: TripsState, viewModel: TripsViewModel, l
                 trip.brokerName?.let { Line("주선사", it) }
             }
             if (trip.status.isInProgress || trip.status == TripStatus.COMPLETED) {
-                TonalButton("대기 증빙 · 인수증", { onProof(trip.id) }, modifier = Modifier.fillMaxWidth())
+                ActionRow(Icons.Outlined.Description, "증빙", "대기 기록 · 인수증") { onProof(trip.id) }
             }
             if (trip.status == TripStatus.SCHEDULED || trip.status.isInProgress) {
                 Text("출발과 도착은 차량 앱에서 진행돼요", fontSize = 16.sp, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp))

@@ -17,15 +17,10 @@ class SessionManager(private val tokenStore: TokenStore) {
     private val _isLoggedIn = MutableStateFlow(cached != null)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    /** 로그인할 때마다 는다. 화면의 상태가 다음 계정으로 이어지지 않게 나누는 데 쓴다 */
-    var loginCount: Int = 0
-        private set
-
     fun tokens(): AuthTokens? = cached
 
     /** 로그인·QR 승인 성공 */
     fun signIn(tokens: AuthTokens) {
-        loginCount++
         save(tokens)
         _isLoggedIn.value = true
     }

@@ -1,12 +1,13 @@
 package com.ieo.mobile
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.ieo.mobile.ui.proof.ProofScreen
 import com.ieo.mobile.ui.proof.ProofViewModel
 import com.ieo.mobile.ui.site.SiteCardScreen
 import com.ieo.mobile.ui.site.SiteCardViewModel
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -123,9 +124,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** 로그인 상태가 바뀌면 화면 상태를 통째로 비워 앞 계정의 내용과 오류가 남지 않게 한다. 화면 회전에는 살아남는다 */
+class LoginScope : ViewModel(), ViewModelStoreOwner {
+    override var viewModelStore = ViewModelStore()
+        private set
+    private var loggedIn: Boolean? = null
+
+    fun sync(now: Boolean) {
+        if (loggedIn != null && loggedIn != now) {
+            viewModelStore.clear()
+            viewModelStore = ViewModelStore()
+        }
+        loggedIn = now
+    }
+
+    override fun onCleared() = viewModelStore.clear()
+}
+
 @Composable
 private fun IeoApp(container: AppContainer, deepLinkCode: MutableStateFlow<String?>) {
     val loggedIn by container.session.isLoggedIn.collectAsStateWithLifecycle()
+    val scope: LoginScope = androidx.lifecycle.viewmodel.compose.viewModel()
+    scope.sync(loggedIn)
+    CompositionLocalProvider(LocalViewModelStoreOwner provides scope) {
+        IeoContent(container, deepLinkCode, loggedIn)
+    }
+}
+
+@Composable
+private fun IeoContent(container: AppContainer, deepLinkCode: MutableStateFlow<String?>, loggedIn: Boolean) {
     val linked by deepLinkCode.collectAsStateWithLifecycle()
     LaunchedEffect(loggedIn) { if (!loggedIn) container.notificationSeenStore.lastSeenId = null }
     var scanning by remember { mutableStateOf(false) }
@@ -151,9 +178,7 @@ private fun IeoApp(container: AppContainer, deepLinkCode: MutableStateFlow<Strin
                 onClose = { scanning = false },
             )
         }
-        else -> CompositionLocalProvider(LocalLoginCount provides container.session.loginCount) {
-            Tabs(container, onScan = { scanning = true })
-        }
+        else -> Tabs(container, onScan = { scanning = true })
     }
 }
 
@@ -209,6 +234,15 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         }
     }
 
+    // 차량 앱이 운행을 진행시키므로 앱으로 돌아올 때마다 배차를 새로 받는다
+    val lifecycleForTrips = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(trips) {
+        var returning = false
+        lifecycleForTrips.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (returning) trips.refresh()
+            returning = true
+        }
+    }
     val site: SiteCardViewModel = viewModel(key = "site") { SiteCardViewModel(container.siteRepository) }
     val siteState by site.state.collectAsStateWithLifecycle()
     val proof: ProofViewModel = viewModel(key = "proof") { ProofViewModel(container.proofRepository) }
@@ -312,9 +346,6 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     }
 }
 
-/** 계정이 바뀌면 ViewModel을 새로 만들어 앞 계정의 내용이 남지 않게 한다 */
-private val LocalLoginCount = compositionLocalOf { 0 }
-
 private val TabOff = com.ieo.mobile.ui.theme.TextSub
 
 private inline fun <reified VM : androidx.lifecycle.ViewModel> factoryOf(noinline create: () -> VM) =
@@ -322,4 +353,4 @@ private inline fun <reified VM : androidx.lifecycle.ViewModel> factoryOf(noinlin
 
 @Composable
 private inline fun <reified VM : androidx.lifecycle.ViewModel> viewModel(key: String, noinline create: () -> VM): VM =
-    viewModel(key = "$key-${LocalLoginCount.current}", factory = factoryOf(create))
+    viewModel(key = key, factory = factoryOf(create))
