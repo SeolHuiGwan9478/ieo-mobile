@@ -39,6 +39,9 @@ data class OrdersState(
     val loadFailed: Boolean = false,
 ) {
     val selected: Order? get() = selectedId?.let { id -> orders.firstOrNull { it.id == id } }
+
+    /** 근처로 찾으려 했지만 위치를 몰라 전체를 받았다 */
+    val locationMissing: Boolean get() = nearMe && !nearApplied && !isLoading && !loadFailed
 }
 
 /** 오더 찾기 (DSP-010·020·042, 시안 M08·M09): 목록, 상세, 배차 요청·철회, 신고 */
@@ -78,6 +81,8 @@ class OrdersViewModel(
     fun togglePrepaid() = _state.update { it.copy(prepaidOnly = !it.prepaidOnly) }
 
     fun toggleNearMe() {
+        // 위치를 못 받아 꺼져 보일 때 누르면 위치를 다시 찾는다
+        if (_state.value.locationMissing) return refresh()
         _state.update { it.copy(nearMe = !it.nearMe) }
         refresh()
     }

@@ -77,7 +77,7 @@ private val LineGray = Color(0xFFE5E8EB)
 /** M08 오더 찾기. 근처 오더를 찾으려고 처음에 위치 권한을 묻는다 */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { OrderTexts() }, askLocation: Boolean = true, onAddVehicle: () -> Unit = {}) {
+fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { OrderTexts() }, askLocation: Boolean = true, hasVehicle: Boolean = true, onAddVehicle: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { viewModel.refresh() }
     LaunchedEffect(Unit) {
@@ -100,9 +100,12 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
             }
             Spacer(Modifier.height(12.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BrandChip("내 위치 50km", state.nearMe, viewModel::toggleNearMe)
+                BrandChip("내 위치 50km", state.nearMe && !state.locationMissing, viewModel::toggleNearMe)
                 DayFilter.entries.forEach { day -> BrandChip(day.label, state.day == day) { viewModel.selectDay(day) } }
                 BrandChip("선불만", state.prepaidOnly, viewModel::togglePrepaid)
+            }
+            if (state.locationMissing) {
+                Text("위치를 몰라 전체 오더를 보여 드려요", fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(top = 10.dp))
             }
         }
         PullToRefreshBox(isRefreshing = state.isLoading && state.orders.isNotEmpty(), onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
@@ -113,10 +116,12 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
                 if (state.loadFailed) state.message?.let { ErrorNotice(it, viewModel::refresh) }
                 if (state.isLoading && state.orders.isEmpty()) SkeletonCards(4)
                 if (orders.isEmpty() && !state.isLoading && !state.loadFailed) {
-                    if (state.nearMe && state.nearApplied) {
+                    if (!hasVehicle) {
+                        EmptyState("맞는 오더가 없어요", "차를 등록해야 맞는 오더가 보여요", "내 차 등록하기", onAddVehicle)
+                    } else if (state.nearMe && state.nearApplied) {
                         EmptyState("근처에 맞는 오더가 없어요", "범위를 넓히면 더 찾을 수 있어요", "전체에서 찾기", viewModel::toggleNearMe)
                     } else {
-                        EmptyState("맞는 오더가 없어요", "차를 등록해야 맞는 오더가 보여요", "내 차 등록하기", onAddVehicle)
+                        EmptyState("지금 맞는 오더가 없어요", "새 오더가 올라오면 여기에 보여요", "새로고침", viewModel::refresh)
                     }
                 }
                 orders.forEach { order -> OrderCard(order, texts) { viewModel.open(order.id) } }

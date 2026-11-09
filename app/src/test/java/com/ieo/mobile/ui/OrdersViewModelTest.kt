@@ -98,6 +98,26 @@ class OrdersViewModelTest {
         advanceUntilIdle()
         assertNull(fake.nearAsked)
         assertEquals(false, vm.state.value.nearApplied)
+        assertTrue(vm.state.value.locationMissing)
+    }
+
+    @Test
+    fun `위치를 모를 때 내 위치를 누르면 끄지 않고 다시 찾는다`() = runTest(main.dispatcher) {
+        val vm = TestVm(Fake(), location = null).apply { refresh() }
+        advanceUntilIdle()
+        vm.toggleNearMe()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.nearMe)
+    }
+
+    @Test
+    fun `위치를 알거나 직접 끄면 위치 안내를 하지 않는다`() = runTest(main.dispatcher) {
+        val vm = TestVm(Fake()).apply { refresh() }
+        advanceUntilIdle()
+        assertEquals(false, vm.state.value.locationMissing)
+        vm.toggleNearMe()
+        advanceUntilIdle()
+        assertEquals(false, vm.state.value.locationMissing)
     }
 
     @Test

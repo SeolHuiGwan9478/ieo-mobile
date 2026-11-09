@@ -305,6 +305,8 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         TripDetailScreen(trip, tripState, trips, onSite = site::open, onProof = { id -> proof.open(id, trip.canUploadPaperProof) })
         return
     }
+    // 다른 탭에서 뒤로 가기를 누르면 앱을 끄지 않고 홈으로 돌아간다
+    BackHandler(enabled = tab != Tab.HOME) { tab = Tab.HOME }
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         Box(Modifier.weight(1f)) {
             when (tab) {
@@ -324,7 +326,11 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                     unreadNotifications = notificationState.unreadCount,
                     onNotifications = notifications::open,
                 )
-                Tab.ORDERS -> OrdersScreen(orders, onAddVehicle = { managingVehicles = true })
+                Tab.ORDERS -> OrdersScreen(
+                    orders,
+                    hasVehicle = vehicleState.isLoading || vehicleState.vehicles.isNotEmpty(),
+                    onAddVehicle = { managingVehicles = true },
+                )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
                 Tab.EARNINGS -> LedgerScreen(ledger)
                 Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, onRecommendation = { editingRecommendation = true })
