@@ -10,6 +10,7 @@
 | 차량 QR 승인 (카메라, 기본 카메라 딥링크 `ieo://car-login?code=`, 코드 직접 입력) | `GET /api/car-login/requests/{code}`, `POST .../approve`, `.../reject` |
 | 내 차량 추가·삭제·기본 지정 | `/api/vehicles` |
 | 내 정보: 이름 바꾸기, 로그아웃, 탈퇴 (시안 M11) | `PATCH /api/users/me`, `POST /api/users/me/withdraw` |
+| 로그인된 차량·원격 로그아웃, 동의 관리, 사업자 정보 | `/api/users/me/car-sessions`, `/consents`, `/business` |
 
 | 오더 찾기, 상세, 배차 요청·철회, 신고 (M08·M09) | `/api/orders`, `/api/dispatch-requests` |
 | 내 배차, 다른 앱 배차 등록(4단계), 취소 | `/api/trips` |
@@ -17,7 +18,7 @@
 
 화면 기준은 [UX.md](UX.md)를 따른다. 운행 진행(출발·도착)은 차량 앱이 맡는다.
 
-디자인은 아티팩트 "Ieo 홈 목록 시안"의 모바일 앱 페이지를 따른다. 구글 로그인(버튼만 있고 눌러도 동작하지 않는다), 로그인된 차량, 동의 관리, 사업자 정보는 서버 API나 키가 준비되면 더한다. 약관 전문은 출시 전에 넣는다.
+디자인은 아티팩트 "Ieo 홈 목록 시안"의 모바일 앱 페이지를 따른다. 구글 로그인(버튼만 있고 눌러도 동작하지 않는다)은 앱용 키가 준비되면 더한다. 약관 전문은 출시 전에 넣는다.
 
 ## 구조
 

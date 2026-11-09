@@ -49,7 +49,7 @@ import com.ieo.mobile.ui.vehicle.VehiclesState
  * 서버 API나 다른 도메인이 준비되면 더한다
  */
 @Composable
-fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit) {
+fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var renaming by remember { mutableStateOf(false) }
     var withdrawing by remember { mutableStateOf(false) }
@@ -101,6 +101,11 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
                 Text("  ›", fontSize = 20.sp, color = TextSub)
             }
         }
+        Card {
+            SettingRow("로그인된 차량", "${carSessionCount}대") { onAccountSection(AccountSection.CARS) }
+            SettingRow("동의 관리", "") { onAccountSection(AccountSection.CONSENTS) }
+            SettingRow("사업자 정보", "선택") { onAccountSection(AccountSection.BUSINESS) }
+        }
         state.message?.let { Text(it, fontSize = 16.sp, color = IeoStatus.colors.warning) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             QuietButton("로그아웃", viewModel::signOut)
@@ -134,6 +139,15 @@ private fun RenameDialog(current: String, busy: Boolean, viewModel: MyViewModel,
         },
         dismissButton = { TextButton(onClick = onClose) { Text("취소", color = TextMid) } },
     )
+}
+
+@Composable
+private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, fontSize = 16.sp, color = TextStrong, modifier = Modifier.weight(1f))
+        Text(value, fontSize = 16.sp, color = TextSub)
+        Text("  ›", fontSize = 20.sp, color = TextSub)
+    }
 }
 
 @Composable

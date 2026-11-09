@@ -73,6 +73,9 @@ import com.ieo.mobile.ui.login.LoginScreen
 import com.ieo.mobile.ui.login.LoginViewModel
 import com.ieo.mobile.ui.link.LinksScreen
 import com.ieo.mobile.ui.link.LinksViewModel
+import com.ieo.mobile.ui.my.AccountSection
+import com.ieo.mobile.ui.my.AccountSettingsScreen
+import com.ieo.mobile.ui.my.AccountSettingsViewModel
 import com.ieo.mobile.ui.my.MyScreen
 import com.ieo.mobile.ui.my.MyViewModel
 import com.ieo.mobile.ui.ledger.LedgerOverlay
@@ -212,12 +215,15 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     var managingVehicles by rememberSaveable { mutableStateOf(false) }
     var registering by rememberSaveable { mutableStateOf(false) }
     var managingLinks by rememberSaveable { mutableStateOf(false) }
+    var accountSection by rememberSaveable { mutableStateOf<AccountSection?>(null) }
     var editingRecommendation by rememberSaveable { mutableStateOf(false) }
     val recommendation: RecommendationViewModel = viewModel(key = "recommendation") { RecommendationViewModel(container.recommendationRepository) }
     val recommendationState by recommendation.state.collectAsStateWithLifecycle()
     val links: LinksViewModel = viewModel(key = "links") { LinksViewModel(container.driverLinkRepository) }
     val linkState by links.state.collectAsStateWithLifecycle()
     val my: MyViewModel = viewModel(key = "my") { MyViewModel(container.accountRepository) }
+    val accountSettings: AccountSettingsViewModel = viewModel(key = "accountSettings") { AccountSettingsViewModel(container.accountSettingsRepository) }
+    val accountSettingsState by accountSettings.state.collectAsStateWithLifecycle()
     val vehicles: VehiclesViewModel = viewModel(key = "vehicles") { VehiclesViewModel(container.vehicleRepository) }
     val orders: OrdersViewModel = viewModel(key = "orders") { OrdersViewModel(container.orderRepository, container.locationSource) }
     val trips: TripsViewModel = viewModel(key = "trips") { TripsViewModel(container.tripRepository) }
@@ -272,6 +278,10 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     }
     if (editingRecommendation) {
         RecommendationScreen(recommendation, onBack = { editingRecommendation = false })
+        return
+    }
+    accountSection?.let { section ->
+        AccountSettingsScreen(section, accountSettings, onBack = { accountSection = null })
         return
     }
     if (managingLinks) {
@@ -333,7 +343,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                 )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
                 Tab.EARNINGS -> LedgerScreen(ledger)
-                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, onRecommendation = { editingRecommendation = true })
+                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true })
             }
         }
         Row(Modifier.fillMaxWidth().background(White).padding(vertical = 6.dp)) {

@@ -11,7 +11,9 @@ import com.ieo.mobile.core.session.EncryptedTokenStore
 import com.ieo.mobile.core.session.KeystoreTokenCipher
 import com.ieo.mobile.core.session.SessionManager
 import com.ieo.mobile.data.account.AccountApi
+import com.ieo.mobile.data.account.AccountSettingsApi
 import com.ieo.mobile.data.account.DefaultAccountRepository
+import com.ieo.mobile.data.account.DefaultAccountSettingsRepository
 import com.ieo.mobile.data.auth.AuthApi
 import com.ieo.mobile.data.auth.DefaultAuthRepository
 import com.ieo.mobile.data.auth.ServerTokenRefresher
@@ -39,6 +41,7 @@ import com.ieo.mobile.data.order.OrderApi
 import com.ieo.mobile.data.vehicle.DefaultVehicleRepository
 import com.ieo.mobile.data.vehicle.VehicleApi
 import com.ieo.mobile.domain.account.AccountRepository
+import com.ieo.mobile.domain.account.AccountSettingsRepository
 import com.ieo.mobile.domain.auth.AuthRepository
 import com.ieo.mobile.domain.carlogin.CarLoginRepository
 import com.ieo.mobile.domain.expense.ExpenseRepository
@@ -70,6 +73,8 @@ class AppContainer(context: Context) {
         DefaultAuthRepository(network.public.create(AuthApi::class.java), network.caller, session, device)
     val accountRepository: AccountRepository =
         DefaultAccountRepository(network.authenticated.create(AccountApi::class.java), network.caller, session)
+    val accountSettingsRepository: AccountSettingsRepository =
+        DefaultAccountSettingsRepository(network.authenticated.create(AccountSettingsApi::class.java), network.caller)
     val vehicleRepository: VehicleRepository =
         DefaultVehicleRepository(network.authenticated.create(VehicleApi::class.java), network.caller)
     val orderRepository: OrderRepository =
