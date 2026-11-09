@@ -1,5 +1,13 @@
 package com.ieo.mobile.ui.login
 
+import kotlinx.coroutines.async
+import com.ieo.mobile.ui.theme.Orange500
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
 import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -93,7 +101,6 @@ private val ErrorBorder = Color(0xFFEF4444)
 private val ErrorFill = Color(0xFFFEF2F2)
 private val LineGray = Color(0xFFE5E8EB)
 private val OffGray = Color(0xFFD1D6DB)
-private val StartButtonShape = RoundedCornerShape(16.dp)
 
 @Composable
 fun LoginScreen(viewModel: LoginViewModel) {
@@ -125,35 +132,60 @@ fun LoginScreen(viewModel: LoginViewModel) {
     state.existing?.let { ExistingAccountDialog(it, state, viewModel) }
 }
 
-/** M01 시작 */
+/** M01 시작. 차량 앱의 시작 화면(SplashScreen)과 같다: 로고, 문구, 시작하기 버튼이 차례로 나타난다 */
 @Composable
 private fun StartScreen(onStart: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(Orange600).safeDrawingPadding().padding(horizontal = 24.dp)) {
-        Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            IeoWordmark(width = 200.dp, color = White)
-            Spacer(Modifier.height(16.dp))
-            Text("끝나는 곳에서, 다음이 이어집니다", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = White)
+    val logoAlpha = remember { Animatable(0f) }
+    val taglineAlpha = remember { Animatable(0f) }
+    val taglineOffset = remember { Animatable(24f) }
+    val buttonAlpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        logoAlpha.animateTo(1f, tween(durationMillis = 700, easing = FastOutSlowInEasing))
+        delay(150)
+        val fade = async { taglineAlpha.animateTo(1f, tween(durationMillis = 800)) }
+        taglineOffset.animateTo(0f, tween(durationMillis = 800, easing = FastOutSlowInEasing))
+        fade.await()
+        delay(300)
+        buttonAlpha.animateTo(1f, tween(durationMillis = 500))
+    }
+
+    Box(Modifier.fillMaxSize().background(Orange500).safeDrawingPadding()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.align(Alignment.Center)) {
+            IeoWordmark(width = 200.dp, color = White, modifier = Modifier.graphicsLayer { alpha = logoAlpha.value })
+            Spacer(Modifier.height(28.dp))
+            Text(
+                "끝나는 곳에서, 다음이 이어집니다",
+                color = White.copy(alpha = 0.9f),
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 1.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = taglineAlpha.value
+                    translationY = taglineOffset.value.dp.toPx()
+                },
+            )
         }
-        // TODO: 앱용 Google 키를 받으면 로그인을 연결한다. 지금은 눌러도 아무 일도 없다
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxWidth().height(60.dp).background(White, StartButtonShape).clickable {},
+        Button(
+            onClick = onStart,
+            enabled = buttonAlpha.value > 0.5f,
+            shape = RoundedCornerShape(16.dp),
+            // 나타나는 동안 눌리지 않게 막아 두지만, 색은 활성 상태와 같게 보이도록 한다
+            colors = ButtonDefaults.buttonColors(
+                containerColor = White,
+                contentColor = Orange700,
+                disabledContainerColor = White,
+                disabledContentColor = Orange700,
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 24.dp, end = 24.dp, bottom = 64.dp)
+                .fillMaxWidth()
+                .heightIn(min = 76.dp)
+                .graphicsLayer { alpha = buttonAlpha.value },
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(20.dp))
-                Text("Google로 계속하기", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-            }
+            Text("시작하기", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(10.dp))
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxWidth().height(60.dp)
-                .background(Orange700, StartButtonShape)
-                .clickable(onClick = onStart),
-        ) {
-            Text("휴대폰 번호로 계속하기", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = White)
-        }
-        Spacer(Modifier.height(32.dp))
     }
 }
 
