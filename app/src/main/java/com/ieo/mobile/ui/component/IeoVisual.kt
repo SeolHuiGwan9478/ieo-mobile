@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.component
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,9 +35,9 @@ import com.ieo.mobile.ui.theme.White
 
 /** 뜻을 먼저 알려 주는 동그란 아이콘. 글자를 대신하지 않고 곁에 둔다 */
 @Composable
-fun IconBadge(icon: ImageVector, tint: Color = Orange700, background: Color = Orange50, size: Dp = 44.dp) {
-    Box(Modifier.size(size).background(background, CircleShape), contentAlignment = Alignment.Center) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.55f))
+fun IconBadge(icon: ImageVector, tint: Color = TextStrong, @Suppress("UNUSED_PARAMETER") background: Color = Color.Transparent, size: Dp = 44.dp) {
+    Box(Modifier.size(size), contentAlignment = Alignment.CenterStart) {
+        Icon(icon, contentDescription = null, tint = if (tint == Orange700) TextStrong else tint, modifier = Modifier.size(26.dp))
     }
 }
 
@@ -46,7 +47,7 @@ fun ActionRow(icon: ImageVector, title: String, detail: String?, onClick: () -> 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(16.dp).semantics(mergeDescendants = true) {},
+        modifier = Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp).semantics(mergeDescendants = true) {},
     ) {
         IconBadge(icon)
         Column(Modifier.weight(1f)) {
@@ -60,11 +61,11 @@ fun ActionRow(icon: ImageVector, title: String, detail: String?, onClick: () -> 
 /** 아이콘 위, 항목 이름, 값이 쌓인 작은 칸. 한눈에 비교하는 정보에 쓴다 */
 @Composable
 fun InfoTile(icon: ImageVector, label: String, value: String, modifier: Modifier = Modifier, known: Boolean = true) {
-    Column(modifier.background(White, RoundedCornerShape(20.dp)).padding(16.dp).semantics(mergeDescendants = true) {}) {
+    Column(modifier.ruled().padding(vertical = 16.dp).semantics(mergeDescendants = true) {}) {
         IconBadge(icon, size = 38.dp)
         Spacer(Modifier.size(10.dp))
         Text(label, fontSize = 15.sp, color = TextSub)
-        Text(value, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = if (known) FontWeight.ExtraBold else FontWeight.Medium, color = if (known) TextStrong else TextSub)
+        Text(value, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = if (known) FontWeight.Bold else FontWeight.Medium, color = if (known) TextStrong else TextSub)
     }
 }
 

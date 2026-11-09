@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.my
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,8 +54,6 @@ import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
 
-private val CardShape = RoundedCornerShape(20.dp)
-
 /** 내 정보에서 여는 설정 화면 세 가지 */
 @Composable
 fun AccountSettingsScreen(
@@ -71,14 +70,14 @@ fun AccountSettingsScreen(
         AccountSection.CONSENTS -> "동의 관리"
         AccountSection.BUSINESS -> "사업자 정보"
     }
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             state.notice?.let { NoticeBar(LedgerNotice(it), viewModel::dismissNotice) }
             state.error?.let { ErrorNotice(it, if (state.loadFailed) viewModel::refresh else null) }
@@ -104,7 +103,7 @@ private fun CarSessions(state: AccountSettingsState, viewModel: AccountSettingsV
         EmptyState("로그인된 차량이 없어요", "차량 화면의 QR을 찍어 로그인하면 여기에 나와요")
     }
     state.carSessions.forEach { session ->
-        Row(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().ruled().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(session.name ?: "이름 없는 차량", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 Text("마지막 사용 ${labels.dayTime(session.lastUsedAt)}", fontSize = 15.sp, color = TextMid)
@@ -137,7 +136,7 @@ private fun Consents(state: AccountSettingsState, viewModel: AccountSettingsView
 @Composable
 private fun ConsentRow(item: ConsentItem, onChange: (Boolean) -> Unit) {
     val known = Consent.entries.firstOrNull { it.name == item.type }
-    Row(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(known?.label ?: item.description, fontSize = 17.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             known?.hint?.let { Text(it, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid) }

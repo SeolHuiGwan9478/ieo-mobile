@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.ledger
 
+import com.ieo.mobile.ui.theme.White
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,13 +39,7 @@ fun paidTag(entry: LedgerEntry): Pair<String, TagColor> = when {
 
 @Composable
 fun StatusTag(text: String, color: TagColor) {
-    Text(
-        text,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        color = color.content,
-        modifier = Modifier.background(color.background, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
-    )
+    Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = color.content)
 }
 
 /** 저장 뒤 알림과 되돌리기 */
@@ -65,6 +60,6 @@ fun NoticeBar(notice: LedgerNotice, onDismiss: () -> Unit) {
 fun AmountLine(label: String, value: String, strong: Boolean = false) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, fontSize = 16.sp, color = TextMid)
-        Text(value, fontSize = 16.sp, fontWeight = if (strong) FontWeight.ExtraBold else FontWeight.SemiBold, color = TextStrong)
+        Text(value, fontSize = 16.sp, fontWeight = if (strong) FontWeight.Bold else FontWeight.SemiBold, color = TextStrong)
     }
 }

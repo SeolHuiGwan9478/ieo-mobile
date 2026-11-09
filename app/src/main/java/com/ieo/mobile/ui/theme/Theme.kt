@@ -1,6 +1,7 @@
 package com.ieo.mobile.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -8,6 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 
 // 브랜드색: 주황 (design/README.md 색상 팔레트). Postman 주황에서 출발했다
 val Orange50 = Color(0xFFFFF3EE)   // 선택된 메뉴·강조 바탕
@@ -115,10 +117,14 @@ fun IeoTheme(darkTheme: Boolean = false, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalStatusColors provides if (darkTheme) DarkStatus else LightStatus) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
+            typography = IeoTypography,
             content = content,
         )
     }
 }
+
+/** 금액 자릿수가 줄마다 맞도록 숫자 폭을 고정한다 */
+private val IeoTypography = Typography().let { it.copy(bodyLarge = it.bodyLarge.copy(fontFeatureSettings = "tnum", letterSpacing = 0.sp)) }
 
 private val LocalStatusColors = staticCompositionLocalOf { LightStatus }
 

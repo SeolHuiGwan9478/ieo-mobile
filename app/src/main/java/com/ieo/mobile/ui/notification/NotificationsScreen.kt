@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.notification
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Schedule
@@ -112,7 +113,7 @@ fun NotificationBell(unreadCount: Int, onClick: () -> Unit) {
 fun NotificationsScreen(viewModel: NotificationsViewModel, onOpen: (AppNotification) -> Unit, onBack: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     BackHandler(onBack = onBack)
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text("알림", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
@@ -136,7 +137,7 @@ fun NotificationsScreen(viewModel: NotificationsViewModel, onOpen: (AppNotificat
 @Composable
 private fun NotificationRow(item: AppNotification, isNew: Boolean, onClick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().background(if (isNew) Orange50 else White, RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(18.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -164,7 +165,7 @@ fun NotificationBanner(notification: AppNotification, onDismiss: () -> Unit) {
             .padding(12.dp)
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(18.dp))
-            .background(White, RoundedCornerShape(18.dp))
+            .ruled()
             .padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 4.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
     ) {

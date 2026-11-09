@@ -126,7 +126,7 @@ private fun ColumnScope.WhenStep(state: RegisterState, viewModel: RegisterTripVi
         Spacer(Modifier.height(32.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             TonalButton("−30분", { viewModel.shiftTime(-30) }, modifier = Modifier.width(100.dp))
-            Text("%02d:%02d".format(state.time.hour, state.time.minute), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text("%02d:%02d".format(state.time.hour, state.time.minute), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             TonalButton("+30분", { viewModel.shiftTime(30) }, modifier = Modifier.width(100.dp))
         }
     }
@@ -149,7 +149,7 @@ private fun ColumnScope.MoneyStep(state: RegisterState, viewModel: RegisterTripV
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(1L, 5L, 10L).forEach { BrandChip("+${it}만", false) { viewModel.addFare(it) } }
         }
-        if (state.fare > 0) Text(formatWon(state.fare), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.padding(top = 12.dp))
+        if (state.fare > 0) Text(formatWon(state.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 12.dp))
         Spacer(Modifier.height(20.dp))
         Text("결제", fontSize = 16.sp, color = TextSub, modifier = Modifier.padding(bottom = 8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

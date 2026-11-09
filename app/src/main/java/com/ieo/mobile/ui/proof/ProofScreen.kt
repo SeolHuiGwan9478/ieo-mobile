@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.proof
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -73,8 +74,6 @@ import java.io.File
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.launch
-
-private val CardShape = RoundedCornerShape(20.dp)
 
 private fun duration(minutes: Long): String = when {
     minutes < 60 -> "${minutes}분"
@@ -150,12 +149,12 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
     }
     val album = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(::readPhoto) }
 
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = close) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text("증빙", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             when {
                 state.isLoading -> SkeletonCards(2)
                 state.loadFailed -> ErrorNotice(state.error.orEmpty(), viewModel::retry)
@@ -220,12 +219,12 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
 
 @Composable
 private fun Heading(text: String) {
-    Text(text, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+    Text(text, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
 }
 
 @Composable
 private fun Card(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
 }
 
 @Composable
@@ -233,7 +232,7 @@ private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, busy: Boolean
     Card {
         val stop = if (record.stopType == StopType.PICKUP) "상차" else "하차"
         Text("$stop · ${record.siteName}" + if (record.edited) " · 수정됨" else "", fontSize = 16.sp, color = TextSub)
-        Text(waitHeadline(record), fontSize = 21.sp, lineHeight = 29.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+        Text(waitHeadline(record), fontSize = 21.sp, lineHeight = 29.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         val amount = (record.chargeableAmount ?: 0) > 0
         Text(waitChargeText(record), fontSize = 16.sp, lineHeight = 23.sp, fontWeight = if (amount) FontWeight.Bold else FontWeight.Normal, color = if (amount) IeoStatus.colors.done else TextMid)
         StepTimeline(listOf("도착" to labels.time(record.arrivedAt), "작업" to record.workStartedAt?.let(labels::time), "출발" to record.departedAt?.let(labels::time)))
@@ -245,7 +244,7 @@ private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, busy: Boolean
 private fun DoneTitle() {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         IconBadge(Icons.Outlined.CheckCircle, tint = IeoStatus.colors.done, background = androidx.compose.ui.graphics.Color(0xFFE6F4EA), size = 38.dp)
-        Text("인수 완료", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = IeoStatus.colors.done)
+        Text("인수 완료", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done)
     }
 }
 
@@ -266,7 +265,7 @@ private fun DeliveryCard(state: ProofState, labels: DayTimeFormatter, viewModel:
                 Text("종이 인수증 사진 ${delivery.photoCount}장을 올렸어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
             }
             else -> {
-                Text("아직 서명 전이에요", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                Text("아직 서명 전이에요", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 Text("수하인이 링크를 열어 앱 없이 서명해요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
                 PrimaryButton("수하인에게 서명 요청", viewModel::shareDeliveryLink, busy = state.busy == ProofAction.DeliveryLink, icon = Icons.Outlined.Draw, modifier = Modifier.padding(top = 6.dp))
                 if (delivery != null) {

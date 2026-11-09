@@ -47,7 +47,7 @@ private fun Asking(state: CarLoginState.Asking, viewModel: CarLoginViewModel) {
     Spacer(Modifier.height(8.dp))
     Text("내 차 화면에 같은 코드가 보일 때만 승인하세요", fontSize = 16.sp, color = TextSub)
     Spacer(Modifier.height(28.dp))
-    Text(state.request.code, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
+    Text(state.request.code, fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Orange700)
     Spacer(Modifier.height(16.dp))
     Text(state.request.deviceName, fontSize = 18.sp, color = TextStrong)
     state.request.approxLocation?.let { Text(it, fontSize = 16.sp, color = TextSub) }

@@ -1,5 +1,7 @@
 package com.ieo.mobile.ui.order
 
+import com.ieo.mobile.ui.component.ruled
+import androidx.compose.foundation.horizontalScroll
 import com.ieo.mobile.ui.site.SiteInfoLink
 import android.Manifest
 import androidx.activity.compose.BackHandler
@@ -73,7 +75,6 @@ import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.delay
 
-private val CardShape = RoundedCornerShape(20.dp)
 private val LineGray = Color(0xFFE5E8EB)
 
 /** M08 오더 찾기. 근처 오더를 찾으려고 처음에 위치 권한을 묻는다 */
@@ -88,20 +89,20 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
     }
     val orders = viewModel.visible(state)
 
-    Column(Modifier.fillMaxSize().background(CanvasGray)) {
+    Column(Modifier.fillMaxSize().background(White)) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("오더 찾기", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.weight(1f))
+                Text("오더 찾기", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
                 Text(
                     "${state.sort.label} ▾",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextMid,
-                    modifier = Modifier.background(White, RoundedCornerShape(10.dp)).clickable(onClick = viewModel::toggleSort).padding(horizontal = 10.dp, vertical = 7.dp),
+                    modifier = Modifier.clickable(onClick = viewModel::toggleSort).padding(horizontal = 4.dp, vertical = 10.dp),
                 )
             }
             Spacer(Modifier.height(12.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 BrandChip("내 위치 50km", state.nearMe && !state.locationMissing, viewModel::toggleNearMe)
                 DayFilter.entries.forEach { day -> BrandChip(day.label, state.day == day) { viewModel.selectDay(day) } }
                 BrandChip("선불만", state.prepaidOnly, viewModel::togglePrepaid)
@@ -113,7 +114,7 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
         PullToRefreshBox(isRefreshing = state.isLoading && state.orders.isNotEmpty(), onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 if (state.loadFailed) state.message?.let { ErrorNotice(it, viewModel::refresh) }
                 if (state.isLoading && state.orders.isEmpty()) SkeletonCards(4)
@@ -136,38 +137,32 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
 @Composable
 private fun OrderCard(order: Order, texts: OrderTexts, onClick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().background(White, CardShape).clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(texts.route(order), fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.weight(1f))
-            Text(formatWon(order.fare), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text(texts.route(order), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+            Text(formatWon(order.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
         Tags(order, texts)
         Column {
             Text("상차 ${texts.pickupTime(order)}", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
             Text("하차 ${texts.dropoffTime(order)}", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
         }
-        texts.distance(order)?.let { Text("내 위치에서 상차지까지 $it", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextMid) }
-        texts.netProfit(order)?.let { Text(it, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Orange700) }
+        if (order.distanceMeters != null || order.netProfit != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(texts.distance(order)?.let { "상차지까지 $it" }.orEmpty(), fontSize = 15.sp, color = TextMid, modifier = Modifier.weight(1f))
+                texts.netProfit(order)?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700) }
+            }
+        }
         if (order.isRequestedByMe) RequestedBadge()
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** 태그를 알약 대신 글자 한 줄로 쓴다 */
 @Composable
 private fun Tags(order: Order, texts: OrderTexts) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        texts.tags(order).forEach {
-            Text(
-                it.text,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = it.color.content,
-                modifier = Modifier.background(it.color.background, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        }
-    }
+    Text(texts.tags(order).joinToString(" · ") { it.text }, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid)
 }
 
 @Composable
@@ -177,7 +172,6 @@ private fun RequestedBadge() {
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
         color = Orange700,
-        modifier = Modifier.background(Orange50, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
 
@@ -185,17 +179,17 @@ private fun RequestedBadge() {
 @Composable
 fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewModel, texts: OrderTexts = remember { OrderTexts() }, onSite: (Long) -> Unit = {}) {
     BackHandler(onBack = viewModel::close)
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = viewModel::close) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text("오더 상세", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(texts.route(order), fontSize = 23.sp, lineHeight = 31.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Column(Modifier.padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(texts.route(order), fontSize = 23.sp, lineHeight = 31.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 Tags(order, texts)
             }
             FareCard(order)
@@ -217,14 +211,12 @@ fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewMod
     if (state.reporting) ReportDialog(state.isBusy, viewModel)
 }
 
-private val FareGradient = Brush.linearGradient(listOf(Color(0xFFFF8A5B), Color(0xFFFF6C37), Color(0xFFF25A22)))
-
 @Composable
 private fun FareCard(order: Order) {
-    Column(Modifier.fillMaxWidth().background(FareGradient, CardShape).padding(horizontal = 20.dp, vertical = 18.dp)) {
-        Text("운임", fontSize = 16.sp, color = White.copy(alpha = 0.9f))
-        Text(formatWon(order.fare), fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = White)
-        Text("${order.paymentTypeLabel} · ${order.expectedPaymentDays}일 안에 지급", fontSize = 15.sp, color = White.copy(alpha = 0.9f))
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
+        Text("운임", fontSize = 16.sp, color = TextMid)
+        Text(formatWon(order.fare), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+        Text("${order.paymentTypeLabel} · ${order.expectedPaymentDays}일 안에 지급", fontSize = 15.sp, color = TextMid)
     }
 }
 
@@ -237,9 +229,9 @@ private fun ProfitCard(order: Order, profit: OrderProfit?) {
         profit.tollFare == null -> "기름값만 뺀 금액"
         else -> "기름값·통행료 뺀 금액"
     }
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("실수익 · $note", fontSize = 16.sp, color = TextMid)
-        Text(if (profit == null) "약 ${formatWon(roundedToManwon(net))}" else formatWon(net), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
+        Text(if (profit == null) "약 ${formatWon(roundedToManwon(net))}" else formatWon(net), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Orange700)
         profit?.let {
             it.tollFare?.let { toll -> ProfitLine("예상 통행료", formatWon(toll)) }
             ProfitLine("기름값", formatWon(it.fuelCost))
@@ -258,7 +250,7 @@ private fun ProfitLine(label: String, value: String) {
 
 @Composable
 private fun RouteCard(order: Order, texts: OrderTexts, onSite: (Long) -> Unit) {
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp)) {
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
         val distance = texts.distance(order)
         Stop("상차" + (distance?.let { " · 내 위치에서 $it" } ?: ""), order.pickup, texts.pickupTime(order), Orange600, onSite)
         Spacer(Modifier.height(18.dp))
@@ -281,7 +273,7 @@ private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSit
             Text(label, fontSize = 15.sp, color = TextSub)
             Text(site.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             Text(site.address, fontSize = 15.sp, color = TextMid)
-            Text(time, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
+            Text(time, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
             site.siteId?.let { id -> SiteInfoLink { onSite(id) } }
         }
     }
@@ -289,9 +281,9 @@ private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSit
 
 @Composable
 private fun BrokerCard(order: Order, texts: OrderTexts) {
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 18.dp, vertical = 14.dp)) {
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {
         Text(order.brokerName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-        order.brokerMetrics?.let { Text(texts.metrics(it), fontSize = 15.sp, lineHeight = 19.sp, color = TextSub) }
+        order.brokerMetrics?.let { Text(texts.metrics(it), fontSize = 15.sp, lineHeight = 21.sp, color = TextSub) }
     }
 }
 
@@ -307,11 +299,11 @@ private fun RequestCountdown(request: DispatchRequest) {
     }
     val left = Duration.between(Instant.ofEpochMilli(now), request.expiresAt).seconds.coerceAtLeast(0)
     Row(
-        Modifier.fillMaxWidth().background(Orange50, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("주선사 확인을 기다려요", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700, modifier = Modifier.weight(1f))
-        Text("%d:%02d".format(left / 60, left % 60), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
+        Text("%d:%02d".format(left / 60, left % 60), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
     }
 }
 

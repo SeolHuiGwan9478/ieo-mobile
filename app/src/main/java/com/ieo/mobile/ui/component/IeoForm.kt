@@ -1,5 +1,8 @@
 package com.ieo.mobile.ui.component
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
@@ -41,9 +44,15 @@ import com.ieo.mobile.ui.theme.TextMid
 import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.White
 
-private val ButtonShape = RoundedCornerShape(16.dp)
-private val ChipOnLine = Color(0xFFFFC9B3)
-private val ChipOffLine = Color(0xFFD1D6DB)
+private val ButtonShape = RoundedCornerShape(10.dp)
+private val ChipShape = RoundedCornerShape(8.dp)
+
+/** 묶음을 카드 대신 얇은 선으로 나눈다 */
+val LineGray = Color(0xFFE5E8EB)
+
+fun Modifier.ruled(): Modifier = drawBehind {
+    drawLine(LineGray, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1.dp.toPx())
+}
 
 /** 화면의 주요 행동. [busy]면 진행 표시를 돌리고 누르지 못한다 */
 @Composable
@@ -70,7 +79,8 @@ fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modi
         onClick = onClick,
         enabled = enabled,
         shape = ButtonShape,
-        colors = ButtonDefaults.buttonColors(containerColor = CanvasGray, contentColor = TextMid),
+        colors = ButtonDefaults.buttonColors(containerColor = White, contentColor = TextStrong),
+        border = BorderStroke(1.dp, LineGray),
         modifier = modifier.heightIn(min = 60.dp),
     ) {
         icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(22.dp)) }
@@ -114,23 +124,21 @@ fun StepLabel(text: String) {
 /** 시안의 큰 제목 */
 @Composable
 fun Heading(text: String) {
-    Text(text, fontSize = 27.sp, lineHeight = 37.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+    Text(text, fontSize = 25.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = TextStrong)
 }
 
 /** 고르기 칩. 장갑을 껴도 누르도록 높이 48dp */
 @Composable
 fun BrandChip(text: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(24.dp)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .background(if (selected) Orange50 else White, shape)
-            .border(if (selected) 2.dp else 1.5.dp, if (selected) ChipOnLine else ChipOffLine, shape)
+            .background(if (selected) TextStrong else CanvasGray, ChipShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp),
+            .padding(horizontal = 14.dp),
     ) {
-        Text(text, fontSize = 16.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, color = if (selected) Orange700 else TextMid)
+        Text(text, fontSize = 16.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, color = if (selected) White else TextMid)
     }
 }
 
@@ -144,7 +152,7 @@ fun ScreenTitle(text: String) {
 fun SkeletonCards(count: Int = 3) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         repeat(count) {
-            Column(Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.fillMaxWidth(0.7f).height(22.dp).background(CanvasGray, RoundedCornerShape(6.dp)))
                 Box(Modifier.fillMaxWidth(0.45f).height(18.dp).background(CanvasGray, RoundedCornerShape(6.dp)))
                 Box(Modifier.fillMaxWidth(0.9f).height(18.dp).background(CanvasGray, RoundedCornerShape(6.dp)))
@@ -171,7 +179,7 @@ fun EmptyState(title: String, detail: String, action: String? = null, onAction: 
 @Composable
 fun ErrorNotice(message: String, onRetry: (() -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().background(Color(0xFFFDECEC), RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().ruled().padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(message, fontSize = 16.sp, lineHeight = 23.sp, color = IeoStatus.colors.warning, modifier = Modifier.weight(1f).padding(vertical = 6.dp))

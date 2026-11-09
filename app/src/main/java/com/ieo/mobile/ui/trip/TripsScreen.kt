@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.trip
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
 import com.ieo.mobile.ui.component.ActionRow
@@ -61,28 +62,19 @@ import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
 
-private val CardShape = RoundedCornerShape(20.dp)
-
 fun tripRoute(trip: Trip) = "${trip.pickup.name} → ${trip.dropoff.name}"
 
 fun tripTime(stop: TripStop, labels: DayTimeFormatter): String = stop.plannedAt?.let(labels::dayTime) ?: "시간 미정"
 
-private fun statusColor(status: TripStatus): TagColor = when {
-    status.isInProgress -> IeoTag.Teal
-    status == TripStatus.SCHEDULED -> IeoTag.Navy
-    else -> IeoTag.Gray
-}
 
 /** 상태 꼬리표. 색과 글자를 함께 쓴다 */
 @Composable
 fun TripStatusTag(status: TripStatus) {
-    val color = statusColor(status)
     Text(
         status.label,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        color = color.content,
-        modifier = Modifier.background(color.background, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = if (status.isInProgress) IeoStatus.colors.driving else TextMid,
     )
 }
 
@@ -91,12 +83,12 @@ fun TripStatusTag(status: TripStatus) {
 @Composable
 fun TripsScreen(viewModel: TripsViewModel, onRegister: () -> Unit, labels: DayTimeFormatter = remember { DayTimeFormatter() }) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Column(Modifier.fillMaxSize().background(CanvasGray)) {
-        Text("내 배차", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp))
+    Column(Modifier.fillMaxSize().background(White)) {
+        Text("내 배차", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp))
         PullToRefreshBox(isRefreshing = state.isLoading && state.trips.isNotEmpty(), onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 if (state.loadFailed) state.error?.let { ErrorNotice(it, viewModel::refresh) }
                 if (state.isLoading && state.trips.isEmpty()) SkeletonCards(3)
@@ -115,7 +107,7 @@ fun TripsScreen(viewModel: TripsViewModel, onRegister: () -> Unit, labels: DayTi
 @Composable
 private fun Section(title: String, trips: List<Trip>, labels: DayTimeFormatter, viewModel: TripsViewModel) {
     if (trips.isEmpty()) return
-    Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+    Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
     trips.forEach { TripCard(it, labels) { viewModel.open(it.id) } }
 }
 
@@ -123,15 +115,15 @@ private fun Section(title: String, trips: List<Trip>, labels: DayTimeFormatter, 
 @Composable
 fun TripCard(trip: Trip, labels: DayTimeFormatter, onClick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().background(White, CardShape).clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TripStatusTag(trip.status)
             Spacer(Modifier.weight(1f))
-            Text(formatWon(trip.fare), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text(formatWon(trip.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
-        Text(tripRoute(trip), fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+        Text(tripRoute(trip), fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         Text("상차 ${tripTime(trip.pickup, labels)}", fontSize = 16.sp, color = TextMid)
         Text(listOfNotNull(trip.plateNumber, trip.paymentTypeLabel, trip.brokerName).joinToString(" · "), fontSize = 15.sp, color = TextSub)
     }
@@ -141,22 +133,22 @@ fun TripCard(trip: Trip, labels: DayTimeFormatter, onClick: () -> Unit) {
 fun TripDetailScreen(trip: Trip, state: TripsState, viewModel: TripsViewModel, labels: DayTimeFormatter = remember { DayTimeFormatter() }, onSite: (Long) -> Unit = {}, onProof: (Long) -> Unit = {}) {
     BackHandler(onBack = viewModel::close)
     var cancelling by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = viewModel::close) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text("배차 상세", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Column(Modifier.padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TripStatusTag(trip.status)
-                Text(tripRoute(trip), fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                Text(tripRoute(trip), fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             }
-            Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp)) {
+            Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
                 Stop("상차", trip.pickup, labels, onSite)
                 Spacer(Modifier.height(18.dp))
                 Stop("하차", trip.dropoff, labels, onSite)
             }
-            Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Line("운임", "${formatWon(trip.fare)} · ${trip.paymentTypeLabel}")
                 Line("차량", trip.plateNumber)
                 trip.brokerName?.let { Line("주선사", it) }
@@ -165,7 +157,7 @@ fun TripDetailScreen(trip: Trip, state: TripsState, viewModel: TripsViewModel, l
                 ActionRow(Icons.Outlined.Description, "증빙", "대기 기록 · 인수증") { onProof(trip.id) }
             }
             if (trip.status == TripStatus.SCHEDULED || trip.status.isInProgress) {
-                Text("출발과 도착은 차량 앱에서 진행돼요", fontSize = 16.sp, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp))
+                Text("출발과 도착은 차량 앱에서 진행돼요", fontSize = 16.sp, color = TextMid, modifier = Modifier.padding(vertical = 14.dp))
             }
             state.error?.let { ErrorNotice(it) }
             if (trip.canCancel) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { QuietButton("운행 취소", { cancelling = true }) }
@@ -188,15 +180,15 @@ private fun Stop(label: String, stop: TripStop, labels: DayTimeFormatter, onSite
         Text(label, fontSize = 15.sp, color = TextSub)
         Text(stop.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         Text(stop.address, fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-        Text(tripTime(stop, labels), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
+        Text(tripTime(stop, labels), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
         stop.siteId?.let { id -> SiteInfoLink { onSite(id) } }
     }
 }
 
 @Composable
 private fun Line(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(label, fontSize = 16.sp, color = TextSub)
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, fontSize = 16.sp, color = TextSub, modifier = Modifier.weight(1f))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
     }
 }

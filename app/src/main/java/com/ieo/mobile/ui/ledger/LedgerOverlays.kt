@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.ledger
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -50,8 +51,6 @@ import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
 
-private val CardShape = RoundedCornerShape(20.dp)
-
 /** 수익 탭 위에 열리는 화면: 입력, 상세, 못 받은 돈 */
 @Composable
 fun LedgerOverlay(viewModel: LedgerViewModel) {
@@ -77,15 +76,15 @@ private fun BackBar(title: String, viewModel: LedgerViewModel) {
 @Composable
 private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: LedgerViewModel) {
     val (text, color) = paidTag(entry)
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         BackBar("장부 상세", viewModel)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             state.notice?.let { NoticeBar(it, viewModel::dismissNotice) }
-            Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatusTag(text, color)
-                Text(entry.description, fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                Text(entry.description, fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             }
-            Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 AmountLine("운임", formatWon(entry.fare), strong = true)
                 AmountLine("결제", entry.paymentType.label)
                 entry.brokerName?.let { AmountLine("주선사", it) }
@@ -96,7 +95,7 @@ private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: Ledge
                 QuietButton("운임 고치기", viewModel::openEditFare)
             }
             if (entry.extraIncomes.isNotEmpty()) {
-                Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 14.dp)) {
+                Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {
                     Text("대기비", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                     entry.extraIncomes.forEach { ExtraRow(it, state.isBusy, viewModel) }
                 }
@@ -128,9 +127,9 @@ private fun ExtraRow(extra: ExtraIncome, busy: Boolean, viewModel: LedgerViewMod
 @Composable
 private fun ReceivablesScreen(state: LedgerState, viewModel: LedgerViewModel) {
     val owed = state.receivables
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         BackBar("못 받은 돈", viewModel)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             state.notice?.let { NoticeBar(it, viewModel::dismissNotice) }
             state.error?.let { ErrorNotice(it) }
             Heading(formatWon(state.owedTotal))
@@ -139,12 +138,12 @@ private fun ReceivablesScreen(state: LedgerState, viewModel: LedgerViewModel) {
             if (entries.isEmpty()) EmptyState("못 받은 돈이 없어요", "운임을 모두 받으셨어요")
             entries.forEach { entry ->
                 val (text, color) = paidTag(entry)
-                Column(Modifier.fillMaxWidth().background(White, CardShape).padding(start = 18.dp, end = 10.dp, top = 14.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(entry.brokerName ?: "주선사 미상", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                Column(Modifier.fillMaxWidth().ruled().padding(start = 18.dp, end = 10.dp, top = 14.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(entry.brokerName ?: "주선사 미상", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                     Text(entry.description, fontSize = 16.sp, color = TextMid)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatusTag(text, color)
-                        Text(formatWon(entry.fare), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.weight(1f))
+                        Text(formatWon(entry.fare), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
                         QuietButton("받았어요", { if (!state.isBusy) viewModel.setPaid(entry, true) })
                     }
                 }
@@ -175,7 +174,7 @@ private fun FormScreen(form: LedgerForm, state: LedgerState, viewModel: LedgerVi
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(1L, 5L, 10L).forEach { BrandChip("+${it}만", false) { viewModel.addAmount(it * 10_000) } }
             }
-            if (form.amountValue > 0) Text(formatWon(form.amountValue), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.padding(top = 12.dp))
+            if (form.amountValue > 0) Text(formatWon(form.amountValue), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 12.dp))
             Spacer(Modifier.height(20.dp))
             if (form.kind == FormKind.EXPENSE) {
                 Label("무엇에 쓰셨어요?")

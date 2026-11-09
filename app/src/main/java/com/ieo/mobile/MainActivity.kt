@@ -1,5 +1,8 @@
 package com.ieo.mobile
 
+import com.ieo.mobile.ui.theme.TextStrong
+import com.ieo.mobile.ui.component.LineGray
+import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.ieo.mobile.ui.proof.ProofScreen
@@ -346,9 +349,10 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                 Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true })
             }
         }
+        HorizontalDivider(color = LineGray)
         Row(Modifier.fillMaxWidth().background(White).padding(vertical = 6.dp)) {
             Tab.entries.forEach { item ->
-                val color = if (item == tab) Orange700 else TabOff
+                val color = if (item == tab) TextStrong else TabOff
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,

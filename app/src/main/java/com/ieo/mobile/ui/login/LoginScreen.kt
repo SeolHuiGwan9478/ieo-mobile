@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.login
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -271,7 +272,7 @@ private fun CodeBoxes(code: String, rejected: Boolean, onChange: (String) -> Uni
                         Text(
                             code.getOrNull(index)?.toString().orEmpty(),
                             fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontWeight = FontWeight.Bold,
                             color = if (rejected) ErrorText else TextStrong,
                         )
                     }
@@ -298,7 +299,7 @@ private fun ColumnScope.TermsStep(state: LoginState, viewModel: LoginViewModel, 
         ) {
             CheckCircle(state.allAgreed, 26)
             Column {
-                Text("모두 동의하기", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                Text("모두 동의하기", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 Text("선택 항목 포함 · 필요한 것만 골라도 돼요", fontSize = 14.sp, color = TextSub)
             }
         }
@@ -444,8 +445,8 @@ private fun vehicleSummary(state: LoginState): String =
 @Composable
 private fun ExistingAccountDialog(account: ExistingAccount, state: LoginState, viewModel: LoginViewModel) {
     Dialog(onDismissRequest = {}) {
-        Column(Modifier.fillMaxWidth().background(White, RoundedCornerShape(24.dp)).padding(24.dp)) {
-            Text("이미 가입된 계정이 있어요", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+        Column(Modifier.fillMaxWidth().ruled().padding(vertical = 24.dp)) {
+            Text("이미 가입된 계정이 있어요", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             Spacer(Modifier.height(8.dp))
             Text("번호 인증을 마쳤으니 이 계정으로 로그인할게요.", fontSize = 16.sp, lineHeight = 22.sp, color = TextMid)
             Spacer(Modifier.height(16.dp))

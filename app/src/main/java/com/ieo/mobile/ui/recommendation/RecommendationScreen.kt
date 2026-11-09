@@ -81,7 +81,7 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
                     Label("찾는 범위 · 하차지에서")
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         TonalButton("−5", { viewModel.stepRadius(-RecommendationPreference.RADIUS_STEP_KM) }, modifier = Modifier.width(88.dp))
-                        Text("${draft.radiusKm}km", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                        Text("${draft.radiusKm}km", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                         TonalButton("+5", { viewModel.stepRadius(RecommendationPreference.RADIUS_STEP_KM) }, modifier = Modifier.width(88.dp))
                     }
                     Spacer(Modifier.height(24.dp))

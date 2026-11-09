@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.site
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.Height
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Construction
@@ -83,7 +84,7 @@ fun SiteInfoLink(onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(top = 6.dp).heightIn(min = 48.dp).background(Orange50, RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        modifier = Modifier.padding(top = 6.dp).heightIn(min = 48.dp).clickable(onClick = onClick).padding(horizontal = 14.dp),
     ) {
         Icon(Icons.Outlined.Info, contentDescription = null, tint = Orange700, modifier = Modifier.padding(0.dp))
         Text("현장 정보", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
@@ -101,7 +102,7 @@ fun SiteCardScreen(viewModel: SiteCardViewModel) {
         SiteMode.EDIT_INFO -> "정보 수정"
         SiteMode.WRITE_NOTE -> "메모 남기기"
     }
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = back) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
@@ -122,9 +123,9 @@ fun SiteCardScreen(viewModel: SiteCardViewModel) {
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.ViewMode(card: SiteCard, state: SiteCardState, viewModel: SiteCardViewModel) {
     val context = LocalContext.current
-    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
         Column(Modifier.padding(horizontal = 4.dp)) {
-            Text(card.name, fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text(card.name, fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             Text(card.address, fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
         }
         HeightNotice(card.height)
@@ -166,7 +167,7 @@ private fun HeightNotice(height: HeightCheck) {
         else -> return
     }
     Column(Modifier.fillMaxWidth().background(background, CardShape).padding(18.dp)) {
-        Text(headline, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(headline, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = color)
         Text("내 차 ${meters(vehicle)} · 제한 ${meters(limit)}", fontSize = 16.sp, color = TextStrong)
     }
 }
@@ -186,7 +187,7 @@ private fun NoteRow(note: SiteNote) {
 
 @Composable
 private fun Section(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
 }
 
 @Composable
@@ -219,7 +220,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.EditMode(state: SiteC
 
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.NoteMode(state: SiteCardState, viewModel: SiteCardViewModel) {
-    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).background(White).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).background(White).padding(24.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
         OutlinedTextField(
             value = state.note,
             onValueChange = viewModel::setNote,

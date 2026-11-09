@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.link
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -49,8 +50,6 @@ import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
 
-private val CardShape = RoundedCornerShape(20.dp)
-
 /** 수락이 곧 위치 공유 동의라서 무엇을 공유하는지 버튼 바로 위에 적는다 */
 private const val CONSENT_TEXT = "수락하면 이 회사 일을 하는 동안 위치와 도착 예정 시각을 공유해요. 나에게만 보이는 배차도 받을 수 있어요."
 
@@ -58,12 +57,12 @@ private const val CONSENT_TEXT = "수락하면 이 회사 일을 하는 동안 �
 fun LinksScreen(viewModel: LinksViewModel, onBack: () -> Unit, labels: DayTimeFormatter = remember { DayTimeFormatter() }) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     BackHandler(onBack = onBack)
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
             Text("단골 주선사", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             state.notice?.let { NoticeBar(LedgerNotice(it), viewModel::dismissNotice) }
             state.error?.let { ErrorNotice(it, if (state.loadFailed) viewModel::refresh else null) }
             if (state.isLoading && state.links.isEmpty() && state.invitations.isEmpty()) SkeletonCards(2)
@@ -71,7 +70,7 @@ fun LinksScreen(viewModel: LinksViewModel, onBack: () -> Unit, labels: DayTimeFo
                 EmptyState("연결된 회사가 없어요", "주선사가 내 번호로 요청하면 여기에 나와요")
             }
             state.invitations.forEach { InvitationCard(it, state.isBusy, viewModel, labels) }
-            if (state.links.isNotEmpty()) Text("연결된 회사", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+            if (state.links.isNotEmpty()) Text("연결된 회사", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
             state.links.forEach { LinkRow(it, state.isBusy, viewModel, labels) }
         }
     }
@@ -79,8 +78,8 @@ fun LinksScreen(viewModel: LinksViewModel, onBack: () -> Unit, labels: DayTimeFo
 
 @Composable
 private fun InvitationCard(link: DriverLink, busy: Boolean, viewModel: LinksViewModel, labels: DayTimeFormatter) {
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(20.dp)) {
-        Text("${link.brokerName}에서 단골 요청이 왔어요", fontSize = 19.sp, lineHeight = 27.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 20.dp)) {
+        Text("${link.brokerName}에서 단골 요청이 왔어요", fontSize = 19.sp, lineHeight = 27.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         Spacer(Modifier.height(8.dp))
         Text(CONSENT_TEXT, fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
         link.expiresAt?.let { Text("${labels.dayTime(it)}까지 답할 수 있어요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 6.dp)) }
@@ -95,7 +94,7 @@ private fun InvitationCard(link: DriverLink, busy: Boolean, viewModel: LinksView
 @Composable
 private fun LinkRow(link: DriverLink, busy: Boolean, viewModel: LinksViewModel, labels: DayTimeFormatter) {
     var unlinking by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().background(White, CardShape).padding(start = 20.dp, end = 10.dp, top = 14.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().ruled().padding(start = 20.dp, end = 10.dp, top = 14.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(link.brokerName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             link.linkedAt?.let { Text("${labels.day(it)} 연결", fontSize = 15.sp, color = TextSub) }

@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.home
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import com.ieo.mobile.ui.component.ActionRow
@@ -61,26 +62,26 @@ fun HomeScreen(
 ) {
     val labels = remember { DayTimeFormatter() }
     Column(
-        Modifier.fillMaxSize().background(CanvasGray).verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxSize().background(White).verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             IeoSymbol(size = 32.dp)
-            Text(name?.takeIf { it.isNotBlank() }?.let { "${it}님" } ?: "이에오", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.weight(1f))
+            Text(name?.takeIf { it.isNotBlank() }?.let { "${it}님" } ?: "이에오", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
             NotificationBell(unreadNotifications, onNotifications)
         }
         if (invitationCount > 0) {
-            Column(Modifier.fillMaxWidth().background(Orange50, RoundedCornerShape(20.dp)).clickable(onClick = onInvitations).padding(20.dp)) {
-                Text("단골 요청 ${invitationCount}건이 왔어요", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
+            Column(Modifier.fillMaxWidth().ruled().clickable(onClick = onInvitations).padding(vertical = 18.dp)) {
+                Text("단골 요청 ${invitationCount}건이 왔어요", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Orange700)
                 Text("눌러서 답해 주세요", fontSize = 16.sp, color = TextMid)
             }
         }
         if (monthNet != null) {
             Column(
-                Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).clickable(onClick = onEarnings).padding(20.dp),
+                Modifier.fillMaxWidth().ruled().clickable(onClick = onEarnings).padding(vertical = 20.dp),
             ) {
                 Text("이번 달 순수익", fontSize = 16.sp, color = TextMid)
-                Text(formatWon(monthNet), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+                Text(formatWon(monthNet), fontSize = 30.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 if (owed > 0) Text("못 받은 돈 ${formatWon(owed)}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning)
             }
         }
@@ -101,7 +102,7 @@ fun HomeScreen(
 @Composable
 private fun Section(content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).padding(20.dp),
+        Modifier.fillMaxWidth().ruled().padding(vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) { content() }
 }

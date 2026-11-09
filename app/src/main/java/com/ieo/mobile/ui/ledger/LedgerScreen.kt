@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.ledger
 
+import com.ieo.mobile.ui.component.ruled
 import java.io.File
 import com.ieo.mobile.ui.component.QuietButton
 import androidx.core.content.FileProvider
@@ -68,7 +69,6 @@ import com.ieo.mobile.ui.theme.White
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val CardShape = RoundedCornerShape(20.dp)
 private val BarOff = Color(0xFFD1D6DB)
 private val DayFormat = DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN)
 
@@ -113,9 +113,9 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(CanvasGray)) {
+    Column(Modifier.fillMaxSize().background(White)) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("수익", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong, modifier = Modifier.weight(1f))
+            Text("수익", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
             IconButton(onClick = viewModel::previousMonth, enabled = state.canGoBack) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "이전 달", tint = if (state.canGoBack) TextStrong else BarOff) }
             Text(monthLabel(state.month, state.currentMonth.year), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             IconButton(onClick = viewModel::nextMonth, enabled = state.canGoForward) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "다음 달", tint = if (state.canGoForward) TextStrong else BarOff) }
@@ -123,7 +123,7 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
         PullToRefreshBox(isRefreshing = state.isLoading && state.entries.isNotEmpty(), onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 state.notice?.let { NoticeBar(it, viewModel::dismissNotice) }
                 if (state.loadFailed) state.error?.let { ErrorNotice(it, viewModel::refresh) }
@@ -155,9 +155,9 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
 @Composable
 private fun SummaryCard(state: LedgerState, viewModel: LedgerViewModel) {
     val ledger = state.ledger
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp)) {
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
         Text("${monthLabel(state.month, state.currentMonth.year)} 순수익", fontSize = 16.sp, color = TextMid)
-        Text(formatWon(ledger.netProfit), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+        Text(formatWon(ledger.netProfit), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         Text("매출 ${formatWon(ledger.revenue)} − 경비 ${formatWon(ledger.expenseTotal)}", fontSize = 16.sp, color = TextMid)
         Spacer(Modifier.height(14.dp))
         MonthBars(state, viewModel)
@@ -199,11 +199,11 @@ private fun MonthBars(state: LedgerState, viewModel: LedgerViewModel) {
 private fun OwedCard(state: LedgerState, viewModel: LedgerViewModel) {
     val owed = state.receivables ?: return
     Row(
-        Modifier.fillMaxWidth().background(White, CardShape).clickable(onClick = viewModel::openReceivables).heightIn(min = 72.dp).padding(horizontal = 20.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().ruled().clickable(onClick = viewModel::openReceivables).heightIn(min = 72.dp).padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("못 받은 돈 ${formatWon(state.owedTotal)}", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text("못 받은 돈 ${formatWon(state.owedTotal)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             if (owed.overdueFareTotal > 0) Text("예정일 지남 ${formatWon(owed.overdueFareTotal)}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning)
         }
         Text("›", fontSize = 22.sp, color = TextSub)
@@ -213,24 +213,18 @@ private fun OwedCard(state: LedgerState, viewModel: LedgerViewModel) {
 /** 분류별 경비. 범례 없이 줄마다 이름과 금액을 쓴다 */
 @Composable
 private fun ExpenseCard(items: List<Pair<ExpenseCategory, Long>>, total: Long) {
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AmountLine("경비", formatWon(total), strong = true)
         items.forEach { (category, amount) ->
-            Column {
-                AmountLine(category.label, formatWon(amount))
-                Spacer(Modifier.height(4.dp))
-                Box(Modifier.fillMaxWidth().height(6.dp).background(CanvasGray, RoundedCornerShape(3.dp))) {
-                    Box(Modifier.fillMaxWidth((amount.toFloat() / total).coerceIn(0.02f, 1f)).height(6.dp).background(Orange600, RoundedCornerShape(3.dp)))
-                }
-            }
+            AmountLine(category.label, formatWon(amount))
         }
     }
 }
 
 @Composable
 private fun DaySection(day: LedgerDay, viewModel: LedgerViewModel) {
-    Text(day.date.format(DayFormat), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(start = 4.dp, top = 6.dp))
-    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(vertical = 4.dp)) {
+    Text(day.date.format(DayFormat), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 4.dp)) {
         day.entries.forEach { EntryRow(it) { viewModel.openEntry(it) } }
         day.expenses.forEach { ExpenseRow(it) }
     }
@@ -239,10 +233,10 @@ private fun DaySection(day: LedgerDay, viewModel: LedgerViewModel) {
 @Composable
 fun EntryRow(entry: LedgerEntry, onClick: () -> Unit) {
     val (text, color) = paidTag(entry)
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 64.dp).padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 64.dp).padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(entry.description, fontSize = 17.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
-            Text(formatWon(entry.total), fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text(formatWon(entry.total), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatusTag(text, color)
@@ -253,7 +247,7 @@ fun EntryRow(entry: LedgerEntry, onClick: () -> Unit) {
 
 @Composable
 private fun ExpenseRow(expense: Expense) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(listOfNotNull(expense.category.label, expense.memo).joinToString(" · "), fontSize = 16.sp, color = TextMid, modifier = Modifier.weight(1f))
         Text("−${formatWon(expense.amount)}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextMid)
     }

@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.vehicle
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -72,11 +73,11 @@ fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit) {
         VehicleFormScreen(form, state, viewModel)
         return
     }
-    Column(Modifier.fillMaxSize().background(CanvasGray).safeDrawingPadding()) {
+    Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         BackBar("내 차량", onBack)
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             if (state.isLoading) SkeletonCards(2)
             if (state.vehicles.isEmpty() && !state.isLoading) {
@@ -92,9 +93,9 @@ fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit) {
 @Composable
 private fun VehicleCard(vehicle: Vehicle, busy: Boolean, viewModel: VehiclesViewModel) {
     var deleting by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).padding(start = 20.dp, end = 12.dp, top = 18.dp, bottom = 8.dp)) {
+    Column(Modifier.fillMaxWidth().ruled().padding(start = 20.dp, end = 12.dp, top = 18.dp, bottom = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(vehicle.plateNumber, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
+            Text(vehicle.plateNumber, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             if (vehicle.isDefault) Tag("기본 차량")
             if (vehicle.isLinkedToCar) Tag("차량 앱 연결됨")
         }
@@ -127,7 +128,7 @@ private fun Tag(text: String) {
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
         color = Orange700,
-        modifier = Modifier.background(Orange50, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
+        modifier = Modifier,
     )
 }
 
@@ -162,7 +163,7 @@ private fun VehicleFormScreen(form: VehicleForm, state: VehiclesState, viewModel
                 Text(
                     form.heightMeters?.let { "%.1fm".format(it) } ?: "모름",
                     fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = FontWeight.Bold,
                     color = if (form.heightMeters == null) TextSub else TextStrong,
                     modifier = Modifier.width(84.dp),
                 )
@@ -201,7 +202,7 @@ private fun DimensionRow(label: String, value: Int?, range: DimensionRange, form
         Text(
             value?.let(format) ?: "모름",
             fontSize = 20.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             color = if (value == null) TextSub else TextStrong,
             modifier = Modifier.width(66.dp),
         )

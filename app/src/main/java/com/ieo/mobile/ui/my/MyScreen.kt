@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.my
 
+import com.ieo.mobile.ui.component.ruled
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,28 +57,15 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
     val name = state.account?.name.orEmpty()
 
     Column(
-        Modifier.fillMaxSize().background(CanvasGray).verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxSize().background(White).verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         Card {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(56.dp).background(Orange100, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) {
-                    Text(name.take(1), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(if (name.isBlank()) "내 정보" else "$name 님", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextStrong)
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "차주",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Orange700,
-                        modifier = Modifier.background(Orange50, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
-                    )
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(if (name.isBlank()) "내 정보" else "$name 님", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
                 QuietButton("이름 바꾸기", { renaming = true })
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(PhoneFormat.hyphen(state.account?.phone.orEmpty()), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
@@ -152,5 +140,5 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
 
 @Composable
 private fun Card(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(White, RoundedCornerShape(20.dp)).padding(horizontal = 20.dp, vertical = 18.dp)) { content() }
+    Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) { content() }
 }
