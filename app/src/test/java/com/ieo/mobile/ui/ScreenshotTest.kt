@@ -409,6 +409,7 @@ class ScreenshotTest {
 
     private fun ledger() = LedgerViewModel(object : LedgerRepository {
         override suspend fun today() = ApiResult.Success(DailySummary(day, 1, 320_000))
+        override suspend fun export(from: java.time.LocalDate, to: java.time.LocalDate): ApiResult<ByteArray> = ApiResult.Success(byteArrayOf(1, 2))
         override suspend fun receivables() = ApiResult.Success(Receivables(870_000, 450_000, 30_000, listOf(entry(1, false, true, "△△로지스"), entry(2, false, false, "○○물류"))))
         override suspend fun entries(from: LocalDate, to: LocalDate) = ApiResult.Success(
             listOf(entry(1, false, true, "△△로지스"), entry(2, false, false, "○○물류"), entry(3, true, false, "한빛물류")) +

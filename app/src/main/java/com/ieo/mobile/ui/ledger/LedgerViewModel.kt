@@ -42,6 +42,11 @@ data class LedgerForm(
 }
 
 /** 저장 뒤 알림. [undo]가 있으면 되돌리기를 보여 준다 */
+/** 내려받은 장부 파일 */
+class ExportedLedger(val fileName: String, val bytes: ByteArray)
+
+enum class ExportPeriod(val label: String) { MONTH("보고 있는 달"), THIS_YEAR("올해"), LAST_YEAR("작년") }
+
 data class LedgerNotice(val text: String, val undo: (() -> Unit)? = null)
 
 /** 그래프의 한 달 */
@@ -61,6 +66,9 @@ data class LedgerState(
     val loadFailed: Boolean = false,
     val error: String? = null,
     val notice: LedgerNotice? = null,
+    val choosingExport: Boolean = false,
+    /** 받아 온 파일. 화면이 공유 창을 열고 지운다 */
+    val exported: ExportedLedger? = null,
 ) {
     val firstMonth: YearMonth get() = currentMonth.minusMonths(MONTHS_KEPT - 1)
     val canGoBack: Boolean get() = month.isAfter(firstMonth)
@@ -197,6 +205,31 @@ class LedgerViewModel(
     private fun <T> ApiResult<T>.toUnit(): ApiResult<Unit> = when (this) {
         is ApiResult.Success -> ApiResult.Success(Unit)
         is ApiResult.Failure -> this
+    }
+
+    fun openExport() = _state.update { it.copy(choosingExport = true, error = null) }
+
+    fun closeExport() = _state.update { it.copy(choosingExport = false) }
+
+    fun exportConsumed() = _state.update { it.copy(exported = null) }
+
+    /** 고른 기간의 장부를 받는다 (LEDG-033). 다 받으면 화면이 공유 창을 연다 */
+    fun export(period: ExportPeriod) {
+        val current = _state.value
+        if (current.isBusy) return
+        val (from, to) = when (period) {
+            ExportPeriod.MONTH -> current.month.atDay(1) to current.month.atEndOfMonth()
+            ExportPeriod.THIS_YEAR -> LocalDate.of(current.currentMonth.year, 1, 1) to LocalDate.of(current.currentMonth.year, 12, 31)
+            ExportPeriod.LAST_YEAR -> LocalDate.of(current.currentMonth.year - 1, 1, 1) to LocalDate.of(current.currentMonth.year - 1, 12, 31)
+        }
+        _state.update { it.copy(isBusy = true, choosingExport = false, error = null, notice = null) }
+        viewModelScope.launch {
+            when (val result = ledger.export(from, to)) {
+                is ApiResult.Success -> _state.update { it.copy(exported = ExportedLedger("이에오_장부_${from}_$to.csv", result.data)) }
+                is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
+            }
+            _state.update { it.copy(isBusy = false) }
+        }
     }
 
     private fun change(closeForm: Boolean = false, notice: LedgerNotice, block: suspend () -> ApiResult<Unit>) {

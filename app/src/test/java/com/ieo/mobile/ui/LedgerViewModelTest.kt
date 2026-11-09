@@ -52,6 +52,7 @@ class LedgerViewModelTest {
         var manual: ManualEntry? = null
         var updated: Pair<Long, PaymentType>? = null
         override suspend fun today() = ApiResult.Success(DailySummary(this@LedgerViewModelTest.today, 0, 0))
+        override suspend fun export(from: java.time.LocalDate, to: java.time.LocalDate): ApiResult<ByteArray> = ApiResult.Success(byteArrayOf(1, 2))
         override suspend fun receivables() = ApiResult.Success(Receivables(400_000, 0, 30_000, listOf(entry(1))))
         override suspend fun entries(from: LocalDate, to: LocalDate): ApiResult<List<LedgerEntry>> {
             range = from to to
@@ -78,6 +79,18 @@ class LedgerViewModelTest {
     }
 
     private fun vm(fake: Fake) = LedgerViewModel(fake, fake, clock)
+
+    @Test
+    fun `작년 장부를 받으면 파일을 넘기고 넘긴 뒤 지운다`() = runTest(main.dispatcher) {
+        val vm = vm(Fake())
+        advanceUntilIdle()
+        val lastYear = vm.state.value.currentMonth.year - 1
+        vm.export(com.ieo.mobile.ui.ledger.ExportPeriod.LAST_YEAR)
+        advanceUntilIdle()
+        assertEquals("이에오_장부_$lastYear-01-01_$lastYear-12-31.csv", vm.state.value.exported?.fileName)
+        vm.exportConsumed()
+        assertEquals(null, vm.state.value.exported)
+    }
 
     @Test
     fun `이 달 순수익은 매출에서 경비를 뺀다`() = runTest(main.dispatcher) {

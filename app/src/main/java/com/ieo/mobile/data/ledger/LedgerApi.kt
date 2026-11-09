@@ -1,5 +1,6 @@
 package com.ieo.mobile.data.ledger
 
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -14,6 +15,10 @@ interface LedgerApi {
     /** 날짜를 비우면 서버의 오늘(한국 날짜) */
     @GET("api/ledger/daily")
     suspend fun daily(): Response<DailySummaryResponse>
+
+    /** CSV 파일 (LEDG-033) */
+    @GET("api/ledger/export")
+    suspend fun export(@Query("from") from: String, @Query("to") to: String): Response<ResponseBody>
 
     @GET("api/ledger/receivables")
     suspend fun receivables(): Response<ReceivablesResponse>

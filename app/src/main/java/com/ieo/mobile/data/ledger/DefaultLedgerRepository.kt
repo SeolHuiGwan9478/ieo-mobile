@@ -19,6 +19,9 @@ class DefaultLedgerRepository(
     override suspend fun today(): ApiResult<DailySummary> =
         caller.call { api.daily() }.mapResponse { it.toDomain() }
 
+    override suspend fun export(from: LocalDate, to: LocalDate): ApiResult<ByteArray> =
+        caller.call { api.export(from.toString(), to.toString()) }.mapResponse { it.bytes() }
+
     override suspend fun receivables(): ApiResult<Receivables> =
         caller.call { api.receivables() }.mapResponse { it.toDomain() }
 

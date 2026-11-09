@@ -2,4 +2,6 @@
 <paths>
     <!-- 카메라 앱이 종이 인수증 사진을 저장할 임시 폴더 -->
     <cache-path name="proofs" path="proofs/" />
+    <!-- 공유 창으로 보낼 장부 파일 -->
+    <cache-path name="exports" path="exports/" />
 </paths>

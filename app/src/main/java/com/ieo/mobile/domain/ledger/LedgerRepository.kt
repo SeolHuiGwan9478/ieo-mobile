@@ -14,6 +14,9 @@ interface LedgerRepository {
     /** [from]~[to] (둘 다 포함) 장부, 최근 날짜부터 */
     suspend fun entries(from: LocalDate, to: LocalDate): ApiResult<List<LedgerEntry>>
 
+    /** [from]~[to] 장부를 CSV 파일 내용으로 받는다 */
+    suspend fun export(from: LocalDate, to: LocalDate): ApiResult<ByteArray>
+
     /** 운임을 받았음 / 아직 못 받음으로 되돌림 */
     suspend fun setPaid(entryId: Long, paid: Boolean): ApiResult<LedgerEntry>
 

@@ -1,5 +1,14 @@
 package com.ieo.mobile.ui.ledger
 
+import java.io.File
+import com.ieo.mobile.ui.component.QuietButton
+import androidx.core.content.FileProvider
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import android.content.Intent
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,11 +74,44 @@ private val DayFormat = DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KORE
 
 /** 수익 탭 (M10) */
 @OptIn(ExperimentalMaterial3Api::class)
+/** 파일을 앱 임시 폴더에 쓰고 공유 창을 연다 */
+private fun shareLedgerFile(context: Context, file: ExportedLedger) {
+    runCatching {
+        val folder = File(context.cacheDir, "exports").apply { mkdirs() }
+        val target = File(folder, file.fileName).apply { writeBytes(file.bytes) }
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", target)
+        val send = Intent(Intent.ACTION_SEND).setType("text/csv").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(Intent.createChooser(send, "보낼 곳을 골라 주세요"))
+    }
+}
+
+@Composable
+private fun ExportDialog(viewModel: LedgerViewModel) {
+    AlertDialog(
+        onDismissRequest = viewModel::closeExport,
+        title = { Text("어느 기간을 내보낼까요?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ExportPeriod.entries.forEach { period -> TonalButton(period.label, { viewModel.export(period) }, modifier = Modifier.fillMaxWidth()) }
+            }
+        },
+        confirmButton = { TextButton(onClick = viewModel::closeExport) { Text("취소", color = TextMid) } },
+    )
+}
+
 @Composable
 fun LedgerScreen(viewModel: LedgerViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val ledger = state.ledger
     val days = ledger.days()
+    val context = LocalContext.current
+
+    LaunchedEffect(state.exported) {
+        state.exported?.let { file ->
+            shareLedgerFile(context, file)
+            viewModel.exportConsumed()
+        }
+    }
 
     Column(Modifier.fillMaxSize().background(CanvasGray)) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -95,6 +137,10 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
                         EmptyState("이 달 기록이 없어요", "운행을 마치면 장부에 저절로 적혀요")
                     }
                     days.forEach { DaySection(it, viewModel) }
+                    state.error?.takeIf { !state.loadFailed }?.let { ErrorNotice(it) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        QuietButton(if (state.isBusy) "장부 받는 중…" else "세금 신고용 장부 내보내기", viewModel::openExport)
+                    }
                 }
             }
         }
@@ -103,6 +149,7 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
             PrimaryButton("경비 추가", viewModel::openExpense, modifier = Modifier.weight(1.4f))
         }
     }
+    if (state.choosingExport) ExportDialog(viewModel)
 }
 
 @Composable
