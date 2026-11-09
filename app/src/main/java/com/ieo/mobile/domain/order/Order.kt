@@ -33,6 +33,8 @@ data class Order(
     val cargoCategory: CargoCategory? = null,
     /** 주선사 신뢰 지표. 서버가 주지 않으면 null */
     val brokerMetrics: BrokerMetrics? = null,
+    /** 위치를 보내고 찾았을 때만: 운임에서 기름값을 뺀 어림값 */
+    val netProfit: Long? = null,
 ) {
     val vehicleLabel: String get() = "$tonnageLabel $bodyTypeLabel"
 
@@ -42,6 +44,9 @@ data class Order(
     /** 확정을 기다리는 내 요청이 있음 */
     val isRequestedByMe: Boolean get() = myRequest?.status == DispatchRequestStatus.PENDING
 }
+
+/** 오더 상세의 실수익 내역. 통행료를 계산하지 못하면 [tollFare]가 null이다 */
+data class OrderProfit(val netProfit: Long, val fuelCost: Long, val tollFare: Long?, val emptyMeters: Long)
 
 data class OrderSite(
     val name: String,

@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ieo.mobile.domain.order.DispatchRequest
 import com.ieo.mobile.domain.order.Order
+import com.ieo.mobile.ui.common.roundedToManwon
+import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderSite
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.ui.common.formatWon
@@ -147,6 +149,7 @@ private fun OrderCard(order: Order, texts: OrderTexts, onClick: () -> Unit) {
             Text("하차 ${texts.dropoffTime(order)}", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
         }
         texts.distance(order)?.let { Text("내 위치에서 상차지까지 $it", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextMid) }
+        texts.netProfit(order)?.let { Text(it, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Orange700) }
         if (order.isRequestedByMe) RequestedBadge()
     }
 }
@@ -196,6 +199,7 @@ fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewMod
                 Tags(order, texts)
             }
             FareCard(order)
+            ProfitCard(order, state.profit)
             RouteCard(order, texts, onSite)
             BrokerCard(order, texts)
             order.myRequest?.takeIf { order.isRequestedByMe }?.let { RequestCountdown(it) }
@@ -221,6 +225,34 @@ private fun FareCard(order: Order) {
         Text("운임", fontSize = 16.sp, color = White.copy(alpha = 0.9f))
         Text(formatWon(order.fare), fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = White)
         Text("${order.paymentTypeLabel} · ${order.expectedPaymentDays}일 안에 지급", fontSize = 15.sp, color = White.copy(alpha = 0.9f))
+    }
+}
+
+/** 위치를 알 때만 보인다. 내역을 받기 전에는 목록의 어림값을 보여 준다 */
+@Composable
+private fun ProfitCard(order: Order, profit: OrderProfit?) {
+    val net = profit?.netProfit ?: order.netProfit ?: return
+    val note = when {
+        profit == null -> "기름값만 뺀 어림값"
+        profit.tollFare == null -> "기름값만 뺀 금액"
+        else -> "기름값·통행료 뺀 금액"
+    }
+    Column(Modifier.fillMaxWidth().background(White, CardShape).padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("실수익 · $note", fontSize = 16.sp, color = TextMid)
+        Text(if (profit == null) "약 ${formatWon(roundedToManwon(net))}" else formatWon(net), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Orange700)
+        profit?.let {
+            it.tollFare?.let { toll -> ProfitLine("예상 통행료", formatWon(toll)) }
+            ProfitLine("기름값", formatWon(it.fuelCost))
+            ProfitLine("상차지까지", "${(it.emptyMeters + 500) / 1000}km")
+        }
+    }
+}
+
+@Composable
+private fun ProfitLine(label: String, value: String) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, fontSize = 16.sp, color = TextMid, modifier = Modifier.weight(1f))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
     }
 }
 

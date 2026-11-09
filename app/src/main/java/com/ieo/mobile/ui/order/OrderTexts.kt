@@ -3,6 +3,8 @@ package com.ieo.mobile.ui.order
 import com.ieo.mobile.domain.order.BrokerMetrics
 import com.ieo.mobile.domain.order.Order
 import com.ieo.mobile.ui.common.DayTimeFormatter
+import com.ieo.mobile.ui.common.formatWon
+import com.ieo.mobile.ui.common.roundedToManwon
 import com.ieo.mobile.ui.theme.IeoTag
 import com.ieo.mobile.ui.theme.TagColor
 
@@ -20,6 +22,9 @@ class OrderTexts(private val labels: DayTimeFormatter = DayTimeFormatter()) {
 
     /** "상차지 18km". 위치를 모르면 null */
     fun distance(order: Order): String? = order.distanceMeters?.let { if (it < 1_000) "1km 안" else "${(it + 500) / 1_000}km" }
+
+    /** "실수익 약 28만 원". 위치를 몰라 계산하지 못하면 null */
+    fun netProfit(order: Order): String? = order.netProfit?.let { "실수익 약 ${formatWon(roundedToManwon(it))}" }
 
     /** "건축 자재 · 4.8톤 · 지게차". 일반이 아닌 종류는 앞에 붙인다 */
     fun cargo(order: Order): String = listOfNotNull(

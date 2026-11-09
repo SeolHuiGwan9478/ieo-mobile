@@ -8,6 +8,7 @@ import com.ieo.mobile.domain.order.DispatchRequest
 import com.ieo.mobile.domain.order.DispatchRequestStatus
 import com.ieo.mobile.domain.order.GeoPoint
 import com.ieo.mobile.domain.order.Order
+import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderRepository
 import com.ieo.mobile.domain.order.OrderSite
 import com.ieo.mobile.domain.order.ReportType
@@ -61,6 +62,12 @@ class OrdersViewModelTest {
             nearAsked = near
             return ApiResult.Success(list)
         }
+        var profit: ApiResult<OrderProfit> = ApiResult.Success(OrderProfit(200_000, 50_000, 7_800, 6_000))
+        var profitAsked = 0
+        override suspend fun profit(orderId: Long, from: GeoPoint): ApiResult<OrderProfit> {
+            profitAsked++
+            return profit
+        }
         override suspend fun request(orderId: Long): ApiResult<DispatchRequest> {
             calls += "request$orderId"
             return result
@@ -89,6 +96,44 @@ class OrdersViewModelTest {
         vm.toggleNearMe()
         advanceUntilIdle()
         assertNull(fake.nearAsked)
+    }
+
+    @Test
+    fun `오더를 열면 실수익 내역을 받고 닫으면 지운다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = TestVm(fake).apply { refresh() }
+        advanceUntilIdle()
+        vm.open(1)
+        advanceUntilIdle()
+        assertEquals(200_000L, vm.state.value.profit?.netProfit)
+        vm.close()
+        assertNull(vm.state.value.profit)
+    }
+
+    @Test
+    fun `위치를 모르거나 실패하면 실수익 내역 없이 연다`() = runTest(main.dispatcher) {
+        val unknown = Fake()
+        val noLocation = TestVm(unknown, location = null).apply { refresh() }
+        advanceUntilIdle()
+        noLocation.open(1)
+        advanceUntilIdle()
+        assertEquals(0, unknown.profitAsked)
+        assertNull(noLocation.state.value.profit)
+
+        val failing = Fake().apply { profit = ApiResult.Failure(ApiError.Network) }
+        val vm = TestVm(failing).apply { refresh() }
+        advanceUntilIdle()
+        vm.open(1)
+        advanceUntilIdle()
+        assertEquals(1L, vm.state.value.selectedId)
+        assertNull(vm.state.value.profit)
+    }
+
+    @Test
+    fun `목록의 실수익은 만 원 단위 어림으로 적고 없으면 뺀다`() {
+        val texts = OrderTexts()
+        assertEquals("실수익 약 28만 원", texts.netProfit(order(1).copy(netProfit = 275_400)))
+        assertNull(texts.netProfit(order(1)))
     }
 
     @Test

@@ -3,6 +3,9 @@ package com.ieo.mobile.ui.common
 import java.text.NumberFormat
 import java.util.Locale
 
+/** 어림값을 보여 줄 때 만 원 단위로 반올림한다 */
+fun roundedToManwon(amount: Long): Long = Math.round(amount / 10_000.0) * 10_000
+
 /** 만 원 단위로 떨어지면 "38만 원", 아니면 "372,229원" */
 fun formatWon(amount: Long): String =
     if (amount >= 10_000 && amount % 10_000 == 0L) {

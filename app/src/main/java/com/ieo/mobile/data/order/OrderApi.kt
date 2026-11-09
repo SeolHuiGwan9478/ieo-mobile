@@ -17,6 +17,14 @@ interface OrderApi {
         @Query("size") size: Int? = null,
     ): Response<List<OrderResponse>>
 
+    /** 지금 위치에서 이 오더를 맡을 때의 실수익 내역 */
+    @GET("api/orders/{orderId}/profit")
+    suspend fun profit(
+        @Path("orderId") orderId: Long,
+        @Query("lat") lat: Double,
+        @Query("lng") lng: Double,
+    ): Response<ProfitEstimateResponse>
+
     /** 차량을 비우면 기본 차량 */
     @POST("api/orders/{orderId}/requests")
     suspend fun request(

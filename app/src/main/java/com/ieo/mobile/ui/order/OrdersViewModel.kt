@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.domain.order.LocationSource
 import com.ieo.mobile.domain.order.Order
+import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderRepository
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.ui.common.DayTimeFormatter
@@ -29,6 +30,8 @@ data class OrdersState(
     /** 위치를 알아 실제로 근처만 받았다 */
     val nearApplied: Boolean = false,
     val selectedId: Long? = null,
+    /** 고른 오더의 실수익 내역. 받기 전이거나 위치를 모르면 null */
+    val profit: OrderProfit? = null,
     val reporting: Boolean = false,
     val isLoading: Boolean = true,
     val isBusy: Boolean = false,
@@ -87,9 +90,16 @@ class OrdersViewModel(
         refresh()
     }
 
-    fun open(orderId: Long) = _state.update { it.copy(selectedId = orderId, reporting = false, message = null) }
+    fun open(orderId: Long) {
+        _state.update { it.copy(selectedId = orderId, profit = null, reporting = false, message = null) }
+        viewModelScope.launch {
+            val from = location.lastKnown() ?: return@launch
+            val loaded = (repository.profit(orderId, from) as? ApiResult.Success)?.data ?: return@launch
+            _state.update { if (it.selectedId == orderId) it.copy(profit = loaded) else it }
+        }
+    }
 
-    fun close() = _state.update { it.copy(selectedId = null, reporting = false, message = null) }
+    fun close() = _state.update { it.copy(selectedId = null, profit = null, reporting = false, message = null) }
 
     fun request() {
         val order = _state.value.selected ?: return

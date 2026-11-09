@@ -293,6 +293,7 @@ class ScreenshotTest {
             order(4, "오산 가장" to "광주 광산", 410_000, "선불", 9, cargo = CargoCategory.MOVING),
         ))
         override suspend fun request(orderId: Long) = ApiResult.Failure(ApiError.Network)
+        override suspend fun profit(orderId: Long, from: GeoPoint) = ApiResult.Failure(ApiError.Network)
         override suspend fun withdraw(requestId: Long) = ApiResult.Failure(ApiError.Network)
         override suspend fun report(orderId: Long, type: ReportType) = ApiResult.Success(Unit)
     }, location = { GeoPoint(37.0, 127.0) })
