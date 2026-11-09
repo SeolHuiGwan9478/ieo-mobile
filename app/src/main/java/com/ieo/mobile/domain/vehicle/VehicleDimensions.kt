@@ -1,15 +1,17 @@
 package com.ieo.mobile.domain.vehicle
 
-/** 트럭 폭·길이(cm)와 총중량(kg). 선택 입력이고 비어 있으면 톤수별 기본값으로 경로를 찾는다 */
+/** 트럭 폭·길이(cm), 총중량(kg), 축 수. 선택 입력이고 비어 있으면 톤수 기준으로 경로와 통행료를 계산한다 */
 data class VehicleDimensions(
     val widthCm: Int? = null,
     val lengthCm: Int? = null,
     val totalWeightKg: Int? = null,
+    val axleCount: Int? = null,
 ) {
     companion object {
         val WIDTH = DimensionRange(100, 300, 10, 250)
         val LENGTH = DimensionRange(200, 2_000, 50, 850)
         val TOTAL_WEIGHT = DimensionRange(1_000, 40_000, 1_000, 11_000)
+        val AXLES = DimensionRange(2, 6, 1, 2)
     }
 }
 

@@ -46,6 +46,7 @@ data class CreateVehicleRequest(
     val widthCm: Int? = null,
     val lengthCm: Int? = null,
     val totalWeightKg: Int? = null,
+    val axleCount: Int? = null,
 )
 
 /** 높이를 빼고 보내면 서버가 높이를 비운다 */
@@ -57,6 +58,7 @@ data class UpdateVehicleRequest(
     val widthCm: Int? = null,
     val lengthCm: Int? = null,
     val totalWeightKg: Int? = null,
+    val axleCount: Int? = null,
 )
 
 @Serializable
@@ -71,6 +73,7 @@ data class VehicleResponse(
     val widthCm: Int? = null,
     val lengthCm: Int? = null,
     val totalWeightKg: Int? = null,
+    val axleCount: Int? = null,
 ) {
     fun toDomain() = Vehicle(
         id = id,
@@ -80,7 +83,7 @@ data class VehicleResponse(
         heightMeters = heightM,
         isDefault = defaultVehicle,
         isLinkedToCar = pleosLinked,
-        dimensions = VehicleDimensions(widthCm, lengthCm, totalWeightKg),
+        dimensions = VehicleDimensions(widthCm, lengthCm, totalWeightKg, axleCount),
     )
 }
 
@@ -94,7 +97,7 @@ class DefaultVehicleRepository(
 
     override suspend fun add(vehicle: NewVehicle): ApiResult<Unit> = caller.callOptional {
         api.add(CreateVehicleRequest(vehicle.plateNumber, vehicle.tonnage.name, vehicle.bodyType.name, vehicle.heightMeters,
-            vehicle.dimensions.widthCm, vehicle.dimensions.lengthCm, vehicle.dimensions.totalWeightKg))
+            vehicle.dimensions.widthCm, vehicle.dimensions.lengthCm, vehicle.dimensions.totalWeightKg, vehicle.dimensions.axleCount))
     }.map { }
 
     override suspend fun update(
@@ -106,7 +109,7 @@ class DefaultVehicleRepository(
     ): ApiResult<Unit> = caller.callOptional {
         api.update(
             vehicleId,
-            UpdateVehicleRequest(tonnage.name, bodyType.name, heightMeters, dimensions.widthCm, dimensions.lengthCm, dimensions.totalWeightKg),
+            UpdateVehicleRequest(tonnage.name, bodyType.name, heightMeters, dimensions.widthCm, dimensions.lengthCm, dimensions.totalWeightKg, dimensions.axleCount),
         )
     }.map { }
 

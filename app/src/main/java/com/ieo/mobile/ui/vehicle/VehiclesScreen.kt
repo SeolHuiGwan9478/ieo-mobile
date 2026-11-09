@@ -170,11 +170,12 @@ private fun VehicleFormScreen(form: VehicleForm, state: VehiclesState, viewModel
                 if (form.heightMeters != null) QuietButton("모름", viewModel::clearHeight)
             }
             Spacer(Modifier.height(18.dp))
-            Label("폭·길이·총중량 (선택) · 안 적으면 톤수 기준으로 계산")
+            Label("폭·길이·총중량·축 수 (선택) · 안 적으면 톤수 기준으로 계산")
             val d = form.dimensions
             DimensionRow("폭", d.widthCm, VehicleDimensions.WIDTH, ::cmAsMeters) { viewModel.onDimensions(d.copy(widthCm = it)) }
             DimensionRow("길이", d.lengthCm, VehicleDimensions.LENGTH, ::cmAsMeters) { viewModel.onDimensions(d.copy(lengthCm = it)) }
             DimensionRow("총중량", d.totalWeightKg, VehicleDimensions.TOTAL_WEIGHT, ::kgAsTons) { viewModel.onDimensions(d.copy(totalWeightKg = it)) }
+            DimensionRow("축 수", d.axleCount, VehicleDimensions.AXLES, { "${it}축" }) { viewModel.onDimensions(d.copy(axleCount = it)) }
             state.error?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning, modifier = Modifier.padding(top = 14.dp)) }
         }
         Row(Modifier.padding(24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
