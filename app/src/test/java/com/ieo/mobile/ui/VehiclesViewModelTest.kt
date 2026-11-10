@@ -105,12 +105,24 @@ class VehiclesViewModelTest {
         val vm = VehiclesViewModel(fake)
         advanceUntilIdle()
         vm.openAdd()
-        vm.onPlateChange("ABC")
+        // 앱 검사를 통과해도 서버가 막으면(예: 이미 등록된 번호) 창에 남아 이유를 보여 준다
+        vm.onPlateChange("12가3456")
         vm.save()
         advanceUntilIdle()
         assertNotNull(vm.state.value.form)
         assertEquals("차량 번호 형식이 올바르지 않습니다", vm.state.value.error)
         assertFalse(vm.state.value.isBusy)
+    }
+
+    @Test
+    fun `형식이 틀린 번호는 저장 버튼이 꺼진다`() = runTest(main.dispatcher) {
+        val vm = VehiclesViewModel(Fake())
+        advanceUntilIdle()
+        vm.openAdd()
+        vm.onPlateChange("12김3456")
+        assertFalse(vm.state.value.form!!.canSave)
+        vm.onPlateChange("12가3456")
+        assertTrue(vm.state.value.form!!.canSave)
     }
 
     @Test

@@ -100,7 +100,7 @@ private fun CarSessions(state: AccountSettingsState, viewModel: AccountSettingsV
     var revoking by remember { mutableStateOf<CarSession?>(null) }
     if (state.isLoading && state.carSessions.isEmpty()) SkeletonCards(2)
     if (state.carSessions.isEmpty() && !state.isLoading && !state.loadFailed) {
-        EmptyState("로그인된 차량이 없어요", "차량 화면의 QR을 찍어 로그인하면 여기에 나와요")
+        EmptyState("로그인된 차량이 없어요", "차량에서 QR로 로그인하면 여기에 보여요")
     }
     state.carSessions.forEach { session ->
         Row(Modifier.fillMaxWidth().ruled().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -115,7 +115,7 @@ private fun CarSessions(state: AccountSettingsState, viewModel: AccountSettingsV
         AlertDialog(
             onDismissRequest = { revoking = null },
             title = { Text("이 차량에서 로그아웃할까요?") },
-            text = { Text("다시 쓰려면 차량 화면의 QR을 찍어야 해요.", color = TextMid) },
+            text = { Text("다시 쓰려면 차량에서 QR로 로그인해야 해요.", color = TextMid) },
             confirmButton = {
                 TextButton(onClick = { revoking = null; viewModel.revoke(session) }) { Text("로그아웃", color = IeoStatus.colors.warning) }
             },
@@ -129,7 +129,7 @@ private fun Consents(state: AccountSettingsState, viewModel: AccountSettingsView
     if (state.isLoading && state.consents.isEmpty()) SkeletonCards(4)
     state.consents.forEach { item -> ConsentRow(item) { viewModel.setConsent(item, it) } }
     if (state.consents.any { it.required }) {
-        Text("필수 항목을 철회하려면 탈퇴해 주세요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
+        Text("필수 항목은 회원 탈퇴 때만 철회할 수 있어요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
     }
 }
 
@@ -144,7 +144,7 @@ private fun ConsentRow(item: ConsentItem, onChange: (Boolean) -> Unit) {
         if (item.required) {
             Text("필수 · 동의함", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMid)
         } else {
-            Text(if (item.agreed) "동의" else "안 함", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(end = 8.dp))
+            Text(if (item.agreed) "동의" else "미동의", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(end = 8.dp))
             Switch(checked = item.agreed, onCheckedChange = onChange)
         }
     }
@@ -153,19 +153,19 @@ private fun ConsentRow(item: ConsentItem, onChange: (Boolean) -> Unit) {
 @Composable
 private fun BusinessFields(state: AccountSettingsState, viewModel: AccountSettingsViewModel) {
     var clearing by remember { mutableStateOf(false) }
-    Text("장부를 세금 신고용으로 내보낼 때 써요. 없으면 비워 두세요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp))
+    Text("장부 내보내기에 사용해요. 없으면 비워 두세요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp))
     FormField(state.form.name, viewModel::onBusinessName, "상호")
     FormField(state.form.number, viewModel::onBusinessNumber, "사업자등록번호 (숫자 10자리)", KeyboardType.Number)
     FormField(state.form.representative, viewModel::onRepresentative, "대표자 이름")
     if (state.saved != null) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { QuietButton("사업자 정보 지우기", { clearing = true }) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { QuietButton("사업자 정보 삭제", { clearing = true }) }
     }
     if (clearing) {
         AlertDialog(
             onDismissRequest = { clearing = false },
-            title = { Text("사업자 정보를 지울까요?") },
+            title = { Text("사업자 정보를 삭제할까요?") },
             confirmButton = {
-                TextButton(onClick = { clearing = false; viewModel.clearBusiness() }) { Text("지우기", color = IeoStatus.colors.warning) }
+                TextButton(onClick = { clearing = false; viewModel.clearBusiness() }) { Text("삭제", color = IeoStatus.colors.warning) }
             },
             dismissButton = { TextButton(onClick = { clearing = false }) { Text("취소", color = TextMid) } },
         )

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.domain.vehicle.BodyType
 import com.ieo.mobile.domain.vehicle.NewVehicle
+import com.ieo.mobile.domain.vehicle.PlateNumber
 import com.ieo.mobile.domain.vehicle.Tonnage
 import com.ieo.mobile.domain.vehicle.Vehicle
 import com.ieo.mobile.domain.vehicle.VehicleDimensions
@@ -25,7 +26,7 @@ data class VehicleForm(
     val heightMeters: Double? = null,
     val dimensions: VehicleDimensions = VehicleDimensions(),
 ) {
-    val canSave get() = editing != null || plateNumber.isNotBlank()
+    val canSave get() = editing != null || PlateNumber.isValid(plateNumber)
 }
 
 data class VehiclesState(
@@ -70,6 +71,8 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
     fun stepHeight(delta: Double) = editForm { it.copy(heightMeters = VehicleHeight.step(it.heightMeters, delta)) }
 
     fun clearHeight() = editForm { it.copy(heightMeters = null) }
+
+    fun setHeight(value: Double?) = editForm { it.copy(heightMeters = value) }
 
     fun onDimensions(dimensions: VehicleDimensions) = editForm { it.copy(dimensions = dimensions) }
 

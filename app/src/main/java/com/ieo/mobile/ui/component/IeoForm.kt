@@ -42,6 +42,7 @@ import com.ieo.mobile.ui.theme.Orange600
 import com.ieo.mobile.ui.theme.Orange700
 import com.ieo.mobile.ui.theme.TextMid
 import com.ieo.mobile.ui.theme.TextStrong
+import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
 
 private val ButtonShape = RoundedCornerShape(10.dp)
@@ -102,11 +103,15 @@ fun FormField(
     label: String,
     keyboardType: KeyboardType = KeyboardType.Text,
     modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
 ) {
     OutlinedTextField(
+        visualTransformation = visualTransformation,
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, fontSize = 16.sp) },
+        placeholder = placeholder?.let { { Text(it, fontSize = 19.sp, color = TextSub) } },
         singleLine = true,
         shape = ButtonShape,
         textStyle = TextStyle(fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = TextStrong),

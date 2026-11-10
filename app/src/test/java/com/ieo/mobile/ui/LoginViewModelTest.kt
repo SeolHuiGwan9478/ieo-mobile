@@ -133,24 +133,13 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `있는 차주 계정이면 창을 띄우고 확인 뒤 로그인한다`() = runTest(main.dispatcher) {
+    fun `번호로 가입한 차주는 인증하면 창 없이 바로 로그인한다`() = runTest(main.dispatcher) {
         val auth = FakeAuth(ExistingAccount("김기사", isDriver = true))
         val vm = LoginViewModel(auth)
         vm.verifyPhone()
-        assertEquals("김기사", vm.state.value.existing?.name)
-        vm.login()
         advanceUntilIdle()
-        assertEquals("token", auth.loggedInWith)
-    }
-
-    @Test
-    fun `있는 계정 창에서 처음으로 가면 처음부터 시작한다`() = runTest(main.dispatcher) {
-        val vm = LoginViewModel(FakeAuth(ExistingAccount("김기사", isDriver = true)))
-        vm.verifyPhone()
-        vm.restart()
-        assertEquals(LoginStep.START, vm.state.value.step)
         assertNull(vm.state.value.existing)
-        assertEquals("", vm.state.value.phone)
+        assertEquals("token", auth.loggedInWith)
     }
 
     @Test

@@ -38,7 +38,10 @@ class DefaultAuthRepository(
             role = DRIVER,
             name = name,
             consents = Consent.entries.map { ConsentRequest(it.name, CONSENT_VERSION, it in consents) },
-            vehicle = vehicle?.let { SignUpVehicle(it.plateNumber, it.tonnage.name, it.bodyType.name) },
+            vehicle = vehicle?.let {
+                SignUpVehicle(it.plateNumber, it.tonnage.name, it.bodyType.name, it.heightMeters,
+                    it.dimensions.widthCm, it.dimensions.lengthCm, it.dimensions.totalWeightKg, it.dimensions.axleCount)
+            },
         )
         return caller.call { api.signUp(body) }.map { pendingTokens = it.toDomain() }
     }

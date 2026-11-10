@@ -35,7 +35,7 @@ fun CarLoginScreen(code: String, viewModel: CarLoginViewModel, onClose: () -> Un
             CarLoginState.Loading -> CircularProgressIndicator()
             is CarLoginState.Asking -> Asking(current, viewModel)
             CarLoginState.Approved -> Finished("차량에 로그인했어요", "차량 화면을 확인해 주세요", onClose)
-            CarLoginState.Rejected -> Finished("로그인을 거절했어요", "내 차가 아니라면 잘하셨어요", onClose)
+            CarLoginState.Rejected -> Finished("로그인을 거절했어요", "다른 차량의 로그인을 막았어요", onClose)
             is CarLoginState.Failed -> Finished("승인할 수 없어요", current.message, onClose)
         }
     }
@@ -45,7 +45,7 @@ fun CarLoginScreen(code: String, viewModel: CarLoginViewModel, onClose: () -> Un
 private fun Asking(state: CarLoginState.Asking, viewModel: CarLoginViewModel) {
     ScreenTitle("이 차량에\n로그인할까요?")
     Spacer(Modifier.height(8.dp))
-    Text("내 차 화면에 같은 코드가 보일 때만 승인하세요", fontSize = 16.sp, color = TextSub)
+    Text("차량 화면의 코드와 같을 때만 승인해 주세요", fontSize = 16.sp, color = TextSub)
     Spacer(Modifier.height(28.dp))
     Text(state.request.code, fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Orange700)
     Spacer(Modifier.height(16.dp))

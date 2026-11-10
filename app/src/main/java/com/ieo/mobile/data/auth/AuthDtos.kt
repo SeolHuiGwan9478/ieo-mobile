@@ -59,7 +59,16 @@ data class SignUpRequest(
 )
 
 @Serializable
-data class SignUpVehicle(val plateNumber: String, val tonnage: String, val bodyType: String)
+data class SignUpVehicle(
+    val plateNumber: String,
+    val tonnage: String,
+    val bodyType: String,
+    val heightM: Double? = null,
+    val widthCm: Int? = null,
+    val lengthCm: Int? = null,
+    val totalWeightKg: Int? = null,
+    val axleCount: Int? = null,
+)
 
 @Serializable
 data class RefreshTokenRequest(val refreshToken: String)

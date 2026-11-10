@@ -96,7 +96,7 @@ class AccountSettingsViewModel(private val repository: AccountSettingsRepository
         }
     }
 
-    fun clearBusiness() = change("사업자 정보를 지웠어요") {
+    fun clearBusiness() = change("사업자 정보를 삭제했어요") {
         repository.clearBusiness().also { result ->
             if (result is ApiResult.Success) _state.update { it.copy(saved = null, form = BusinessForm()) }
         }

@@ -1,5 +1,8 @@
 package com.ieo.mobile.ui.vehicle
 
+import com.ieo.mobile.domain.vehicle.PlateNumber
+import com.ieo.mobile.ui.component.SpecNote
+import com.ieo.mobile.ui.component.VehicleSpecInputs
 import com.ieo.mobile.ui.component.ruled
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -62,7 +65,6 @@ import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
 
-private const val HEIGHT_STEP = 0.1
 
 @Composable
 fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit) {
@@ -81,7 +83,7 @@ fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit) {
         ) {
             if (state.isLoading) SkeletonCards(2)
             if (state.vehicles.isEmpty() && !state.isLoading) {
-                EmptyState("등록한 차가 없어요", "차를 등록하면 내 차에 맞는 오더만 보여 드려요")
+                EmptyState("등록한 차가 없어요", "등록하면 내 차에 맞는 오더만 보여요")
             }
             state.vehicles.forEach { VehicleCard(it, state.isBusy, viewModel) }
             state.error?.let { ErrorNotice(it) }
@@ -102,8 +104,8 @@ private fun VehicleCard(vehicle: Vehicle, busy: Boolean, viewModel: VehiclesView
         Spacer(Modifier.height(4.dp))
         Text(vehicle.summary, fontSize = 16.sp, color = TextSub)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            QuietButton("고치기", { viewModel.openEdit(vehicle) })
-            if (!vehicle.isDefault) QuietButton("기본으로", { if (!busy) viewModel.setDefault(vehicle) })
+            QuietButton("수정", { viewModel.openEdit(vehicle) })
+            if (!vehicle.isDefault) QuietButton("기본 차량으로", { if (!busy) viewModel.setDefault(vehicle) })
             Spacer(Modifier.weight(1f))
             QuietButton("삭제", { deleting = true })
         }
@@ -140,11 +142,11 @@ private fun VehicleFormScreen(form: VehicleForm, state: VehiclesState, viewModel
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding().imePadding()) {
         BackBar("", { viewModel.closeForm() })
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
-            Heading(if (editing == null) "내 차를 알려 주세요" else "${editing.plateNumber} 고치기")
-            Text("실수익 계산과 높이 제한 경고에 써요", fontSize = 16.sp, color = TextSub, modifier = Modifier.padding(top = 8.dp))
+            Heading(if (editing == null) "차량 추가" else "${editing.plateNumber} 수정")
+            Text("실수익 계산과 높이 제한 경고에 사용해요", fontSize = 16.sp, color = TextSub, modifier = Modifier.padding(top = 8.dp))
             Spacer(Modifier.height(20.dp))
             if (editing == null) {
-                FormField(form.plateNumber, viewModel::onPlateChange, "차량 번호 (경기82사1234)")
+                FormField(form.plateNumber, viewModel::onPlateChange, "차량 번호", placeholder = "12가3456")
                 Spacer(Modifier.height(20.dp))
             }
             Label("톤수")
@@ -157,57 +159,15 @@ private fun VehicleFormScreen(form: VehicleForm, state: VehiclesState, viewModel
                 BodyType.entries.forEach { BrandChip(it.label, form.bodyType == it) { viewModel.onBodyType(it) } }
             }
             Spacer(Modifier.height(18.dp))
-            Label("차량 높이 · 적재함 포함")
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TonalButton("−", { viewModel.stepHeight(-HEIGHT_STEP) }, modifier = Modifier.width(64.dp))
-                Text(
-                    form.heightMeters?.let { "%.1fm".format(it) } ?: "모름",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (form.heightMeters == null) TextSub else TextStrong,
-                    modifier = Modifier.width(84.dp),
-                )
-                TonalButton("+", { viewModel.stepHeight(HEIGHT_STEP) }, modifier = Modifier.width(64.dp))
-                if (form.heightMeters != null) QuietButton("모름", viewModel::clearHeight)
-            }
-            Spacer(Modifier.height(18.dp))
-            Label("폭·길이·총중량·축 수 (선택) · 안 적으면 톤수 기준으로 계산")
-            val d = form.dimensions
-            DimensionRow("폭", d.widthCm, VehicleDimensions.WIDTH, ::cmAsMeters) { viewModel.onDimensions(d.copy(widthCm = it)) }
-            DimensionRow("길이", d.lengthCm, VehicleDimensions.LENGTH, ::cmAsMeters) { viewModel.onDimensions(d.copy(lengthCm = it)) }
-            DimensionRow("총중량", d.totalWeightKg, VehicleDimensions.TOTAL_WEIGHT, ::kgAsTons) { viewModel.onDimensions(d.copy(totalWeightKg = it)) }
-            DimensionRow("축 수", d.axleCount, VehicleDimensions.AXLES, { "${it}축" }) { viewModel.onDimensions(d.copy(axleCount = it)) }
+            Label("제원 (선택)")
+            VehicleSpecInputs(form.heightMeters, form.dimensions, viewModel::setHeight, viewModel::onDimensions)
+            SpecNote()
             state.error?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning, modifier = Modifier.padding(top = 14.dp)) }
         }
         Row(Modifier.padding(24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             TonalButton("취소", { viewModel.closeForm() }, modifier = Modifier.weight(1f))
             PrimaryButton("저장", viewModel::save, enabled = form.canSave, busy = state.isBusy, modifier = Modifier.weight(2f))
         }
-    }
-}
-
-private fun cmAsMeters(cm: Int): String = "%.1fm".format(cm / 100.0).replace(".0m", "m")
-
-private fun kgAsTons(kg: Int): String = "${kg / 1_000}톤"
-
-@Composable
-private fun DimensionRow(label: String, value: Int?, range: DimensionRange, format: (Int) -> String, onChange: (Int?) -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.padding(bottom = 8.dp),
-    ) {
-        Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong, modifier = Modifier.width(52.dp))
-        TonalButton("−", { onChange(range.next(value, -range.step)) }, modifier = Modifier.width(56.dp))
-        Text(
-            value?.let(format) ?: "모름",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (value == null) TextSub else TextStrong,
-            modifier = Modifier.width(66.dp),
-        )
-        TonalButton("+", { onChange(range.next(value, range.step)) }, modifier = Modifier.width(56.dp))
-        if (value != null) QuietButton("모름", { onChange(null) })
     }
 }
 

@@ -10,7 +10,7 @@ data class TermsDetail(val summary: String, val sections: List<TermsSection>)
 /** TODO: 출시 전에 법률 검토를 거친 약관 전문으로 바꾼다. 위치 정보만 시안 문구가 있고 나머지는 요약뿐이다 */
 fun termsDetail(consent: Consent): TermsDetail = when (consent) {
     Consent.LOCATION -> TermsDetail(
-        summary = "운행 중일 때만 차 위치를 써요. 주선사에는 따로 동의해야 보내요.",
+        summary = "운행 중일 때만 차 위치를 사용해요. 주선사에는 따로 동의해야 보내요.",
         sections = listOf(
             TermsSection("1. 모으는 정보", "차량 위치(GPS), 시각, 이동 속도"),
             TermsSection("2. 쓰는 곳", "상차지·하차지 도착 확인, 대기 시간 기록, 근처 오더 추천, 도착 예정 시각 계산"),

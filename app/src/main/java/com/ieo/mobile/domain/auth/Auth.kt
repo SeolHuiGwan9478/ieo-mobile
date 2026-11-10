@@ -8,9 +8,9 @@ import java.time.Instant
 enum class Consent(val label: String, val required: Boolean, val hint: String? = null) {
     TERMS("이용약관", true),
     PRIVACY("개인정보 수집·이용", true),
-    LOCATION("위치 정보 수집", true, "운행 안내·대기 기록에 써요"),
+    LOCATION("위치 정보 수집", true, "운행 안내·대기 기록에 사용해요"),
     BROKER_SHARE("주선사에 위치·운행 정보 공유", false, "도착 예정 시각을 자동으로 알려요"),
-    VOICE("음성 데이터 처리", false, "차량에서 말로 답할 때 써요"),
+    VOICE("음성 데이터 처리", false, "차량에서 말로 답할 때 사용해요"),
     MARKETING("마케팅 정보 받기", false, "문자·푸시 · 혜택 소식"),
 }
 

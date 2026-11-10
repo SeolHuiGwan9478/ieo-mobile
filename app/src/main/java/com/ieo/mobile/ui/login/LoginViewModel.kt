@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.login
 
+import com.ieo.mobile.domain.vehicle.VehicleDimensions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ieo.mobile.core.network.ApiError
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class LoginStep { START, PHONE, CODE, TERMS, NAME, VEHICLE, DONE }
+enum class LoginStep { START, PHONE, CODE, TERMS, NAME, VEHICLE, BODY, DONE }
 
 data class LoginState(
     val step: LoginStep = LoginStep.START,
@@ -26,6 +27,9 @@ data class LoginState(
     val plateNumber: String = "",
     val tonnage: Tonnage = Tonnage.TON_5,
     val bodyType: BodyType = BodyType.CARGO,
+    /** 선택 입력: 높이와 폭·길이·총중량·축 수 */
+    val heightMeters: Double? = null,
+    val dimensions: VehicleDimensions = VehicleDimensions(),
     val consents: Set<Consent> = emptySet(),
     /** 이 번호로 가입한 계정이 있으면 확인 창을 띄운다 */
     val existing: ExistingAccount? = null,
@@ -82,7 +86,20 @@ class LoginViewModel(
 
     fun onTonnage(value: Tonnage) = _state.update { it.copy(tonnage = value) }
 
+    /** −/+로 톤수를 한 칸씩 옮긴다. 끝에서는 멈춘다 */
+    fun stepTonnage(delta: Int) = _state.update {
+        val all = Tonnage.entries
+        it.copy(tonnage = all[(all.indexOf(it.tonnage) + delta).coerceIn(0, all.lastIndex)])
+    }
+
+    /** 차량 번호·톤수 다음에 차량 종류를 고른다 */
+    fun vehicleDone() = _state.update { it.copy(step = LoginStep.BODY, error = null) }
+
     fun onBodyType(value: BodyType) = _state.update { it.copy(bodyType = value) }
+
+    fun onHeight(value: Double?) = _state.update { it.copy(heightMeters = value) }
+
+    fun onDimensions(value: VehicleDimensions) = _state.update { it.copy(dimensions = value) }
 
     fun toggleConsent(consent: Consent) = _state.update {
         it.copy(consents = if (consent in it.consents) it.consents - consent else it.consents + consent)
@@ -115,14 +132,14 @@ class LoginViewModel(
         val current = _state.value
         when (val result = auth.verify(current.phone, current.code)) {
             is ApiResult.Success -> {
-                phoneToken = result.data.phoneToken
+                val token = result.data.phoneToken
+                phoneToken = token
                 val existing = result.data.existingAccount
-                _state.update {
-                    when {
-                        existing == null -> it.copy(step = LoginStep.TERMS)
-                        existing.isDriver -> it.copy(existing = existing)
-                        else -> it.copy(step = LoginStep.PHONE, code = "", error = BROKER_MESSAGE)
-                    }
+                when {
+                    existing == null -> _state.update { it.copy(step = LoginStep.TERMS) }
+                    // 번호로 가입한 기사님은 인증만 하면 바로 로그인한다. "이미 가입된 계정" 창은 구글 로그인 때만 쓴다
+                    existing.isDriver -> (auth.login(token) as? ApiResult.Failure)?.let { fail(it.error.message) }
+                    else -> _state.update { it.copy(step = LoginStep.PHONE, code = "", error = BROKER_MESSAGE) }
                 }
             }
             is ApiResult.Failure -> onCodeRejected(result.error)
@@ -146,7 +163,7 @@ class LoginViewModel(
         val token = phoneToken ?: return@busy fail(EXPIRED_MESSAGE)
         val current = _state.value
         val vehicle = current.plateNumber.trim().takeIf { it.isNotEmpty() && withVehicle }
-            ?.let { NewVehicle(it, current.tonnage, current.bodyType) }
+            ?.let { NewVehicle(it, current.tonnage, current.bodyType, current.heightMeters, current.dimensions) }
         when (val result = auth.signUp(token, current.name.trim(), current.consents, vehicle)) {
             is ApiResult.Success -> _state.update { it.copy(step = LoginStep.DONE) }
             is ApiResult.Failure -> fail(result.error.message)
@@ -156,7 +173,7 @@ class LoginViewModel(
     /** 가입 완료 화면의 "시작하기" */
     fun finish() = auth.finishSignUp()
 
-    /** 이미 가입된 계정 창의 "처음으로" */
+    /** 이미 가입된 계정 창의 "처음으로" (구글 로그인 때 쓴다) */
     fun restart() {
         phoneToken = null
         _state.value = LoginState()
@@ -170,6 +187,7 @@ class LoginViewModel(
             LoginStep.TERMS -> LoginStep.CODE
             LoginStep.NAME -> LoginStep.TERMS
             LoginStep.VEHICLE -> LoginStep.NAME
+            LoginStep.BODY -> LoginStep.VEHICLE
             LoginStep.START, LoginStep.DONE -> return false
         }
         _state.update { it.copy(step = previous, error = null, codeRejected = false) }
@@ -203,7 +221,7 @@ class LoginViewModel(
 
     companion object {
         const val BROKER_MESSAGE = "주선사 계정이에요. 주선사 콘솔에서 로그인해 주세요."
-        const val EXPIRED_MESSAGE = "인증이 만료됐어요. 처음부터 다시 해 주세요."
+        const val EXPIRED_MESSAGE = "인증 시간이 지났어요. 처음부터 다시 해 주세요."
         const val CODE_TTL_MILLIS = 180_000L
         const val RESEND_MILLIS = 60_000L
         private const val WRONG_CODE = "AUTH_400_CODE"
