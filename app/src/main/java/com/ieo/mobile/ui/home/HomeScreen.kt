@@ -87,7 +87,7 @@ fun HomeScreen(
             Column(
                 Modifier.fillMaxWidth().ruled().clickable(onClick = onEarnings).padding(vertical = 20.dp),
             ) {
-                Text("이번 달 순수익", fontSize = 16.sp, color = TextMid)
+                Text("이번 달 실수익", fontSize = 16.sp, color = TextMid)
                 Text(formatWon(monthNet), fontSize = 30.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 if (owed > 0) Text("못 받은 돈 ${formatWon(owed)}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = IeoStatus.colors.warning)
             }

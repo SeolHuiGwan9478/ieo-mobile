@@ -39,6 +39,8 @@ data class Order(
     val limited: Boolean = false,
     /** 같은 노선(상하차 시·구)의 Ieo 완료 운행 평균 운임. 표본이 10건 미만이면 null (DSP-044) */
     val routeAverageFare: Long? = null,
+    /** 내가 이미 신고한 오더. 신고는 오더마다 한 번이다 (DSP-042) */
+    val reportedByMe: Boolean = false,
 ) {
     val vehicleLabel: String get() = "$tonnageLabel $bodyTypeLabel"
 

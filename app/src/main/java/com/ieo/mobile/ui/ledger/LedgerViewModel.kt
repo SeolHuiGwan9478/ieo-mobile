@@ -76,7 +76,7 @@ data class LedgerState(
 
     val ledger: MonthlyLedger get() = ledgerOf(month)
 
-    /** 최근 6개월 순수익 */
+    /** 최근 6개월 실수익 */
     val history: List<MonthPoint>
         get() = (CHART_MONTHS - 1 downTo 0L).map { currentMonth.minusMonths(it) }.map { MonthPoint(it, ledgerOf(it).netProfit) }
 

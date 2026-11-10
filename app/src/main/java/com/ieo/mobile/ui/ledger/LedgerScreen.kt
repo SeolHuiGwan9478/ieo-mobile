@@ -156,7 +156,7 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
 private fun SummaryCard(state: LedgerState, viewModel: LedgerViewModel) {
     val ledger = state.ledger
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
-        Text("${monthLabel(state.month, state.currentMonth.year)} 순수익", fontSize = 16.sp, color = TextMid)
+        Text("${monthLabel(state.month, state.currentMonth.year)} 실수익", fontSize = 16.sp, color = TextMid)
         Text(formatWon(ledger.netProfit), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         Text("매출 ${formatWon(ledger.revenue)} − 경비 ${formatWon(ledger.expenseTotal)}", fontSize = 16.sp, color = TextMid)
         Spacer(Modifier.height(14.dp))
@@ -164,14 +164,14 @@ private fun SummaryCard(state: LedgerState, viewModel: LedgerViewModel) {
     }
 }
 
-/** 최근 6개월 순수익. 누르면 그 달로 간다. 고른 달만 금액을 쓴다 */
+/** 최근 6개월 실수익. 누르면 그 달로 간다. 고른 달만 금액을 쓴다 */
 @Composable
 private fun MonthBars(state: LedgerState, viewModel: LedgerViewModel) {
     val points = state.history
     val max = points.maxOf { it.net }.coerceAtLeast(1)
     val summary = points.joinToString(", ") { "${it.month.monthValue}월 ${shortWon(it.net)}" }
     Row(
-        Modifier.fillMaxWidth().semantics { contentDescription = "최근 6개월 순수익: $summary" },
+        Modifier.fillMaxWidth().semantics { contentDescription = "최근 6개월 실수익: $summary" },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom,
     ) {

@@ -267,7 +267,7 @@ class OrdersViewModelTest {
     }
 
     @Test
-    fun `신고하면 사유를 보내고 창을 닫는다`() = runTest(main.dispatcher) {
+    fun `신고하면 사유를 보내고 창을 닫고 다시 신고하지 못하게 한다`() = runTest(main.dispatcher) {
         val fake = Fake()
         val vm = TestVm(fake).apply { refresh() }
         advanceUntilIdle()
@@ -277,6 +277,10 @@ class OrdersViewModelTest {
         advanceUntilIdle()
         assertEquals(listOf("report1:OVERLOAD"), fake.calls)
         assertEquals(false, vm.state.value.reporting)
+        assertEquals(true, vm.state.value.selected?.reportedByMe)
+        assertEquals(OrdersViewModel.REPORTED_MESSAGE, vm.state.value.message)
+        vm.clearMessage()
+        assertEquals(null, vm.state.value.message)
     }
 
     @Test

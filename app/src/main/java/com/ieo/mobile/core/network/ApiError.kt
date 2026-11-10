@@ -17,7 +17,7 @@ sealed interface ApiError {
 
     /** 서버에 닿지 못함 (인터넷 끊김, 서버 꺼짐, 시간 초과) */
     data object Network : ApiError {
-        override val message = "서버에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요."
+        override val message = "서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요."
     }
 
     /** 응답을 읽지 못함 (앱과 서버의 응답 모양이 다를 때) */

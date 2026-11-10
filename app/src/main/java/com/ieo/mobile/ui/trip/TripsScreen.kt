@@ -96,7 +96,8 @@ fun TripsScreen(viewModel: TripsViewModel, onRegister: () -> Unit, labels: DayTi
                     EmptyState("아직 배차가 없어요", "오더 탭에서 요청하거나, 다른 앱에서 받은 배차를 등록해 보세요")
                 }
                 Section("진행 중", state.inProgress, labels, viewModel)
-                Section("예정", state.upcoming, labels, viewModel)
+                // 예정은 모두 같은 상태라 줄마다 상태를 다시 적지 않는다
+                Section("예정", state.upcoming, labels, viewModel, showStatus = false)
                 Section("지난 운행", state.past, labels, viewModel)
             }
         }
@@ -105,25 +106,32 @@ fun TripsScreen(viewModel: TripsViewModel, onRegister: () -> Unit, labels: DayTi
 }
 
 @Composable
-private fun Section(title: String, trips: List<Trip>, labels: DayTimeFormatter, viewModel: TripsViewModel) {
+private fun Section(title: String, trips: List<Trip>, labels: DayTimeFormatter, viewModel: TripsViewModel, showStatus: Boolean = true) {
     if (trips.isEmpty()) return
     Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
-    trips.forEach { TripCard(it, labels) { viewModel.open(it.id) } }
+    trips.forEach { TripCard(it, labels, showStatus) { viewModel.open(it.id) } }
 }
 
-/** 운행 카드. 홈의 다음 운행에도 쓴다 */
+/** 운행 카드. 홈의 다음 운행에도 쓴다. [showStatus]가 false면 상태 태그 없이 운임만 */
 @Composable
-fun TripCard(trip: Trip, labels: DayTimeFormatter, onClick: () -> Unit) {
+fun TripCard(trip: Trip, labels: DayTimeFormatter, showStatus: Boolean = true, onClick: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TripStatusTag(trip.status)
-            Spacer(Modifier.weight(1f))
-            Text(formatWon(trip.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+        if (showStatus) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TripStatusTag(trip.status)
+                Spacer(Modifier.weight(1f))
+                Text(formatWon(trip.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            }
+            Text(tripRoute(trip), fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+        } else {
+            Row(verticalAlignment = Alignment.Top) {
+                Text(tripRoute(trip), fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+                Text(formatWon(trip.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 12.dp))
+            }
         }
-        Text(tripRoute(trip), fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         Text("상차 ${tripTime(trip.pickup, labels)}", fontSize = 16.sp, color = TextMid)
         Text(listOfNotNull(trip.plateNumber, trip.paymentTypeLabel, trip.brokerName).joinToString(" · "), fontSize = 15.sp, color = TextSub)
     }

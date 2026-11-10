@@ -84,9 +84,10 @@ fun SiteInfoLink(onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(top = 6.dp).heightIn(min = 48.dp).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        // 왼쪽은 위 주소 글자와 줄을 맞춘다. 누르는 자리는 오른쪽으로 넉넉히
+        modifier = Modifier.padding(top = 6.dp).heightIn(min = 48.dp).clickable(onClick = onClick).padding(end = 14.dp),
     ) {
-        Icon(Icons.Outlined.Info, contentDescription = null, tint = Orange700, modifier = Modifier.padding(0.dp))
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = Orange700)
         Text("현장 정보", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
     }
 }

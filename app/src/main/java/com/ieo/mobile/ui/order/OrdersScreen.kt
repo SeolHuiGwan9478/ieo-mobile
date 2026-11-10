@@ -41,13 +41,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,6 +74,7 @@ import com.ieo.mobile.ui.component.PrimaryButton
 import com.ieo.mobile.ui.component.TonalButton
 import com.ieo.mobile.ui.theme.CanvasGray
 import com.ieo.mobile.ui.theme.Orange50
+import com.ieo.mobile.ui.theme.IeoStatus
 import com.ieo.mobile.ui.theme.Orange600
 import com.ieo.mobile.ui.theme.Orange700
 import com.ieo.mobile.ui.theme.TextMid
@@ -271,10 +270,8 @@ private fun ConditionsSheet(draft: OrderConditions, count: Int?, viewModel: Orde
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = viewModel::closeConditions, sheetState = sheetState, containerColor = White) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("조건 설정", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
-                Text("초기화", fontSize = 15.sp, color = TextSub, modifier = Modifier.clickable(onClick = viewModel::resetDraft).padding(8.dp))
-            }
+            // 초기화는 아래 버튼 하나만 둔다
+            Text("조건 설정", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(vertical = 8.dp))
             ConditionGroup("내 주변 거리") {
                 OrderRadius.entries.forEach { r -> ConditionChip(r.label, draft.radius == r) { viewModel.editDraft { it.copy(radius = r) } } }
             }
@@ -370,17 +367,18 @@ fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewMod
                 Tags(order, texts)
             }
             FareCard(order)
-            ProfitCard(order, state.profit)
+            ProfitCard(order, state.profit, texts)
             RouteCard(order, texts, onSite)
             BrokerCard(order, texts)
             order.myRequest?.takeIf { order.isRequestedByMe }?.let { RequestCountdown(it) }
-            state.message?.let { if (state.messageIsError) ErrorNotice(it) else Text(it, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp)) }
             if (!verified && !order.isRequestedByMe) {
                 Text("서류 4가지가 승인되면 배차를 요청할 수 있어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
             }
         }
+        // 누른 버튼 바로 위에 결과를 띄운다. 잘 됐다는 안내는 3초 뒤 사라지고, 실패는 남는다
+        state.message?.let { ActionMessage(it, state.messageIsError, viewModel::clearMessage) }
         Row(Modifier.fillMaxWidth().background(White).padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TonalButton("신고", viewModel::startReport, modifier = Modifier.weight(1f))
+            TonalButton(if (order.reportedByMe) "신고함" else "신고", viewModel::startReport, enabled = !order.reportedByMe, modifier = Modifier.weight(1f))
             if (order.isRequestedByMe) {
                 PrimaryButton("요청 철회", viewModel::withdraw, busy = state.isBusy, modifier = Modifier.weight(2.2f))
             } else if (!verified) {
@@ -390,7 +388,29 @@ fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewMod
             }
         }
     }
-    if (state.reporting) ReportDialog(state.isBusy, viewModel)
+    if (state.reporting) ReportSheet(state.isBusy, viewModel)
+}
+
+@Composable
+private fun ActionMessage(message: String, isError: Boolean, onTimeout: () -> Unit) {
+    if (!isError) {
+        LaunchedEffect(message) {
+            delay(3_000)
+            onTimeout()
+        }
+    }
+    Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 10.dp)) {
+        Text(
+            message,
+            fontSize = 15.sp,
+            lineHeight = 21.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isError) IeoStatus.colors.warning else TextStrong,
+            modifier = Modifier.fillMaxWidth()
+                .background(if (isError) Orange50 else CanvasGray, RoundedCornerShape(12.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        )
+    }
 }
 
 @Composable
@@ -404,7 +424,7 @@ private fun FareCard(order: Order) {
 
 /** 위치를 알 때만 보인다. 내역을 받기 전에는 목록의 어림값을 보여 준다 */
 @Composable
-private fun ProfitCard(order: Order, profit: OrderProfit?) {
+private fun ProfitCard(order: Order, profit: OrderProfit?, texts: OrderTexts) {
     val net = profit?.netProfit ?: order.netProfit ?: return
     val note = when {
         profit == null -> "기름값만 뺀 어림값"
@@ -419,6 +439,8 @@ private fun ProfitCard(order: Order, profit: OrderProfit?) {
             ProfitLine("기름값", formatWon(it.fuelCost))
             ProfitLine("상차지까지", "${(it.emptyMeters + 500) / 1000}km")
         }
+        // 실제 경로를 받기 전에는 목록과 같은 어림 거리
+        if (profit == null) texts.distance(order)?.let { ProfitLine("상차지까지", it) }
         order.routeAverageFare?.let { ProfitLine("이 노선 평균 운임", "${formatWon(roundedToManwon(it))} (Ieo 완료 운행 기준)") }
     }
 }
@@ -434,8 +456,7 @@ private fun ProfitLine(label: String, value: String) {
 @Composable
 private fun RouteCard(order: Order, texts: OrderTexts, onSite: (Long) -> Unit) {
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
-        val distance = texts.distance(order)
-        Stop("상차" + (distance?.let { " · 내 위치에서 $it" } ?: ""), order.pickup, texts.pickupTime(order), Orange600, onSite, order.limited)
+        Stop("상차", order.pickup, texts.pickupTime(order), Orange600, onSite, order.limited)
         Spacer(Modifier.height(18.dp))
         Stop("하차", order.dropoff, texts.dropoffTime(order), TextStrong, onSite, order.limited)
         Spacer(Modifier.height(14.dp))
@@ -498,24 +519,26 @@ private fun RequestCountdown(request: DispatchRequest) {
     }
 }
 
+/** 신고 사유를 고르는 창. 고르면 바로 접수한다 */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReportDialog(busy: Boolean, viewModel: OrdersViewModel) {
-    AlertDialog(
-        onDismissRequest = viewModel::cancelReport,
-        title = { Text("무엇이 문제인가요?") },
-        text = {
-            Column {
-                ReportType.entries.forEach { type ->
-                    Text(
-                        type.label,
-                        fontSize = 16.sp,
-                        color = TextStrong,
-                        modifier = Modifier.fillMaxWidth().clickable(enabled = !busy) { viewModel.report(type) }.padding(vertical = 15.dp),
-                    )
-                }
+private fun ReportSheet(busy: Boolean, viewModel: OrdersViewModel) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = viewModel::cancelReport, sheetState = sheetState, containerColor = White) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
+            Text("무엇이 문제인가요?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            Text("운영팀이 확인해요. 신고는 오더마다 한 번 할 수 있어요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+            ReportType.entries.forEachIndexed { index, type ->
+                if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(CanvasGray))
+                Text(
+                    type.label,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextStrong,
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = !busy) { viewModel.report(type) }.padding(vertical = 17.dp),
+                )
             }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = viewModel::cancelReport) { Text("취소", color = TextMid) } },
-    )
+            TonalButton("취소", viewModel::cancelReport, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        }
+    }
 }

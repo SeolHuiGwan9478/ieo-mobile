@@ -93,7 +93,7 @@ class LedgerViewModelTest {
     }
 
     @Test
-    fun `이 달 순수익은 매출에서 경비를 뺀다`() = runTest(main.dispatcher) {
+    fun `이 달 실수익은 매출에서 경비를 뺀다`() = runTest(main.dispatcher) {
         val vm = vm(Fake())
         advanceUntilIdle()
         assertEquals(50_000L, vm.state.value.ledger.netProfit)

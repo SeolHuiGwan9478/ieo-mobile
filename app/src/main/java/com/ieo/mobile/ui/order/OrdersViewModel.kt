@@ -2,6 +2,7 @@ package com.ieo.mobile.ui.order
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ieo.mobile.core.network.ApiError
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.domain.order.LocationSource
 import com.ieo.mobile.domain.order.Order
@@ -175,15 +176,21 @@ class OrdersViewModel(
     fun report(type: ReportType) {
         val order = _state.value.selected ?: return
         action {
-            when (val result = repository.report(order.id, type)) {
-                is ApiResult.Success -> {
-                    _state.update { it.copy(reporting = false) }
-                    show(REPORTED_MESSAGE)
-                }
-                is ApiResult.Failure -> fail(result.error.message)
+            val result = repository.report(order.id, type)
+            val already = (result as? ApiResult.Failure)?.error.let { it is ApiError.Server && it.code == ALREADY_REPORTED_CODE }
+            if (result is ApiResult.Success || already) {
+                // 신고는 오더마다 한 번이라 신고 버튼을 닫는다
+                _state.update { s -> s.copy(reporting = false, orders = s.orders.map { if (it.id == order.id) it.copy(reportedByMe = true) else it }) }
+            }
+            when {
+                result is ApiResult.Success -> show(REPORTED_MESSAGE)
+                result is ApiResult.Failure -> fail(result.error.message)
             }
         }
     }
+
+    /** 버튼 위에 잠깐 띄운 안내를 지운다. 실패 안내는 다음 동작까지 둔다 */
+    fun clearMessage() = _state.update { if (it.messageIsError) it else it.copy(message = null) }
 
     private fun runPendingRefresh() {
         if (!refreshPending) return
@@ -259,5 +266,6 @@ class OrdersViewModel(
         const val REQUESTED_MESSAGE = "배차를 요청했어요. 주선사가 확정하면 배차가 잡혀요"
         const val WITHDRAWN_MESSAGE = "요청을 철회했어요"
         const val REPORTED_MESSAGE = "신고를 접수했어요"
+        private const val ALREADY_REPORTED_CODE = "ORDER_409_REPORTED"
     }
 }
