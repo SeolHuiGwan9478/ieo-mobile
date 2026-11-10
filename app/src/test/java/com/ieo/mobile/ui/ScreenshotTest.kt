@@ -338,6 +338,18 @@ class ScreenshotTest {
     }
 
     @Test
+    fun 내차량_톤수변경() {
+        val vm = vehicles()
+        compose.setContent {
+            IeoTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { VehiclesScreen(vm, onBack = {}) } }
+        }
+        compose.waitForIdle()
+        vm.stepTonnage(1)
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/VH_identity.png")
+    }
+
+    @Test
     fun 내차량_연비() {
         val vm = vehicles()
         compose.setContent {
