@@ -1,13 +1,25 @@
 package com.ieo.mobile.ui.order
 
 import com.ieo.mobile.ui.component.ruled
-import androidx.compose.foundation.horizontalScroll
 import com.ieo.mobile.ui.site.SiteInfoLink
 import android.Manifest
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import com.ieo.mobile.ui.theme.Orange500
+import com.ieo.mobile.domain.order.CargoCategory
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,7 +69,6 @@ import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderSite
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.ui.common.formatWon
-import com.ieo.mobile.ui.component.BrandChip
 import com.ieo.mobile.ui.component.EmptyState
 import com.ieo.mobile.ui.component.ErrorNotice
 import com.ieo.mobile.ui.component.SkeletonCards
@@ -77,7 +88,10 @@ import kotlinx.coroutines.delay
 
 private val LineGray = Color(0xFFE5E8EB)
 
-/** M08 오더 찾기. 근처 오더를 찾으려고 처음에 위치 권한을 묻는다 */
+/**
+ * M08 오더 찾기. 근처 오더를 찾으려고 처음에 위치 권한을 묻는다.
+ * 위에는 새로고침과 "조건" 버튼, 걸어 둔 조건, 마지막 업데이트 시간. 목록은 화면이 보이는 동안 1분마다 다시 받는다
+ */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { OrderTexts() }, askLocation: Boolean = true, hasVehicle: Boolean = true, onAddVehicle: () -> Unit = {}) {
@@ -87,34 +101,59 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
         if (askLocation) permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         viewModel.refresh()
     }
+    // 화면이 보이는 동안만 1분마다 다시 받는다. 앱을 내리면 멈춘다
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(OrdersViewModel.AUTO_REFRESH_MILLIS)
+                viewModel.autoRefresh()
+            }
+        }
+    }
     val orders = viewModel.visible(state)
 
     Column(Modifier.fillMaxSize().background(White)) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("오더 찾기", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
-                Text(
-                    "${state.sort.label} ▾",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextMid,
-                    modifier = Modifier.clickable(onClick = viewModel::toggleSort).padding(horizontal = 4.dp, vertical = 10.dp),
-                )
+                ToolButton(onClick = viewModel::refresh) {
+                    Icon(Icons.Outlined.Refresh, contentDescription = "새로고침", tint = TextStrong, modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(8.dp))
+                ToolButton(onClick = viewModel::openConditions) {
+                    Icon(Icons.Outlined.Tune, contentDescription = null, tint = TextStrong, modifier = Modifier.size(18.dp))
+                    Text("조건", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 5.dp))
+                    if (state.conditions.changedCount > 0) {
+                        Box(Modifier.padding(start = 6.dp).size(20.dp).background(Orange600, CircleShape), contentAlignment = Alignment.Center) {
+                            Text("${state.conditions.changedCount}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = White)
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                BrandChip("내 위치 50km", state.nearMe && !state.locationMissing, viewModel::toggleNearMe)
-                DayFilter.entries.forEach { day -> BrandChip(day.label, state.day == day) { viewModel.selectDay(day) } }
-                BrandChip("선불만", state.prepaidOnly, viewModel::togglePrepaid)
-                BrandChip("30만 원 이상", state.highFareOnly, viewModel::toggleHighFare)
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    state.conditions.summary.forEach { ConditionPill(it) }
+                }
+                state.updatedAt?.let { UpdatedLabel(it) }
             }
             if (state.locationMissing) {
-                Text("위치를 몰라 전체 오더를 보여 드려요", fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(top = 10.dp))
+                Text("위치를 몰라 전국 오더를 보여 드려요", fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(top = 8.dp))
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (state.isLoading && state.orders.isEmpty()) "" else "${orders.size}건", fontSize = 14.sp, color = TextSub, modifier = Modifier.weight(1f))
+                Text(
+                    "${state.sort.label} ▾",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextMid,
+                    modifier = Modifier.clickable(onClick = viewModel::toggleSort).padding(horizontal = 4.dp, vertical = 8.dp),
+                )
             }
         }
         PullToRefreshBox(isRefreshing = state.isLoading && state.orders.isNotEmpty(), onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 if (state.loadFailed) state.message?.let { ErrorNotice(it, viewModel::refresh) }
@@ -122,13 +161,150 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
                 if (orders.isEmpty() && !state.isLoading && !state.loadFailed) {
                     if (!hasVehicle) {
                         EmptyState("맞는 오더가 없어요", "차를 등록해야 맞는 오더가 보여요", "내 차 등록하기", onAddVehicle)
-                    } else if (state.nearMe && state.nearApplied) {
-                        EmptyState("근처에 맞는 오더가 없어요", "범위를 넓히면 더 찾을 수 있어요", "전체에서 찾기", viewModel::toggleNearMe)
+                    } else if (state.conditions.changedCount > 0) {
+                        EmptyState("조건에 맞는 오더가 없어요", "조건을 넓히면 더 찾을 수 있어요", "조건 바꾸기", viewModel::openConditions)
                     } else {
                         EmptyState("지금 맞는 오더가 없어요", "새 오더가 올라오면 여기에 보여요", "새로고침", viewModel::refresh)
                     }
                 }
-                orders.forEach { order -> OrderCard(order, texts) { viewModel.open(order.id) } }
+                orders.forEach { order -> OrderRow(order, texts, isNew = order.id in state.newIds) { viewModel.open(order.id) } }
+            }
+        }
+    }
+    state.draft?.let { draft -> ConditionsSheet(draft, state.draftCount, viewModel) }
+}
+
+@Composable
+private fun ToolButton(onClick: () -> Unit, content: @Composable () -> Unit) {
+    Row(
+        Modifier.heightIn(min = 40.dp).background(CanvasGray, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) { content() }
+}
+
+@Composable
+private fun ConditionPill(text: String) {
+    Text(
+        text,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        color = Orange700,
+        modifier = Modifier.background(Orange50, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+/** "방금 업데이트", "3분 전 업데이트". 30초마다 다시 센다 */
+@Composable
+private fun UpdatedLabel(updatedAt: Instant) {
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(updatedAt) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(30_000)
+        }
+    }
+    Text(updatedLabel(updatedAt, Instant.ofEpochMilli(now)), fontSize = 13.sp, color = TextSub, modifier = Modifier.padding(start = 8.dp))
+}
+
+internal fun updatedLabel(updatedAt: Instant, now: Instant): String {
+    val minutes = Duration.between(updatedAt, now).toMinutes()
+    return if (minutes < 1) "방금 업데이트" else "${minutes}분 전 업데이트"
+}
+
+/** 한 건: 왼쪽은 상차→하차를 점과 선으로, 오른쪽은 운임·실수익·거리, 아래는 태그 */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OrderRow(order: Order, texts: OrderTexts, isNew: Boolean, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp)) {
+        Row(verticalAlignment = Alignment.Top) {
+            Row(Modifier.weight(1f).height(IntrinsicSize.Min)) {
+                Column(Modifier.width(14.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.padding(top = 7.dp).size(9.dp).background(Orange500, CircleShape))
+                    Box(Modifier.padding(vertical = 3.dp).width(2.dp).weight(1f).background(LineGray))
+                    Box(Modifier.padding(bottom = 25.dp).size(9.dp).background(TextStrong, CircleShape))
+                }
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(order.pickup.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                        if (isNew) {
+                            Text(
+                                "새로 올라옴",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = White,
+                                modifier = Modifier.padding(start = 6.dp).background(Orange600, RoundedCornerShape(5.dp)).padding(horizontal = 5.dp, vertical = 1.dp),
+                            )
+                        }
+                    }
+                    Text(texts.pickupTime(order), fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(top = 1.dp, bottom = 8.dp))
+                    Text(order.dropoff.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                    Text(texts.dropoffTime(order), fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(top = 1.dp))
+                }
+            }
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 12.dp)) {
+                Text(formatWon(order.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                texts.netProfit(order)?.let { Text(it, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Orange700, modifier = Modifier.padding(top = 2.dp)) }
+                texts.distance(order)?.let { Text("상차지까지 $it", fontSize = 13.sp, color = TextSub, modifier = Modifier.padding(top = 8.dp)) }
+            }
+        }
+        FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            texts.tags(order).forEach { tag ->
+                Text(
+                    tag.text,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = tag.color.content,
+                    modifier = Modifier.background(tag.color.background, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 3.dp),
+                )
+            }
+        }
+        if (order.isRequestedByMe) Box(Modifier.padding(top = 8.dp)) { RequestedBadge() }
+    }
+}
+
+/** 아래에서 올라오는 조건 창. 고른 뒤 아래 버튼을 눌러야 목록이 바뀐다 */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun ConditionsSheet(draft: OrderConditions, count: Int?, viewModel: OrdersViewModel) {
+    // 반만 올라오면 아래 버튼이 가려져서 처음부터 끝까지 올린다
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = viewModel::closeConditions, sheetState = sheetState, containerColor = White) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("조건 설정", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+                Text("초기화", fontSize = 15.sp, color = TextSub, modifier = Modifier.clickable(onClick = viewModel::resetDraft).padding(8.dp))
+            }
+            ConditionGroup("내 주변 거리") {
+                OrderRadius.entries.forEach { r -> ConditionChip(r.label, draft.radius == r) { viewModel.editDraft { it.copy(radius = r) } } }
+            }
+            ConditionGroup("상차 날짜") {
+                DayFilter.entries.forEach { d -> ConditionChip(d.label, draft.day == d) { viewModel.editDraft { it.copy(day = d) } } }
+            }
+            ConditionGroup("최소 운임") {
+                MinFare.entries.forEach { f -> ConditionChip(f.label, draft.minFare == f) { viewModel.editDraft { it.copy(minFare = f) } } }
+            }
+            ConditionGroup("결제 방식") {
+                PaymentFilter.entries.forEach { p -> ConditionChip(p.label, draft.payment == p) { viewModel.editDraft { it.copy(payment = p) } } }
+            }
+            ConditionGroup("제외할 화물", last = true) {
+                CargoCategory.entries.filter { it.excludable }.forEach { c ->
+                    ConditionChip(c.label, c in draft.excluded) {
+                        viewModel.editDraft { it.copy(excluded = if (c in it.excluded) it.excluded - c else it.excluded + c) }
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TonalButton("초기화", viewModel::resetDraft, modifier = Modifier.weight(1f))
+                PrimaryButton(
+                    when (count) {
+                        null -> "오더 보기"
+                        0 -> "맞는 오더가 없어요"
+                        else -> "오더 ${count}건 보기"
+                    },
+                    viewModel::applyConditions,
+                    modifier = Modifier.weight(2f),
+                )
             }
         }
     }
@@ -136,31 +312,31 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OrderCard(order: Order, texts: OrderTexts, onClick: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(texts.route(order), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
-            Text(formatWon(order.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-        }
-        Tags(order, texts)
-        Column {
-            Text("상차 ${texts.pickupTime(order)}", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-            Text("하차 ${texts.dropoffTime(order)}", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-        }
-        if (order.distanceMeters != null || order.netProfit != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(texts.distance(order)?.let { "상차지까지 $it" }.orEmpty(), fontSize = 15.sp, color = TextMid, modifier = Modifier.weight(1f))
-                texts.netProfit(order)?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700) }
-            }
-        }
-        if (order.isRequestedByMe) RequestedBadge()
+private fun ConditionGroup(title: String, last: Boolean = false, chips: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth().then(if (last) Modifier else Modifier.ruled()).padding(vertical = 14.dp)) {
+        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(bottom = 10.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { chips() }
     }
 }
 
-/** 태그를 알약 대신 글자 한 줄로 쓴다 */
+/** 고른 칸은 연한 주황 바탕에 주황 테두리. 아래 진한 주황 버튼과 겹치지 않게 연하게 둔다 */
+@Composable
+private fun ConditionChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .heightIn(min = 44.dp)
+            .background(if (selected) Orange50 else CanvasGray, shape)
+            .then(if (selected) Modifier.border(1.5.dp, Orange600, shape) else Modifier)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+    ) {
+        Text(text, fontSize = 15.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = if (selected) Orange700 else TextMid)
+    }
+}
+
+/** 상세 위 태그를 글자 한 줄로 쓴다 */
 @Composable
 private fun Tags(order: Order, texts: OrderTexts) {
     Text(texts.tags(order).joinToString(" · ") { it.text }, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid)

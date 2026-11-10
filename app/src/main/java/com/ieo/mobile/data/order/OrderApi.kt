@@ -15,6 +15,7 @@ interface OrderApi {
         @Query("lat") lat: Double? = null,
         @Query("lng") lng: Double? = null,
         @Query("size") size: Int? = null,
+        @Query("radiusM") radiusM: Int? = null,
         @Query("minFare") minFare: Long? = null,
         @Query("paymentType") paymentType: String? = null,
     ): Response<List<OrderResponse>>

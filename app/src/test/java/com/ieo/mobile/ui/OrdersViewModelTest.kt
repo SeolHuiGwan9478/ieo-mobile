@@ -16,6 +16,11 @@ import com.ieo.mobile.testing.MainDispatcherRule
 import com.ieo.mobile.ui.common.DayTimeFormatter
 import com.ieo.mobile.ui.common.formatWon
 import com.ieo.mobile.ui.order.DayFilter
+import com.ieo.mobile.ui.order.MinFare
+import com.ieo.mobile.ui.order.OrderConditions
+import com.ieo.mobile.ui.order.OrderRadius
+import com.ieo.mobile.ui.order.PaymentFilter
+import com.ieo.mobile.ui.order.updatedLabel
 import com.ieo.mobile.ui.order.OrderTexts
 import com.ieo.mobile.ui.order.OrdersViewModel
 import java.time.Clock
@@ -64,7 +69,8 @@ class OrdersViewModelTest {
             searched = search
             // 결제 방식과 운임은 서버가 거른다
             return ApiResult.Success(list.filter {
-                (!search.prepaidOnly || it.paymentTypeLabel == "선불") && (search.minFare == null || it.fare >= search.minFare)
+                (search.paymentType == null || (search.paymentType == "PREPAID") == (it.paymentTypeLabel == "선불")) &&
+                    (search.minFare == null || it.fare >= search.minFare)
             })
         }
         var profit: ApiResult<OrderProfit> = ApiResult.Success(OrderProfit(200_000, 50_000, 7_800, 6_000))
@@ -92,15 +98,18 @@ class OrdersViewModelTest {
     private fun TestVm(fake: Fake, location: GeoPoint? = here) = OrdersViewModel(fake, { location }, clock)
 
     @Test
-    fun `위치를 알면 근처로 찾고 끄면 전체에서 찾는다`() = runTest(main.dispatcher) {
+    fun `위치를 알면 근처로 찾고 전국을 고르면 위치 없이 찾는다`() = runTest(main.dispatcher) {
         val fake = Fake()
         val vm = TestVm(fake).apply { refresh() }
         advanceUntilIdle()
         assertEquals(here, fake.nearAsked)
         assertTrue(vm.state.value.nearApplied)
-        vm.toggleNearMe()
+        vm.openConditions()
+        vm.editDraft { it.copy(radius = OrderRadius.NATIONWIDE) }
+        vm.applyConditions()
         advanceUntilIdle()
         assertNull(fake.nearAsked)
+        assertEquals(false, vm.state.value.locationMissing)
     }
 
     @Test
@@ -152,37 +161,37 @@ class OrdersViewModelTest {
     }
 
     @Test
-    fun `위치를 모를 때 내 위치를 누르면 끄지 않고 다시 찾는다`() = runTest(main.dispatcher) {
-        val vm = TestVm(Fake(), location = null).apply { refresh() }
+    fun `조건 창에서 고른 뒤 적용해야 목록이 바뀌고 건수를 미리 보여 준다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = TestVm(fake).apply { refresh() }
         advanceUntilIdle()
-        vm.toggleNearMe()
+        vm.openConditions()
+        vm.editDraft { it.copy(payment = PaymentFilter.PREPAID) }
         advanceUntilIdle()
-        assertTrue(vm.state.value.nearMe)
-    }
-
-    @Test
-    fun `위치를 알거나 직접 끄면 위치 안내를 하지 않는다`() = runTest(main.dispatcher) {
-        val vm = TestVm(Fake()).apply { refresh() }
-        advanceUntilIdle()
-        assertEquals(false, vm.state.value.locationMissing)
-        vm.toggleNearMe()
-        advanceUntilIdle()
-        assertEquals(false, vm.state.value.locationMissing)
-    }
-
-    @Test
-    fun `날짜와 선불로 거르고 운임 순으로 바꾼다`() = runTest(main.dispatcher) {
-        val vm = TestVm(Fake()).apply { refresh() }
-        advanceUntilIdle()
+        assertEquals(1, vm.state.value.draftCount)
+        // 아직 적용 전이라 목록은 그대로
         assertEquals(listOf(1L, 2L), vm.visible(vm.state.value).map { it.id })
-        vm.toggleSort()
-        assertEquals(listOf(2L, 1L), vm.visible(vm.state.value).map { it.id })
-        vm.selectDay(DayFilter.TODAY)
-        assertEquals(listOf(1L), vm.visible(vm.state.value).map { it.id })
-        vm.selectDay(DayFilter.ALL)
-        vm.togglePrepaid()
+        vm.applyConditions()
         advanceUntilIdle()
         assertEquals(listOf(2L), vm.visible(vm.state.value).map { it.id })
+        assertEquals("PREPAID", fake.searched?.paymentType)
+        assertEquals(1, vm.state.value.conditions.changedCount)
+        assertEquals(listOf("내 주변 50km", "선불"), vm.state.value.conditions.summary)
+    }
+
+    @Test
+    fun `날짜와 제외할 화물은 받은 목록에서 거르고 운임 순으로 바꾼다`() = runTest(main.dispatcher) {
+        val fake = Fake().apply { list = listOf(order(1, today, 300_000), order(2, tomorrow, 500_000, "선불"), order(3, today, 400_000, cargo = CargoCategory.MOVING)) }
+        val vm = TestVm(fake).apply { refresh() }
+        advanceUntilIdle()
+        vm.toggleSort()
+        assertEquals(listOf(2L, 3L, 1L), vm.visible(vm.state.value).map { it.id })
+        vm.openConditions()
+        vm.editDraft { it.copy(day = DayFilter.TODAY, excluded = setOf(CargoCategory.MOVING)) }
+        vm.applyConditions()
+        advanceUntilIdle()
+        assertEquals(listOf(1L), vm.visible(vm.state.value).map { it.id })
+        assertEquals(listOf("내 주변 50km", "오늘 상차", "이사 제외"), vm.state.value.conditions.summary)
     }
 
     @Test
@@ -190,10 +199,35 @@ class OrdersViewModelTest {
         val fake = Fake()
         val vm = TestVm(fake).apply { refresh() }
         advanceUntilIdle()
-        vm.toggleHighFare()
+        vm.openConditions()
+        vm.editDraft { it.copy(minFare = MinFare.OVER_30) }
+        vm.applyConditions()
         advanceUntilIdle()
         assertEquals(300_000L, fake.searched?.minFare)
-        assertEquals(listOf(1L, 2L), vm.visible(vm.state.value).map { it.id })
+    }
+
+    @Test
+    fun `자동 새로고침은 새로 들어온 오더에 표시를 붙이고 상세를 보는 동안에는 미룬다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = TestVm(fake).apply { refresh() }
+        advanceUntilIdle()
+        assertTrue(vm.state.value.newIds.isEmpty())
+
+        fake.list = fake.list + order(5, today, 450_000)
+        vm.open(1)
+        vm.autoRefresh()
+        advanceUntilIdle()
+        assertEquals(2, vm.state.value.orders.size)   // 상세가 열려 있어 아직 안 받았다
+
+        vm.close()
+        advanceUntilIdle()
+        assertEquals(setOf(5L), vm.state.value.newIds)
+    }
+
+    @Test
+    fun `업데이트 시간은 1분이 안 되면 방금, 넘으면 분으로 적는다`() {
+        assertEquals("방금 업데이트", updatedLabel(now, now.plusSeconds(40)))
+        assertEquals("3분 전 업데이트", updatedLabel(now, now.plusSeconds(200)))
     }
 
     @Test
@@ -254,7 +288,7 @@ class OrdersViewModelTest {
         assertEquals("냉동·냉장 · 파렛트 · 4.2톤 · 지게차", texts.cargo(order))
         assertEquals("평균 지급 12일 · 지연 8%", texts.metrics(order.brokerMetrics!!))
         assertEquals(listOf("5톤 카고", "냉동·냉장", "인수증", "지급 12일"), texts.tags(order).map { it.text })
-        assertEquals("기록 쌓는 중", texts.metrics(BrokerMetrics(published = false)))
+        assertEquals("거래 기록 적음", texts.metrics(BrokerMetrics(published = false)))
         assertEquals("30만 원", formatWon(300_000))
     }
 }

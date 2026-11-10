@@ -7,31 +7,33 @@ import com.ieo.mobile.domain.order.LocationSource
 import com.ieo.mobile.domain.order.Order
 import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderRepository
-import com.ieo.mobile.domain.order.OrderSearch
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.ui.common.DayTimeFormatter
 import java.time.Clock
+import java.time.Instant
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class DayFilter(val label: String) { ALL("전체 날짜"), TODAY("오늘"), TOMORROW("내일") }
-
-enum class OrderSort(val label: String) { SOON("상차 빠른 순"), FARE("운임 높은 순") }
+enum class OrderSort(val label: String) { SOON("상차 시간순"), FARE("운임 높은 순") }
 
 data class OrdersState(
     val orders: List<Order> = emptyList(),
-    val day: DayFilter = DayFilter.ALL,
+    val conditions: OrderConditions = OrderConditions(),
     val sort: OrderSort = OrderSort.SOON,
-    val prepaidOnly: Boolean = false,
-    /** 30만 원 이상만 */
-    val highFareOnly: Boolean = false,
-    /** 내 위치 근처만 찾는다 (서버 기준 50km) */
-    val nearMe: Boolean = true,
+    /** 조건 창에서 고르는 중인 조건. 창이 닫혀 있으면 null */
+    val draft: OrderConditions? = null,
+    /** [draft]로 찾으면 나올 건수. 세는 중이면 null */
+    val draftCount: Int? = null,
     /** 위치를 알아 실제로 근처만 받았다 */
     val nearApplied: Boolean = false,
+    /** 마지막으로 목록을 받은 시각. 아직 못 받았으면 null */
+    val updatedAt: Instant? = null,
+    /** 자동 새로고침으로 새로 들어온 오더 */
+    val newIds: Set<Long> = emptySet(),
     val selectedId: Long? = null,
     /** 고른 오더의 실수익 내역. 받기 전이거나 위치를 모르면 null */
     val profit: OrderProfit? = null,
@@ -46,59 +48,83 @@ data class OrdersState(
 ) {
     val selected: Order? get() = selectedId?.let { id -> orders.firstOrNull { it.id == id } }
 
-    /** 근처로 찾으려 했지만 위치를 몰라 전체를 받았다 */
-    val locationMissing: Boolean get() = nearMe && !nearApplied && !isLoading && !loadFailed
+    /** 근처로 찾으려 했지만 위치를 몰라 전국에서 받았다 */
+    val locationMissing: Boolean get() = conditions.radius.km != null && !nearApplied && !isLoading && !loadFailed
 }
 
-/** 오더 찾기 (DSP-010·020·042, 시안 M08·M09): 목록, 상세, 배차 요청·철회, 신고 */
+/**
+ * 오더 찾기 (DSP-010·020·042, 시안 M08·M09): 목록, 조건, 상세, 배차 요청·철회, 신고.
+ * 목록은 화면이 보이는 동안 1분마다 다시 받는다 ([autoRefresh]). 상세나 조건 창이 열려 있으면 순서가 바뀌지 않게 닫은 뒤에 받는다
+ */
 class OrdersViewModel(
     private val repository: OrderRepository,
     private val location: LocationSource,
-    clock: Clock = Clock.system(DayTimeFormatter.KOREA),
+    private val clock: Clock = Clock.system(DayTimeFormatter.KOREA),
 ) : ViewModel() {
 
     private val labels = DayTimeFormatter(clock)
     private val _state = MutableStateFlow(OrdersState())
     val state: StateFlow<OrdersState> = _state.asStateFlow()
 
-    /** 화면에 보일 오더: 고른 조건과 정렬을 적용한다 */
+    private var countJob: Job? = null
+    /** 상세·조건 창 때문에 미뤄 둔 자동 새로고침 */
+    private var refreshPending = false
+
+    /** 화면에 보일 오더: 받은 목록에 날짜·제외할 화물을 적용하고 정렬한다 */
     fun visible(state: OrdersState): List<Order> {
-        val filtered = state.orders.filter { order ->
-            matchesDay(order, state.day)
-        }
+        val filtered = state.orders.filter { matches(it, state.conditions) }
         return when (state.sort) {
             OrderSort.SOON -> filtered.sortedBy { it.pickupFrom }
             OrderSort.FARE -> filtered.sortedByDescending { it.fare }
         }
     }
 
+    /** 처음 열 때, 새로고침 버튼, 아래로 당기기 */
     fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, message = null) }
-            reload()
+            reload(markNew = false)
             _state.update { it.copy(isLoading = false) }
         }
     }
 
-    fun selectDay(day: DayFilter) = _state.update { it.copy(day = day) }
+    /** 1분마다 화면이 부른다. 로딩 표시 없이 받고, 새로 들어온 오더에 표시를 붙인다 */
+    fun autoRefresh() {
+        val now = _state.value
+        if (now.selectedId != null || now.draft != null) {
+            refreshPending = true
+            return
+        }
+        viewModelScope.launch { reload(markNew = true) }
+    }
 
     fun toggleSort() = _state.update { it.copy(sort = if (it.sort == OrderSort.SOON) OrderSort.FARE else OrderSort.SOON) }
 
-    /** 결제 방식과 운임은 서버가 거른다 (DSP-010) */
-    fun togglePrepaid() {
-        _state.update { it.copy(prepaidOnly = !it.prepaidOnly) }
-        refresh()
+    fun openConditions() {
+        _state.update { it.copy(draft = it.conditions, draftCount = null) }
+        countDraft()
     }
 
-    fun toggleHighFare() {
-        _state.update { it.copy(highFareOnly = !it.highFareOnly) }
-        refresh()
+    fun editDraft(change: (OrderConditions) -> OrderConditions) {
+        val draft = _state.value.draft ?: return
+        _state.update { it.copy(draft = change(draft), draftCount = null) }
+        countDraft()
     }
 
-    fun toggleNearMe() {
-        // 위치를 못 받아 꺼져 보일 때 누르면 위치를 다시 찾는다
-        if (_state.value.locationMissing) return refresh()
-        _state.update { it.copy(nearMe = !it.nearMe) }
+    fun resetDraft() = editDraft { OrderConditions() }
+
+    fun closeConditions() {
+        countJob?.cancel()
+        _state.update { it.copy(draft = null, draftCount = null) }
+        runPendingRefresh()
+    }
+
+    /** 고른 조건으로 목록을 다시 받는다. 조건이 바뀌었으니 "새로 올라옴" 표시는 지운다 */
+    fun applyConditions() {
+        val draft = _state.value.draft ?: return
+        countJob?.cancel()
+        refreshPending = false
+        _state.update { it.copy(conditions = draft, draft = null, draftCount = null, newIds = emptySet()) }
         refresh()
     }
 
@@ -111,7 +137,10 @@ class OrdersViewModel(
         }
     }
 
-    fun close() = _state.update { it.copy(selectedId = null, profit = null, reporting = false, message = null) }
+    fun close() {
+        _state.update { it.copy(selectedId = null, profit = null, reporting = false, message = null) }
+        runPendingRefresh()
+    }
 
     fun request() {
         val order = _state.value.selected ?: return
@@ -119,7 +148,7 @@ class OrdersViewModel(
             when (val result = repository.request(order.id)) {
                 is ApiResult.Success -> {
                     show(REQUESTED_MESSAGE)
-                    reload()
+                    reload(markNew = false)
                 }
                 is ApiResult.Failure -> fail(result.error.message)
             }
@@ -132,7 +161,7 @@ class OrdersViewModel(
             when (val result = repository.withdraw(request.id)) {
                 is ApiResult.Success -> {
                     show(WITHDRAWN_MESSAGE)
-                    reload()
+                    reload(markNew = false)
                 }
                 is ApiResult.Failure -> fail(result.error.message)
             }
@@ -156,23 +185,54 @@ class OrdersViewModel(
         }
     }
 
-    private fun matchesDay(order: Order, day: DayFilter): Boolean {
+    private fun runPendingRefresh() {
+        if (!refreshPending) return
+        refreshPending = false
+        autoRefresh()
+    }
+
+    /** 조건 창 아래 버튼에 넣을 건수. 고를 때마다 앞의 셈은 버린다 */
+    private fun countDraft() {
+        val draft = _state.value.draft ?: return
+        countJob?.cancel()
+        countJob = viewModelScope.launch {
+            val near = draft.radius.km?.let { location.lastKnown() }
+            val result = repository.openOrders(LIST_SIZE, near, draft.search)
+            val count = (result as? ApiResult.Success)?.data?.count { matches(it, draft) } ?: return@launch
+            _state.update { if (it.draft == draft) it.copy(draftCount = count) else it }
+        }
+    }
+
+    private fun matches(order: Order, conditions: OrderConditions): Boolean {
         val date = order.pickupFrom.atZone(DayTimeFormatter.KOREA).toLocalDate()
-        return when (day) {
+        val dayOk = when (conditions.day) {
             DayFilter.ALL -> true
             DayFilter.TODAY -> date == labels.today()
             DayFilter.TOMORROW -> date == labels.today().plusDays(1)
         }
+        return dayOk && order.cargoCategory !in conditions.excluded
     }
 
-    private suspend fun reload() {
-        val near = if (_state.value.nearMe) location.lastKnown() else null
-        val search = OrderSearch(minFare = if (_state.value.highFareOnly) HIGH_FARE else null, prepaidOnly = _state.value.prepaidOnly)
-        when (val result = repository.openOrders(LIST_SIZE, near, search)) {
-            is ApiResult.Success -> _state.update { it.copy(orders = result.data, nearApplied = near != null, loadFailed = false) }
+    private suspend fun reload(markNew: Boolean) {
+        val conditions = _state.value.conditions
+        val near = conditions.radius.km?.let { location.lastKnown() }
+        when (val result = repository.openOrders(LIST_SIZE, near, conditions.search)) {
+            is ApiResult.Success -> _state.update { current ->
+                val before = current.orders.map { it.id }.toSet()
+                val arrived = if (markNew && before.isNotEmpty()) result.data.map { it.id }.filterNot { it in before }.toSet() else emptySet()
+                current.copy(
+                    orders = result.data,
+                    nearApplied = near != null,
+                    loadFailed = false,
+                    updatedAt = clock.instant(),
+                    // 한 번 붙은 표시는 그 오더가 목록에 있는 동안 둔다
+                    newIds = (current.newIds + arrived).filter { id -> result.data.any { it.id == id } }.toSet(),
+                )
+            }
             is ApiResult.Failure -> {
-                _state.update { it.copy(loadFailed = true) }
-                fail(result.error.message)
+                _state.update { it.copy(loadFailed = it.orders.isEmpty()) }
+                // 자동 새로고침 실패는 조용히 넘긴다. 다음 1분에 다시 받는다
+                if (!markNew) fail(result.error.message)
             }
         }
     }
@@ -195,7 +255,7 @@ class OrdersViewModel(
 
     companion object {
         private const val LIST_SIZE = 50
-        const val HIGH_FARE = 300_000L
+        const val AUTO_REFRESH_MILLIS = 60_000L
         const val REQUESTED_MESSAGE = "배차를 요청했어요. 주선사가 확정하면 배차가 잡혀요"
         const val WITHDRAWN_MESSAGE = "요청을 철회했어요"
         const val REPORTED_MESSAGE = "신고를 접수했어요"

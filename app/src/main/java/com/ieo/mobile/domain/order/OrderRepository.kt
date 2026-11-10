@@ -2,8 +2,11 @@ package com.ieo.mobile.domain.order
 
 import com.ieo.mobile.core.network.ApiResult
 
-/** 오더 목록 거르기 (DSP-010). 서버가 거른다 */
-data class OrderSearch(val minFare: Long? = null, val prepaidOnly: Boolean = false)
+/**
+ * 서버가 거르는 오더 조건 (DSP-010). [radiusKm]은 위치를 보낼 때만 쓴다.
+ * [paymentType]은 서버 이름(PREPAID, RECEIPT). 비우면 거르지 않는다
+ */
+data class OrderSearch(val radiusKm: Int = 50, val minFare: Long? = null, val paymentType: String? = null)
 
 interface OrderRepository {
 

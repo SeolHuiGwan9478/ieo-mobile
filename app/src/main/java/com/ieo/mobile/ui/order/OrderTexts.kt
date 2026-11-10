@@ -36,7 +36,7 @@ class OrderTexts(private val labels: DayTimeFormatter = DayTimeFormatter()) {
     ).joinToString(" · ").ifEmpty { "정보 없음" }
 
     fun metrics(metrics: BrokerMetrics): String {
-        if (!metrics.published) return "기록 쌓는 중"
+        if (!metrics.published) return "거래 기록 적음"
         return listOfNotNull(
             metrics.avgPaymentDays?.let { "평균 지급 ${it}일" },
             metrics.latePaymentPercent?.let { "지연 $it%" },
@@ -62,7 +62,7 @@ class OrderTexts(private val labels: DayTimeFormatter = DayTimeFormatter()) {
     private fun brokerTag(metrics: BrokerMetrics): OrderTag {
         val days = metrics.avgPaymentDays
         return when {
-            !metrics.published -> OrderTag("기록 쌓는 중", IeoTag.Gray)
+            !metrics.published -> OrderTag("거래 기록 적음", IeoTag.Gray)
             days == null -> OrderTag("지급 이력 없음", IeoTag.Gray)
             days <= 15 -> OrderTag("지급 ${days}일", IeoTag.Sage)
             days > 20 -> OrderTag("지급 ${days}일", IeoTag.Plum)
