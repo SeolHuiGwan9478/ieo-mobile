@@ -784,4 +784,22 @@ class ScreenshotTest {
             onBack = {},
         )
     })
+
+    @Test
+    fun D07_서류_반려_상세() {
+        val s = com.ieo.mobile.domain.document.DocumentStatus.entries
+        val vm = documentsVm(documents(s[1], s[0], s[2], null))
+        compose.waitForIdle()
+        vm.edit(vm.state.value.documents!!.required[2])
+        shot("D07_document_rejected", content = { com.ieo.mobile.ui.document.DocumentsScreen(vm) })
+    }
+
+    @Test
+    fun D08_서류_확인중_상세() {
+        val s = com.ieo.mobile.domain.document.DocumentStatus.entries
+        val vm = documentsVm(documents(s[1], s[0], s[2], null))
+        compose.waitForIdle()
+        vm.edit(vm.state.value.documents!!.required[1])
+        shot("D08_document_pending", content = { com.ieo.mobile.ui.document.DocumentsScreen(vm) })
+    }
 }

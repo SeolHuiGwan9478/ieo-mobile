@@ -1,9 +1,10 @@
 package com.ieo.mobile.ui.document
 
-import android.Manifest
-import android.content.Context
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import com.ieo.mobile.R
+import androidx.compose.ui.res.painterResource
 import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -12,27 +13,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import com.ieo.mobile.ui.component.PrimaryButton
-import com.ieo.mobile.ui.component.TonalButton
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.outlined.Badge
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.GppMaybe
-import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.HourglassTop
-import androidx.compose.material.icons.outlined.LocalShipping
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Storefront
-import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -53,11 +42,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,10 +52,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -79,7 +66,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ieo.mobile.data.proof.PaperPhotoReader
 import com.ieo.mobile.domain.document.BusinessInfo
@@ -92,28 +78,21 @@ import com.ieo.mobile.ui.component.FormField
 import com.ieo.mobile.ui.component.SkeletonCards
 import com.ieo.mobile.ui.component.ruled
 import com.ieo.mobile.ui.theme.CanvasGray
-import com.ieo.mobile.ui.theme.IeoStatus
 import com.ieo.mobile.ui.theme.Orange600
 import com.ieo.mobile.ui.theme.Orange700
 import com.ieo.mobile.ui.theme.TextMid
 import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
-import java.io.File
 import kotlinx.coroutines.launch
-
-private fun newCaptureUri(context: Context): Uri {
-    val folder = File(context.cacheDir, "documents").apply { mkdirs() }
-    return FileProvider.getUriForFile(context, "${context.packageName}.files", File(folder, "document.jpg"))
-}
 
 /** 상태 한 단어와 색 */
 @Composable
 internal fun statusText(item: DocumentItem): Pair<String, Color> = when (item.status) {
-    null -> "등록 전" to TextSub
-    DocumentStatus.PENDING -> "심사 중" to Orange600
-    DocumentStatus.APPROVED -> "승인" to Orange700
-    DocumentStatus.REJECTED -> "반려 · 다시 올려 주세요" to Orange700
+    null -> "올려 주세요" to TextSub
+    DocumentStatus.PENDING -> "확인하고 있어요" to Orange600
+    DocumentStatus.APPROVED -> "확인 완료" to Orange700
+    DocumentStatus.REJECTED -> "반려 · 눌러서 사유 보기" to Orange700
 }
 
 /** 홈 카드와 내 정보에 쓰는 한 줄 요약 */
@@ -121,21 +100,32 @@ fun documentsSummary(documents: DriverDocuments): String = when {
     documents.verified -> "인증됨"
     documents.rejectedCount > 0 -> "반려 ${documents.rejectedCount}건"
     documents.missingCount > 0 -> "${documents.missingCount}가지 남음"
-    else -> "심사 중"
+    else -> "확인 중"
 }
 
-/** 내 정보 > 서류. 차주가 필수 서류 4종을 찍어 올린다. 서류를 누르면 그 서류만 올리는 페이지로 간다 (창을 띄우지 않는다) */
+/** 서류 종류마다의 색 그림 (내 정보 메뉴와 같은 그림체) */
+internal fun iconOf(type: String): Int = when (type) {
+    "BUSINESS_REGISTRATION" -> R.drawable.ic_menu_business
+    "VEHICLE_REGISTRATION" -> R.drawable.ic_doc_vehicle
+    "DRIVER_LICENSE" -> R.drawable.ic_doc_license
+    "FREIGHT_QUALIFICATION" -> R.drawable.ic_doc_qualification
+    "CONSIGNMENT_CONTRACT" -> R.drawable.ic_doc_contract
+    "CARGO_INSURANCE" -> R.drawable.ic_doc_insurance
+    else -> R.drawable.ic_menu_document
+}
+
+/** 내 정보 > 서류. 서류마다 칸을 누르면 그 서류 페이지로 간다 (창을 띄우지 않는다) */
 @Composable
 fun DocumentsScreen(viewModel: DocumentsViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val editing = state.documents?.items?.firstOrNull { it.type == state.editing }
     if (editing != null) {
-        UploadPage(editing, state, viewModel)
+        DocumentPage(editing, state, viewModel)
         return
     }
     BackHandler(onBack = viewModel::close)
-    fun start(item: DocumentItem) {
-        if (item.canSubmit && state.uploading == null) viewModel.edit(item)
+    fun open(item: DocumentItem) {
+        if (state.uploading == null) viewModel.edit(item)
     }
 
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
@@ -155,18 +145,17 @@ fun DocumentsScreen(viewModel: DocumentsViewModel) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         documents.required.chunked(2).forEach { pair ->
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                pair.forEach { item -> DocumentTile(item, state.uploading == item.type, Modifier.weight(1f)) { start(item) } }
+                                pair.forEach { item -> DocumentTile(item, state.uploading == item.type, Modifier.weight(1f)) { open(item) } }
                                 if (pair.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
                     }
-                    documents.required.filter { it.status == DocumentStatus.REJECTED }.forEach { RejectNotice(it) { start(it) } }
                     if (documents.optional.isNotEmpty()) {
-                        Text("선택 · 해당하면 올려 주세요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 26.dp, bottom = 2.dp))
-                        documents.optional.forEach { DocumentRow(it, state.uploading == it.type) { start(it) } }
+                        Text("해당하는 분만 올려 주세요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 26.dp, bottom = 2.dp))
+                        documents.optional.forEach { DocumentRow(it, state.uploading == it.type) { open(it) } }
                     }
                     Text(
-                        "서류 사진은 심사하는 운영자만 보고, 탈퇴하면 지워요.",
+                        "올린 서류는 확인하는 담당자만 볼 수 있고, 탈퇴하면 함께 지워져요.",
                         fontSize = 14.sp, lineHeight = 20.sp, color = TextSub, modifier = Modifier.padding(top = 20.dp, bottom = 24.dp),
                     )
                 }
@@ -183,17 +172,24 @@ private fun TopBar(title: String, onBack: () -> Unit) {
     }
 }
 
+/** 서류 페이지 제목: 지금 상태에 맞춰 */
+internal fun pageTitle(item: DocumentItem): String = when (item.status) {
+    null -> "${objectOf(item.label)}\n올려 주세요"
+    DocumentStatus.PENDING -> "${objectOf(item.label)}\n확인하고 있어요"
+    DocumentStatus.APPROVED -> "${item.label}\n확인이 끝났어요"
+    DocumentStatus.REJECTED -> "${objectOf(item.label)}\n다시 올려 주세요"
+}
+
 /**
- * 서류 하나 올리기 페이지: (사업자등록증이면 번호·개업일) → 사진 찍기 또는 앨범에서 고르기 → 크게 확인 → 올리기.
- * 창 없이 한 화면에서 끝낸다
+ * 서류 하나의 페이지: 지금 상태, (사업자등록증이면 번호·개업일), 사진 고르기 → 크게 확인 → 올리기.
+ * 사진은 갤러리에서만 고른다. 반려됐으면 사유를 맨 아래 버튼 바로 위에 보여 준다
  */
 @Composable
-private fun UploadPage(item: DocumentItem, state: DocumentsState, viewModel: DocumentsViewModel) {
+private fun DocumentPage(item: DocumentItem, state: DocumentsState, viewModel: DocumentsViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val reader = remember(context) { PaperPhotoReader(context) }
     var photo by remember(item.type) { mutableStateOf<ByteArray?>(null) }
-    var captureUri by remember { mutableStateOf<Uri?>(null) }
     var number by remember(item.type) { mutableStateOf("") }
     var opened by remember(item.type) { mutableStateOf("") }
     val openedOn = BusinessFields.openedOn(opened)
@@ -201,92 +197,96 @@ private fun UploadPage(item: DocumentItem, state: DocumentsState, viewModel: Doc
     val uploading = state.uploading == item.type
     BackHandler(onBack = viewModel::stopEditing)
 
-    fun readPhoto(uri: Uri) {
-        scope.launch {
-            val bytes = reader.read(uri)
-            if (bytes == null) viewModel.photoUnreadable() else photo = bytes
+    val album = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let {
+            scope.launch {
+                val bytes = reader.read(it)
+                if (bytes == null) viewModel.photoUnreadable() else photo = bytes
+            }
         }
     }
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
-        val uri = captureUri
-        if (taken && uri != null) readPhoto(uri)
-    }
-    fun launchCamera() {
-        val uri = newCaptureUri(context)
-        captureUri = uri
-        runCatching { camera.launch(uri) }.onFailure { viewModel.photoUnreadable() }
-    }
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) launchCamera() }
-    val album = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(::readPhoto) }
-    val pickAlbum = { album.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
-    val takePhoto = { permission.launch(Manifest.permission.CAMERA) }
+    val pick = { album.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
 
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding().imePadding()) {
         TopBar(item.label, viewModel::stopEditing)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(52.dp).background(Orange50, CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(iconOf(item.type), contentDescription = null, tint = Orange600, modifier = Modifier.size(30.dp))
+                Box(Modifier.size(56.dp).background(CanvasGray, CircleShape), contentAlignment = Alignment.Center) {
+                    Image(painterResource(iconOf(item.type)), contentDescription = null, modifier = Modifier.size(32.dp))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text("${objectOf(item.label)}\n올려 주세요", fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                Text(pageTitle(item), fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             }
-            Text("네 모서리가 다 나오고 글씨가 또렷하게 보이게 찍어 주세요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(top = 12.dp))
-            item.latest?.rejectMessage?.takeIf { item.status == DocumentStatus.REJECTED }?.let {
-                Column(Modifier.fillMaxWidth().padding(top = 14.dp).background(Orange50, RoundedCornerShape(12.dp)).padding(14.dp)) {
-                    Text("지난번 반려 사유", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Orange700)
-                    Text(it, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid, modifier = Modifier.padding(top = 2.dp))
+            when (item.status) {
+                DocumentStatus.PENDING -> StatusNote("담당자가 서류를 보고 있어요. 결과가 나오면 홈과 이 화면에서 알려 드려요.")
+                DocumentStatus.APPROVED -> StatusNote("새 서류로 바꿔야 할 때만 다시 올려 주세요.")
+                else -> Text("서류 전체와 글씨가 잘 보이는 사진을 골라 주세요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(top = 12.dp))
+            }
+            if (item.canSubmit) {
+                if (item.needsBusinessInfo) {
+                    Text("등록증에 적힌 그대로 넣어 주세요. 국세청에서 사업자 상태를 확인해요.", fontSize = 15.sp, lineHeight = 21.sp, color = TextSub, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+                    FormField(number, { number = it.filter(Char::isDigit).take(10) }, "사업자등록번호 (비우면 내 정보의 번호)", KeyboardType.Number, placeholder = "123-45-67890", visualTransformation = HyphenAt(3, 5))
+                    Spacer(Modifier.height(10.dp))
+                    FormField(opened, { opened = it.filter(Char::isDigit).take(8) }, "개업연월일", KeyboardType.Number, placeholder = "2020-01-31", visualTransformation = HyphenAt(4, 6))
                 }
-            }
-            if (item.needsBusinessInfo) {
-                Text("등록증에 적힌 대로 넣어 주세요. 국세청에 사업자 상태를 확인해요", fontSize = 15.sp, lineHeight = 21.sp, color = TextSub, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
-                FormField(number, { number = it.filter(Char::isDigit).take(10) }, "사업자등록번호 (비우면 내 정보의 번호)", KeyboardType.Number, placeholder = "123-45-67890", visualTransformation = HyphenAt(3, 5))
-                Spacer(Modifier.height(10.dp))
-                FormField(opened, { opened = it.filter(Char::isDigit).take(8) }, "개업연월일", KeyboardType.Number, placeholder = "2020-01-31", visualTransformation = HyphenAt(4, 6))
-            }
-            Spacer(Modifier.height(22.dp))
-            PhotoBox(photo)
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TonalButton(if (photo == null) "사진 찍기" else "다시 찍기", takePhoto, modifier = Modifier.weight(1f), icon = Icons.Outlined.PhotoCamera)
-                TonalButton("앨범 선택", pickAlbum, modifier = Modifier.weight(1f), icon = Icons.Outlined.PhotoLibrary)
+                Spacer(Modifier.height(22.dp))
+                PhotoBox(photo, pick)
             }
             state.error?.let { Box(Modifier.padding(top = 12.dp)) { ErrorNotice(it) } }
             Spacer(Modifier.height(20.dp))
         }
-        Box(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-            PrimaryButton(
-                "올리기",
-                { photo?.let { bytes -> viewModel.submit(item, bytes, if (item.needsBusinessInfo) BusinessInfo(number.takeIf { it.length == 10 }, openedOn!!) else null) } },
-                enabled = photo != null && businessReady,
-                busy = uploading,
-            )
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+            // 반려 사유는 서류마다 맨 아래, 다시 올리는 버튼 바로 위에
+            item.latest?.rejectMessage?.takeIf { item.status == DocumentStatus.REJECTED }?.let {
+                Column(Modifier.fillMaxWidth().padding(bottom = 12.dp).background(Orange50, RoundedCornerShape(12.dp)).padding(14.dp)) {
+                    Text("반려된 이유", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Orange700)
+                    Text(it, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+            if (item.canSubmit) {
+                PrimaryButton(
+                    if (item.status == null) "올리기" else "다시 올리기",
+                    { photo?.let { bytes -> viewModel.submit(item, bytes, if (item.needsBusinessInfo) BusinessInfo(number.takeIf { it.length == 10 }, openedOn!!) else null) } },
+                    enabled = photo != null && businessReady,
+                    busy = uploading,
+                )
+            }
         }
     }
 }
 
-/** 고른 사진을 크게. 아직 없으면 점선 자리 */
 @Composable
-private fun PhotoBox(photo: ByteArray?) {
+private fun StatusNote(text: String) {
+    Text(text, fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(top = 12.dp).fillMaxWidth().background(CanvasGray.copy(alpha = 0.6f), RoundedCornerShape(12.dp)).padding(14.dp))
+}
+
+/** 고른 사진을 크게. 아직 없으면 눌러서 고르는 자리. 고른 뒤에도 눌러서 바꿀 수 있다 */
+@Composable
+private fun PhotoBox(photo: ByteArray?, onPick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     if (photo == null) {
         Column(
-            Modifier.fillMaxWidth().height(200.dp).background(CanvasGray.copy(alpha = 0.5f), shape).border(1.dp, LineGray, shape),
+            Modifier.fillMaxWidth().height(220.dp).background(CanvasGray.copy(alpha = 0.5f), shape).border(1.dp, LineGray, shape).clickable(onClick = onPick),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(Icons.Outlined.AddAPhoto, contentDescription = null, tint = TextSub, modifier = Modifier.size(40.dp))
-            Text("사진을 찍거나 앨범에서 골라 주세요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 8.dp))
+            Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = null, tint = Orange600, modifier = Modifier.size(44.dp))
+            Text("사진 선택", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 10.dp))
+            Text("갤러리에서 서류 사진을 골라 주세요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 2.dp))
         }
     } else {
         val bitmap = remember(photo) { BitmapFactory.decodeByteArray(photo, 0, photo.size)?.asImageBitmap() }
         bitmap?.let {
             Image(it, contentDescription = "올릴 서류 사진", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp).border(1.dp, LineGray, shape).padding(4.dp))
         }
+        TextButton(onClick = onPick, modifier = Modifier.padding(top = 4.dp)) {
+            Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, tint = TextMid, modifier = Modifier.size(20.dp))
+            Text("다른 사진 선택", fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(start = 6.dp))
+        }
     }
 }
 
-/** 필수 서류 칸 수만큼 나눈 막대와 "승인 2 / 4" */
+/** 필수 서류 칸 수만큼 나눈 막대와 "확인 완료 2 / 4" */
 @Composable
 private fun Progress(documents: DriverDocuments) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -301,47 +301,31 @@ private fun Progress(documents: DriverDocuments) {
                 Box(Modifier.weight(1f).height(6.dp).background(color, RoundedCornerShape(3.dp)))
             }
         }
-        Text("승인 ${documents.approvedRequired} / ${documents.requiredTotal}", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextMid)
+        Text("확인 완료 ${documents.approvedRequired} / ${documents.requiredTotal}", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextMid)
     }
 }
 
-/** 서류 종류마다의 그림 */
-internal fun iconOf(type: String): ImageVector = when (type) {
-    "BUSINESS_REGISTRATION" -> Icons.Outlined.Storefront
-    "VEHICLE_REGISTRATION" -> Icons.Outlined.LocalShipping
-    "DRIVER_LICENSE" -> Icons.Outlined.Badge
-    "FREIGHT_QUALIFICATION" -> Icons.Outlined.WorkspacePremium
-    "CONSIGNMENT_CONTRACT" -> Icons.Outlined.Handshake
-    "CARGO_INSURANCE" -> Icons.Outlined.Shield
-    else -> Icons.Outlined.Description
-}
-
-/** 맨 위: 큰 방패 그림과 한 줄 안내 (당근 동네 인증처럼 무엇을 하는 화면인지 그림으로) */
+/** 맨 위: 서류 그림과 한 줄 안내 */
 @Composable
 private fun Hero(documents: DriverDocuments) {
     val done = documents.verified
     Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier.size(84.dp).background(if (done) Orange100 else Orange50, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(if (done) Icons.Outlined.VerifiedUser else Icons.Outlined.GppMaybe, contentDescription = null, tint = if (done) Orange700 else Orange600, modifier = Modifier.size(46.dp))
-        }
+        Image(painterResource(R.drawable.ic_doc_hero), contentDescription = null, modifier = Modifier.size(84.dp))
         Spacer(Modifier.height(16.dp))
-        Text(if (done) "서류 확인이 끝났어요" else "서류를 확인하면\n배차를 받을 수 있어요", fontSize = 23.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong, textAlign = TextAlign.Center)
+        Text(if (done) "서류 확인이 모두 끝났어요" else "서류 ${documents.requiredTotal}가지만 올리면\n배차를 받을 수 있어요", fontSize = 23.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong, textAlign = TextAlign.Center)
         Text(
-            if (done) "오더에 바로 배차를 요청할 수 있어요" else "사진 ${documents.requiredTotal}장만 찍어 올려 주세요.\n운행 안내와 장부는 지금도 쓸 수 있어요",
+            if (done) "이제 오더에 배차를 요청할 수 있어요" else "갖고 계신 서류 사진을 올려 주세요.\n운행 안내와 장부는 지금도 사용할 수 있어요",
             fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
 
-/** 필수 서류 한 칸: 그림, 이름, 상태. 상태에 따라 테두리와 바탕이 바뀐다 */
+/** 필수 서류 한 칸: 그림, 이름, 상태. 상태에 따라 테두리와 바탕이 바뀐다. 어떤 상태든 눌러서 서류 페이지로 */
 @Composable
 private fun DocumentTile(item: DocumentItem, uploading: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val (label, color) = statusText(item)
     val shape = RoundedCornerShape(14.dp)
-    // 주황 한 가지로 단계가 갈수록 진하게: 등록 전(흰색) → 심사 중(옅은 주황) → 승인(진한 주황). 반려는 테두리로 눈에 띄게
+    // 주황 한 가지로 단계가 갈수록 진하게: 올리기 전(흰색) → 확인 중(옅은 주황) → 확인 완료(진한 주황). 반려는 테두리로 눈에 띄게
     val (border, fill) = when (item.status) {
         null -> LineGray to White
         DocumentStatus.PENDING -> Orange100 to Orange50
@@ -353,12 +337,12 @@ private fun DocumentTile(item: DocumentItem, uploading: Boolean, modifier: Modif
             .height(156.dp)
             .background(fill, shape)
             .border(if (item.status == DocumentStatus.APPROVED || item.status == DocumentStatus.REJECTED) 1.5.dp else 1.dp, border, shape)
-            .clickable(enabled = item.canSubmit, role = Role.Button, onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            Box(Modifier.size(48.dp).background(if (item.status == null || item.status == DocumentStatus.REJECTED) CanvasGray else White, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(iconOf(item.type), contentDescription = null, tint = if (item.status == DocumentStatus.APPROVED) Orange700 else TextMid, modifier = Modifier.size(28.dp))
+            Box(Modifier.size(48.dp).background(if (item.status == DocumentStatus.APPROVED || item.status == DocumentStatus.PENDING) White else CanvasGray, CircleShape), contentAlignment = Alignment.Center) {
+                Image(painterResource(iconOf(item.type)), contentDescription = null, modifier = Modifier.size(28.dp))
             }
             Spacer(Modifier.weight(1f))
             when {
@@ -368,30 +352,15 @@ private fun DocumentTile(item: DocumentItem, uploading: Boolean, modifier: Modif
         }
         Spacer(Modifier.weight(1f))
         Text(item.label, fontSize = 16.sp, lineHeight = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong, maxLines = 2)
-        Text(if (item.status == null) "눌러서 찍기" else label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (item.status == null) TextSub else color, modifier = Modifier.padding(top = 2.dp))
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color, modifier = Modifier.padding(top = 2.dp))
     }
 }
 
 private fun statusIcon(status: DocumentStatus?): ImageVector = when (status) {
-    null -> Icons.Outlined.PhotoCamera
+    null -> Icons.Outlined.AddPhotoAlternate
     DocumentStatus.PENDING -> Icons.Outlined.HourglassTop
     DocumentStatus.APPROVED -> Icons.Filled.CheckCircle
     DocumentStatus.REJECTED -> Icons.Outlined.ErrorOutline
-}
-
-/** 반려된 서류: 사유와 다시 올리기. 칸에는 다 못 쓰니 아래에 따로 */
-@Composable
-private fun RejectNotice(item: DocumentItem, onRetry: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(top = 12.dp).background(Orange50, RoundedCornerShape(12.dp)).padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("${item.label} 반려", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Orange700)
-            item.latest?.rejectMessage?.let { Text(it, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid, modifier = Modifier.padding(top = 2.dp)) }
-        }
-        TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text("다시 올리기", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Orange700) }
-    }
 }
 
 /** 선택 서류 한 줄 */
@@ -399,19 +368,19 @@ private fun RejectNotice(item: DocumentItem, onRetry: () -> Unit) {
 private fun DocumentRow(item: DocumentItem, uploading: Boolean, onClick: () -> Unit) {
     val (label, color) = statusText(item)
     Row(
-        Modifier.fillMaxWidth().ruled().clickable(enabled = item.canSubmit, onClick = onClick).heightIn(min = 64.dp).padding(vertical = 12.dp),
+        Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).heightIn(min = 64.dp).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(iconOf(item.type), contentDescription = null, tint = TextMid, modifier = Modifier.size(24.dp))
+        Image(painterResource(iconOf(item.type)), contentDescription = null, modifier = Modifier.size(26.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(item.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
             if (item.status != null) Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color)
         }
-        when {
-            uploading -> CircularProgressIndicator(strokeWidth = 2.dp, color = Orange600, modifier = Modifier.size(22.dp))
-            item.status == DocumentStatus.PENDING -> Unit
-            else -> Text(if (item.status == null) "올리기" else "다시 올리기", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Orange700)
+        if (uploading) {
+            CircularProgressIndicator(strokeWidth = 2.dp, color = Orange600, modifier = Modifier.size(22.dp))
+        } else {
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub)
         }
     }
 }
