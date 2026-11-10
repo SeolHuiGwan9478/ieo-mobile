@@ -32,6 +32,7 @@ class VehiclesViewModelTest {
         var added: NewVehicle? = null
         var updatedPlate: String? = "보내지 않음"
         var updatedTonnage: Tonnage? = null
+        var fuelEconomy: Double? = -1.0
         override suspend fun list() = ApiResult.Success(saved)
         override suspend fun add(vehicle: NewVehicle): ApiResult<Unit> {
             added = vehicle
@@ -41,6 +42,10 @@ class VehiclesViewModelTest {
             updatedPlate = plateNumber
             updatedTonnage = tonnage
             return result
+        }
+        override suspend fun setManualFuelEconomy(vehicleId: Long, kmPerLiter: Double?): ApiResult<Unit> {
+            fuelEconomy = kmPerLiter
+            return ApiResult.Success(Unit)
         }
     }
 
@@ -101,6 +106,35 @@ class VehiclesViewModelTest {
         advanceUntilIdle()
         assertEquals("80가4822", fake.added?.plateNumber)
         assertEquals(VehiclesViewModel.REGISTERED_MESSAGE, vm.state.value.message)
+    }
+
+    @Test
+    fun `평소 연비를 넣으면 등록증 확인 없이 따로 저장한다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = VehiclesViewModel(fake)
+        advanceUntilIdle()
+        vm.onFuelEconomy("5.55")
+        assertEquals("5.5", vm.state.value.form!!.fuelEconomy)
+        assertTrue(vm.state.value.form!!.canSave)
+        assertFalse(vm.state.value.form!!.identityChanged)
+        vm.save()
+        advanceUntilIdle()
+        assertEquals(5.5, fake.fuelEconomy!!, 0.001)
+        assertEquals(VehiclesViewModel.SAVED_MESSAGE, vm.state.value.message)
+    }
+
+    @Test
+    fun `연비를 비우면 기본값으로 돌리고 범위를 벗어나면 저장이 꺼진다`() = runTest(main.dispatcher) {
+        val fake = Fake(saved = listOf(truck.copy(manualKmPerLiter = 5.5)))
+        val vm = VehiclesViewModel(fake)
+        advanceUntilIdle()
+        assertEquals("5.5", vm.state.value.form!!.fuelEconomy)
+        vm.onFuelEconomy("30")
+        assertFalse(vm.state.value.form!!.canSave)
+        vm.onFuelEconomy("")
+        vm.save()
+        advanceUntilIdle()
+        assertNull(fake.fuelEconomy)
     }
 
     @Test

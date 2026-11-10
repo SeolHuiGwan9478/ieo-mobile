@@ -16,6 +16,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface VehicleApi {
@@ -28,7 +29,14 @@ interface VehicleApi {
 
     @PATCH("api/vehicles/{id}")
     suspend fun update(@Path("id") id: Long, @Body body: UpdateVehicleRequest): Response<VehicleResponse>
+
+    @PUT("api/vehicles/{id}/manual-fuel-economy")
+    suspend fun setManualFuelEconomy(@Path("id") id: Long, @Body body: ManualFuelEconomyRequest): Response<VehicleResponse>
 }
+
+/** null이면 빈 본문({})이 가고 서버는 비운 것으로 본다 */
+@Serializable
+data class ManualFuelEconomyRequest(val kmPerLiter: Double? = null)
 
 @Serializable
 data class CreateVehicleRequest(
@@ -68,6 +76,8 @@ data class VehicleResponse(
     val lengthCm: Int? = null,
     val totalWeightKg: Int? = null,
     val axleCount: Int? = null,
+    val manualKmPerLiter: Double? = null,
+    val measuredKmPerLiter: Double? = null,
 ) {
     fun toDomain() = Vehicle(
         id = id,
@@ -78,6 +88,8 @@ data class VehicleResponse(
         isDefault = defaultVehicle,
         isLinkedToCar = pleosLinked,
         dimensions = VehicleDimensions(widthCm, lengthCm, totalWeightKg, axleCount),
+        manualKmPerLiter = manualKmPerLiter,
+        measuredKmPerLiter = measuredKmPerLiter,
     )
 }
 
@@ -108,4 +120,6 @@ class DefaultVehicleRepository(
         )
     }.map { }
 
+    override suspend fun setManualFuelEconomy(vehicleId: Long, kmPerLiter: Double?): ApiResult<Unit> =
+        caller.callOptional { api.setManualFuelEconomy(vehicleId, ManualFuelEconomyRequest(kmPerLiter)) }.map { }
 }

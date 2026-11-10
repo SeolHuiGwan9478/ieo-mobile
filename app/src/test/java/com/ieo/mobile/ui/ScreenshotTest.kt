@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ieo.mobile.core.network.ApiError
@@ -326,12 +328,26 @@ class ScreenshotTest {
         override suspend fun list() = ApiResult.Success(saved)
         override suspend fun add(vehicle: NewVehicle) = ApiResult.Success(Unit)
         override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?, dimensions: com.ieo.mobile.domain.vehicle.VehicleDimensions, plateNumber: String?) = ApiResult.Success(Unit)
+        override suspend fun setManualFuelEconomy(vehicleId: Long, kmPerLiter: Double?) = ApiResult.Success(Unit)
     })
 
     @Test
     fun 내차량() {
         val vm = vehicles()
         shot("VH_edit", content = { VehiclesScreen(vm, onBack = {}) })
+    }
+
+    @Test
+    fun 내차량_연비() {
+        val vm = vehicles()
+        compose.setContent {
+            IeoTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { VehiclesScreen(vm, onBack = {}) } }
+        }
+        compose.waitForIdle()
+        vm.onFuelEconomy("5.5")
+        compose.onNodeWithText("기름값", substring = true).performScrollTo()
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/VH_fuel.png")
     }
 
     @Test

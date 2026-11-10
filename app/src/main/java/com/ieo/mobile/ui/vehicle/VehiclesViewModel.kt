@@ -24,21 +24,42 @@ data class VehicleForm(
     val bodyType: BodyType = BodyType.CARGO,
     val heightMeters: Double? = null,
     val dimensions: VehicleDimensions = VehicleDimensions(),
+    /** 평소 연비 입력 칸 그대로. 비우면 톤수 기본값을 쓴다 */
+    val fuelEconomy: String = "",
 ) {
     private val plate: String get() = PlateNumber.normalize(plateNumber)
+
+    /** 칸에 넣은 연비(km/L). 비었거나 숫자가 아니면 null */
+    val manualKmPerLiter: Double? get() = fuelEconomy.toDoubleOrNull()
+
+    val fuelEconomyValid: Boolean
+        get() = fuelEconomy.isBlank() || manualKmPerLiter?.let { it in MIN_KM_PER_LITER..MAX_KM_PER_LITER } == true
+
+    val fuelEconomyChanged: Boolean get() = manualKmPerLiter != editing?.manualKmPerLiter
 
     /** 자동차등록증에 적힌 값(번호·톤수·차종)이 바뀌었다. 저장하면 등록증을 다시 받는다 */
     val identityChanged: Boolean
         get() = editing != null && (plate != editing.plateNumber || tonnage != editing.tonnage || bodyType != editing.bodyType)
 
     val changed: Boolean
-        get() = editing == null || identityChanged || heightMeters != editing.heightMeters || dimensions != editing.dimensions
+        get() = editing == null || identityChanged || heightMeters != editing.heightMeters || dimensions != editing.dimensions ||
+            fuelEconomyChanged
 
-    val canSave: Boolean get() = PlateNumber.isValid(plateNumber) && changed
+    val canSave: Boolean get() = PlateNumber.isValid(plateNumber) && fuelEconomyValid && changed
 
     companion object {
-        fun of(vehicle: Vehicle) =
-            VehicleForm(vehicle, vehicle.plateNumber, vehicle.tonnage, vehicle.bodyType, vehicle.heightMeters, vehicle.dimensions)
+        /** 서버와 같은 범위 */
+        const val MIN_KM_PER_LITER = 1.5
+        const val MAX_KM_PER_LITER = 15.0
+
+        fun of(vehicle: Vehicle) = VehicleForm(
+            vehicle, vehicle.plateNumber, vehicle.tonnage, vehicle.bodyType, vehicle.heightMeters, vehicle.dimensions,
+            fuelEconomy = vehicle.manualKmPerLiter?.let(::formatKmPerLiter) ?: "",
+        )
+
+        /** 5.0 → "5", 4.5 → "4.5" */
+        fun formatKmPerLiter(value: Double): String =
+            if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
     }
 }
 
@@ -87,6 +108,14 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
 
     fun onDimensions(dimensions: VehicleDimensions) = editForm { it.copy(dimensions = dimensions) }
 
+    /** 숫자와 소수점 하나만, 소수 첫째 자리까지 */
+    fun onFuelEconomy(value: String) = editForm {
+        val cleaned = value.filter { c -> c.isDigit() || c == '.' }
+        val parts = cleaned.split('.')
+        val limited = if (parts.size > 1) parts[0].take(2) + "." + parts[1].take(1) else parts[0].take(2)
+        it.copy(fuelEconomy = limited)
+    }
+
     fun save() {
         val form = _state.value.form ?: return
         if (!form.canSave || _state.value.isBusy) return
@@ -102,7 +131,14 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
             } else {
                 vehicles.add(NewVehicle(plate, form.tonnage, form.bodyType, form.heightMeters, form.dimensions))
             }
-            when (result) {
+            // 연비는 따로 저장한다. 처음 등록이면 등록된 차를 다시 불러 id를 알아낸다
+            val saved = if (result is ApiResult.Success && form.fuelEconomyChanged) {
+                val id = editing?.id ?: (vehicles.list() as? ApiResult.Success)?.data?.firstOrNull()?.id
+                id?.let { vehicles.setManualFuelEconomy(it, form.manualKmPerLiter) } ?: result
+            } else {
+                result
+            }
+            when (saved) {
                 is ApiResult.Success -> {
                     reload()
                     _state.update {
@@ -116,7 +152,7 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
                         )
                     }
                 }
-                is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(error = saved.error.message) }
             }
             _state.update { it.copy(isBusy = false) }
         }

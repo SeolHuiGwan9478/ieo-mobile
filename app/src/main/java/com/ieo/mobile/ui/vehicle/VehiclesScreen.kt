@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,6 +89,9 @@ fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit) {
             VehicleSpecInputs(form.heightMeters, form.dimensions, viewModel::setHeight, viewModel::onDimensions)
             SpecNote()
 
+            Title("평소 연비 (선택)")
+            FuelEconomyInput(form, viewModel::onFuelEconomy)
+
             state.error?.let { Box(Modifier.padding(top = 14.dp)) { ErrorNotice(it) } }
             Spacer(Modifier.height(20.dp))
         }
@@ -109,6 +113,28 @@ fun VehiclesScreen(viewModel: VehiclesViewModel, onBack: () -> Unit) {
             PrimaryButton(if (form.editing == null) "등록" else "저장", viewModel::save, enabled = form.canSave, busy = state.isBusy)
         }
     }
+}
+
+/**
+ * 기름값 계산에 쓰는 연비 (VEH-003, REC-011). 차량(Pleos)이 잰 값이 먼저이고, 없으면 이 칸, 이것도 비면 톤수 기본값을 쓴다
+ */
+@Composable
+private fun FuelEconomyInput(form: VehicleForm, onChange: (String) -> Unit) {
+    FormField(
+        form.fuelEconomy, onChange, "리터당 km", KeyboardType.Decimal,
+        placeholder = VehicleForm.formatKmPerLiter(form.tonnage.defaultKmPerLiter),
+        trailing = { Text("km/L", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(end = 14.dp)) },
+    )
+    val measured = form.editing?.measuredKmPerLiter
+    val note = when {
+        !form.fuelEconomyValid -> "1.5에서 15 사이로 넣어 주세요"
+        measured != null -> "차량에서 잰 연비 ${VehicleForm.formatKmPerLiter(measured)}km/L로 기름값을 계산하고 있어요. 차량 연비를 못 받을 때 이 값을 써요."
+        else -> "기름값 계산에 써요. 비워 두면 ${form.tonnage.label} 평균 ${VehicleForm.formatKmPerLiter(form.tonnage.defaultKmPerLiter)}km/L로 계산해요."
+    }
+    Text(
+        note, fontSize = 14.sp, lineHeight = 20.sp, color = if (form.fuelEconomyValid) TextSub else Orange700,
+        modifier = Modifier.padding(top = 8.dp),
+    )
 }
 
 @Composable

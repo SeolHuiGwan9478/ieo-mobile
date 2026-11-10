@@ -3,19 +3,22 @@ package com.ieo.mobile.domain.vehicle
 import com.ieo.mobile.core.network.ApiResult
 import kotlin.math.roundToInt
 
-/** 서버 Tonnage와 같은 이름 */
-enum class Tonnage(val label: String) {
-    TON_1("1톤"),
-    TON_1_4("1.4톤"),
-    TON_2_5("2.5톤"),
-    TON_3_5("3.5톤"),
-    TON_5("5톤"),
-    TON_5_AXLE("5톤 축"),
-    TON_8("8톤"),
-    TON_11("11톤"),
-    TON_14("14톤"),
-    TON_18("18톤"),
-    TON_25("25톤"),
+/**
+ * 서버 Tonnage와 같은 이름. [defaultKmPerLiter]는 서버와 같은 톤수별 기본 연비(km/L)이고,
+ * 차주가 평소 연비를 비워 둘 때 무엇을 쓰는지 보여 주는 데 쓴다
+ */
+enum class Tonnage(val label: String, val defaultKmPerLiter: Double) {
+    TON_1("1톤", 8.5),
+    TON_1_4("1.4톤", 8.0),
+    TON_2_5("2.5톤", 7.5),
+    TON_3_5("3.5톤", 6.5),
+    TON_5("5톤", 5.0),
+    TON_5_AXLE("5톤 축", 4.7),
+    TON_8("8톤", 4.5),
+    TON_11("11톤", 4.2),
+    TON_14("14톤", 4.0),
+    TON_18("18톤", 3.6),
+    TON_25("25톤", 3.3),
 }
 
 /** 서버 BodyType과 같은 이름 */
@@ -47,6 +50,10 @@ data class Vehicle(
     /** 차량 앱에서 이 트럭과 연결됐다 (VEH-004) */
     val isLinkedToCar: Boolean = false,
     val dimensions: VehicleDimensions = VehicleDimensions(),
+    /** 차주가 넣은 평소 연비(km/L). 없으면 null */
+    val manualKmPerLiter: Double? = null,
+    /** Pleos 차량이 잰 연비(km/L). 없으면 null */
+    val measuredKmPerLiter: Double? = null,
 ) {
     val label: String get() = "${tonnage.label} ${bodyType.label}"
 
@@ -84,4 +91,7 @@ interface VehicleRepository {
         dimensions: VehicleDimensions = VehicleDimensions(),
         plateNumber: String? = null,
     ): ApiResult<Unit>
+
+    /** 평소 연비(km/L). null이면 비워서 톤수 기본값을 쓰게 한다 (VEH-003) */
+    suspend fun setManualFuelEconomy(vehicleId: Long, kmPerLiter: Double?): ApiResult<Unit>
 }
