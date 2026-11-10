@@ -62,13 +62,13 @@ fun PrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true, mo
         enabled = enabled && !busy,
         shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(containerColor = Orange600, contentColor = White),
-        modifier = modifier.fillMaxWidth().heightIn(min = 60.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp),
     ) {
         if (busy) {
             CircularProgressIndicator(color = TextMid, strokeWidth = 3.dp, modifier = Modifier.size(24.dp))
         } else {
-            icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(24.dp)) }
-            Text(text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(22.dp)) }
+            Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -81,10 +81,10 @@ fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modi
         shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(containerColor = White, contentColor = TextStrong),
         border = BorderStroke(1.dp, LineGray),
-        modifier = modifier.heightIn(min = 60.dp),
+        modifier = modifier.heightIn(min = 52.dp),
     ) {
         icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(22.dp)) }
-        Text(text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

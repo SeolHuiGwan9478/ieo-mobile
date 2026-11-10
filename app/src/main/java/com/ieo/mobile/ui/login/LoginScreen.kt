@@ -1,5 +1,8 @@
 package com.ieo.mobile.ui.login
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.width
+import android.widget.Toast
 import kotlinx.coroutines.async
 import com.ieo.mobile.ui.theme.Orange500
 import androidx.compose.ui.graphics.graphicsLayer
@@ -132,9 +135,19 @@ fun LoginScreen(viewModel: LoginViewModel) {
     state.existing?.let { ExistingAccountDialog(it, state, viewModel) }
 }
 
+/** 나타나는 동안 눌리지 않게 막아 두지만, 색은 활성 상태와 같게 보이도록 한다 */
+@Composable
+private fun startButtonColors(container: Color, content: Color) = ButtonDefaults.buttonColors(
+    containerColor = container,
+    contentColor = content,
+    disabledContainerColor = container,
+    disabledContentColor = content,
+)
+
 /** M01 시작. 차량 앱의 시작 화면(SplashScreen)과 같다: 로고, 문구, 시작하기 버튼이 차례로 나타난다 */
 @Composable
 private fun StartScreen(onStart: () -> Unit) {
+    val context = LocalContext.current
     val logoAlpha = remember { Animatable(0f) }
     val taglineAlpha = remember { Animatable(0f) }
     val taglineOffset = remember { Animatable(24f) }
@@ -166,25 +179,35 @@ private fun StartScreen(onStart: () -> Unit) {
                 },
             )
         }
-        Button(
-            onClick = onStart,
-            enabled = buttonAlpha.value > 0.5f,
-            shape = RoundedCornerShape(16.dp),
-            // 나타나는 동안 눌리지 않게 막아 두지만, 색은 활성 상태와 같게 보이도록 한다
-            colors = ButtonDefaults.buttonColors(
-                containerColor = White,
-                contentColor = Orange700,
-                disabledContainerColor = White,
-                disabledContentColor = Orange700,
-            ),
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 24.dp, end = 24.dp, bottom = 64.dp)
+                .padding(start = 24.dp, end = 24.dp, bottom = 48.dp)
                 .fillMaxWidth()
-                .heightIn(min = 76.dp)
                 .graphicsLayer { alpha = buttonAlpha.value },
         ) {
-            Text("시작하기", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            // TODO: 앱용 Google 키를 받으면 로그인을 연결한다
+            Button(
+                onClick = { Toast.makeText(context, "구글 로그인은 준비 중이에요. 시작하기를 눌러 주세요", Toast.LENGTH_SHORT).show() },
+                enabled = buttonAlpha.value > 0.5f,
+                shape = RoundedCornerShape(12.dp),
+                colors = startButtonColors(White, TextStrong),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Google로 계속하기", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Button(
+                onClick = onStart,
+                enabled = buttonAlpha.value > 0.5f,
+                shape = RoundedCornerShape(12.dp),
+                colors = startButtonColors(Orange700, White),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Text("시작하기", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
