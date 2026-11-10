@@ -321,35 +321,24 @@ class ScreenshotTest {
     private val sample = Vehicle(1, "경기82사1234", Tonnage.TON_5, BodyType.CARGO, 3.6, isDefault = true, isLinkedToCar = true)
     private val other = Vehicle(2, "경기80바5678", Tonnage.TON_11, BodyType.WING, null, isDefault = false)
 
-    private fun vehicles(): VehiclesViewModel = VehiclesViewModel(object : VehicleRepository {
-        override suspend fun list() = ApiResult.Success(listOf(sample, other))
+    private fun vehicles(saved: List<Vehicle> = listOf(sample)): VehiclesViewModel = VehiclesViewModel(object : VehicleRepository {
+        override suspend fun list() = ApiResult.Success(saved)
         override suspend fun add(vehicle: NewVehicle) = ApiResult.Success(Unit)
-        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?, dimensions: com.ieo.mobile.domain.vehicle.VehicleDimensions) = ApiResult.Success(Unit)
+        override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?, dimensions: com.ieo.mobile.domain.vehicle.VehicleDimensions, plateNumber: String?) = ApiResult.Success(Unit)
         override suspend fun setDefault(vehicleId: Long) = ApiResult.Success(Unit)
         override suspend fun delete(vehicleId: Long) = ApiResult.Success(Unit)
     })
 
     @Test
-    fun 내차량_목록() {
+    fun 내차량() {
         val vm = vehicles()
-        shot("VH_list", content = { VehiclesScreen(vm, onBack = {}) })
-    }
-
-    @Test
-    fun M06_차량추가() {
-        val vm = vehicles()
-        compose.waitForIdle()
-        vm.openAdd()
-        vm.stepHeight(0.1)
-        shot("M06_add", content = { VehiclesScreen(vm, onBack = {}) })
-    }
-
-    @Test
-    fun 차량고치기() {
-        val vm = vehicles()
-        compose.waitForIdle()
-        vm.openEdit(sample)
         shot("VH_edit", content = { VehiclesScreen(vm, onBack = {}) })
+    }
+
+    @Test
+    fun M06_차량등록() {
+        val vm = vehicles(emptyList())
+        shot("M06_add", content = { VehiclesScreen(vm, onBack = {}) })
     }
 
     private fun order(id: Long, route: Pair<String, String>, fare: Long, payment: String, days: Int?, mine: Boolean = false, cargo: CargoCategory? = null) = Order(

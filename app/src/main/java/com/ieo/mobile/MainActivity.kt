@@ -294,7 +294,8 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         return
     }
     if (managingVehicles) {
-        VehiclesScreen(vehicles, onBack = { managingVehicles = false })
+        // 번호·톤수·차종을 바꾸면 서류 인증이 풀릴 수 있어 나올 때 서류 상태를 다시 받는다
+        VehiclesScreen(vehicles, onBack = { managingVehicles = false; documents.refresh() })
         return
     }
     if (editingRecommendation) {

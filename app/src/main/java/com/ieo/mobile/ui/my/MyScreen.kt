@@ -127,22 +127,11 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
 
         // 바로가기 네 칸
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 18.dp)) {
-            Shortcut(R.drawable.ic_menu_truck, "내 차량", Modifier.weight(1f), onVehicles)
-            Shortcut(R.drawable.ic_menu_document, "서류", Modifier.weight(1f), onDocuments)
-            Shortcut(R.drawable.ic_menu_partner, "단골 주선사", Modifier.weight(1f), onLinks, dot = invitationCount > 0)
-            Shortcut(R.drawable.ic_menu_recommend, "배차 추천", Modifier.weight(1f), onRecommendation)
+            Shortcut(R.drawable.ic_menu_truck, "내 차량", vehicles.defaultVehicle?.label ?: "등록하기", Modifier.weight(1f), onVehicles)
+            Shortcut(R.drawable.ic_menu_document, "서류", documents?.let(::documentsSummary).orEmpty(), Modifier.weight(1f), onDocuments)
+            Shortcut(R.drawable.ic_menu_partner, "단골 주선사", if (invitationCount > 0) "요청 ${invitationCount}건" else "${linkCount}곳", Modifier.weight(1f), onLinks, highlight = invitationCount > 0)
+            Shortcut(R.drawable.ic_menu_recommend, "배차 추천", recommendationSummary.orEmpty(), Modifier.weight(1f), onRecommendation)
         }
-        Divider()
-
-        Group("나의 운행")
-        MenuRow(R.drawable.ic_menu_truck, "내 차량", vehicles.defaultVehicle?.label ?: "등록해 주세요", onClick = onVehicles)
-        MenuRow(R.drawable.ic_menu_document, "서류 인증", documents?.let(::documentsSummary).orEmpty(), onClick = onDocuments)
-        MenuRow(R.drawable.ic_menu_partner, "단골 주선사", if (invitationCount > 0) "요청 ${invitationCount}건" else "${linkCount}곳", highlight = invitationCount > 0, onClick = onLinks)
-        MenuRow(R.drawable.ic_menu_recommend, "다음 배차 추천", recommendationSummary.orEmpty(), onClick = onRecommendation)
-        Divider()
-
-        Group("크레딧")
-        MenuRow(R.drawable.ic_credit_coin, "충전·사용 내역", formatCredit(creditBalance), onClick = onCredit)
         Divider()
 
         Group("설정")
@@ -204,15 +193,17 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
 }
 
 @Composable
-private fun Shortcut(icon: Int, label: String, modifier: Modifier, onClick: () -> Unit, dot: Boolean = false) {
+private fun Shortcut(icon: Int, label: String, value: String, modifier: Modifier, onClick: () -> Unit, highlight: Boolean = false) {
     Column(modifier.clickable(onClick = onClick).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box {
             Box(Modifier.size(52.dp).background(CanvasGray, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
                 Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(30.dp))
             }
-            if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(Orange600, CircleShape))
+            if (highlight) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(Orange600, CircleShape))
         }
-        Text(label, fontSize = 14.sp, color = TextStrong, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextStrong, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+        // 메뉴 목록을 따로 두지 않고 지금 값을 칸 아래에 보여 준다
+        Text(value, fontSize = 13.sp, color = if (highlight) Orange700 else TextSub, fontWeight = if (highlight) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.padding(top = 1.dp))
     }
 }
 

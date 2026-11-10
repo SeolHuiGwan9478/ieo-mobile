@@ -5,6 +5,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import com.ieo.mobile.domain.vehicle.VehicleDimensions
 import com.ieo.mobile.ui.component.SpecNote
 import com.ieo.mobile.ui.component.VehicleSpecInputs
+import com.ieo.mobile.ui.component.TonnageStepper
+import com.ieo.mobile.ui.component.BodyTypeGrid
 import com.ieo.mobile.ui.theme.Orange50
 import com.ieo.mobile.ui.component.TruckIcon
 import com.ieo.mobile.ui.component.LineGray
@@ -491,34 +493,6 @@ private fun ColumnScope.VehicleStep(state: LoginState, viewModel: LoginViewModel
 }
 
 /** 큰 톤수 표시 양옆의 −/+ */
-@Composable
-private fun TonnageStepper(tonnage: Tonnage, onStep: (Int) -> Unit) {
-    val first = tonnage == Tonnage.entries.first()
-    val last = tonnage == Tonnage.entries.last()
-    Row(
-        Modifier.fillMaxWidth().border(1.dp, LineGray, RoundedCornerShape(12.dp)).padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StepperButton("−", "톤수 내리기", enabled = !first) { onStep(-1) }
-        Text(tonnage.label, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = TextStrong, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-        StepperButton("+", "톤수 올리기", enabled = !last) { onStep(1) }
-    }
-}
-
-@Composable
-private fun StepperButton(symbol: String, description: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(56.dp)
-            .background(if (enabled) CanvasGray else White, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled, onClickLabel = description, onClick = onClick)
-            .semantics { contentDescription = description },
-    ) {
-        Text(symbol, fontSize = 28.sp, fontWeight = FontWeight.Medium, color = if (enabled) TextStrong else LineGray)
-    }
-}
-
 /** 차량 종류: 트럭 그림이 있는 네모 칸에서 고른다 */
 @Composable
 private fun ColumnScope.BodyStep(state: LoginState, viewModel: LoginViewModel) {
@@ -527,37 +501,12 @@ private fun ColumnScope.BodyStep(state: LoginState, viewModel: LoginViewModel) {
         Heading("어떤 차를 운행하세요?")
         Text("${state.tonnage.label} · ${state.plateNumber.trim()}", fontSize = 16.sp, color = TextSub, modifier = Modifier.padding(top = 6.dp))
         Spacer(Modifier.height(22.dp))
-        BodyType.entries.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = 10.dp)) {
-                pair.forEach { type -> BodyTile(type, state.bodyType == type, Modifier.weight(1f)) { viewModel.onBodyType(type) } }
-            }
-        }
+        BodyTypeGrid(state.bodyType, viewModel::onBodyType)
         ErrorLine(state.error)
     }
     Spacer(Modifier.height(8.dp))
     PrimaryButton("가입 완료", { viewModel.signUp() }, busy = state.isBusy)
     Spacer(Modifier.height(12.dp))
-}
-
-@Composable
-private fun BodyTile(type: BodyType, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier
-            .aspectRatio(1.15f)
-            .background(if (selected) Orange50 else White, shape)
-            .border(if (selected) 2.dp else 1.dp, if (selected) Orange600 else LineGray, shape)
-            .clickable(onClick = onClick)
-            .semantics { this.selected = selected }
-            .padding(12.dp),
-    ) {
-        Spacer(Modifier.weight(1f))
-        TruckIcon(type, width = 84.dp)
-        Text(type.label, fontSize = 17.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, color = if (selected) Orange700 else TextStrong)
-        Spacer(Modifier.weight(1f))
-    }
 }
 
 /** V07 가입 완료 */
@@ -575,8 +524,6 @@ private fun DoneScreen(state: LoginState, onFinish: () -> Unit) {
             SummaryLine("휴대폰", PhoneFormat.hyphen(state.phone))
             SummaryLine("역할 · 차량", vehicleSummary(state))
         }
-        Spacer(Modifier.height(12.dp))
-        Text("차량에서는 화면의 QR을 찍어 로그인해요", fontSize = 16.sp, color = TextMid)
         Spacer(Modifier.weight(1f))
         PrimaryButton("시작하기", onFinish)
     }

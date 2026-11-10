@@ -75,13 +75,14 @@ interface VehicleRepository {
 
     suspend fun add(vehicle: NewVehicle): ApiResult<Unit>
 
-    /** 번호는 바꿀 수 없다 */
+    /** [plateNumber]가 null이면 번호는 그대로. 번호·톤수·차종이 바뀌면 서버가 자동차등록증을 다시 받는다 */
     suspend fun update(
         vehicleId: Long,
         tonnage: Tonnage,
         bodyType: BodyType,
         heightMeters: Double?,
         dimensions: VehicleDimensions = VehicleDimensions(),
+        plateNumber: String? = null,
     ): ApiResult<Unit>
 
     suspend fun setDefault(vehicleId: Long): ApiResult<Unit>

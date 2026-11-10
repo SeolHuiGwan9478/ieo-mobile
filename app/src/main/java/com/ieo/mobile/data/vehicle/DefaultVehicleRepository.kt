@@ -59,6 +59,7 @@ data class UpdateVehicleRequest(
     val lengthCm: Int? = null,
     val totalWeightKg: Int? = null,
     val axleCount: Int? = null,
+    val plateNumber: String? = null,
 )
 
 @Serializable
@@ -106,10 +107,11 @@ class DefaultVehicleRepository(
         bodyType: BodyType,
         heightMeters: Double?,
         dimensions: VehicleDimensions,
+        plateNumber: String?,
     ): ApiResult<Unit> = caller.callOptional {
         api.update(
             vehicleId,
-            UpdateVehicleRequest(tonnage.name, bodyType.name, heightMeters, dimensions.widthCm, dimensions.lengthCm, dimensions.totalWeightKg, dimensions.axleCount),
+            UpdateVehicleRequest(tonnage.name, bodyType.name, heightMeters, dimensions.widthCm, dimensions.lengthCm, dimensions.totalWeightKg, dimensions.axleCount, plateNumber),
         )
     }.map { }
 
