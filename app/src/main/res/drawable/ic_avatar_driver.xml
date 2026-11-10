@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 내 정보의 기본 프로필 그림: 모자 쓴 차주. 주황 바탕 원 (Orange100 / Orange600 / Orange700) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- 바탕 -->
+    <path
+        android:fillColor="#FFFFE2D6"
+        android:pathData="M32,0a32,32 0,1 1,0 64a32,32 0,1 1,0 -64z" />
+    <!-- 어깨 (작업복) -->
+    <path
+        android:fillColor="#FFF25A22"
+        android:pathData="M12,58c2,-11 10,-17 20,-17s18,6 20,17c-5,4 -12,6 -20,6s-15,-2 -20,-6z" />
+    <!-- 옷깃 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M27,41l5,7l5,-7c-1.6,-0.4 -3.3,-0.6 -5,-0.6s-3.4,0.2 -5,0.6z" />
+    <!-- 얼굴 -->
+    <path
+        android:fillColor="#FFFFF3EE"
+        android:pathData="M32,18a10.5,11 0,1 1,0 22a10.5,11 0,1 1,0 -22z" />
+    <!-- 모자 -->
+    <path
+        android:fillColor="#FFC2410C"
+        android:pathData="M21.5,27c0,-6.4 4.7,-11 10.5,-11s10.5,4.6 10.5,11z" />
+    <!-- 모자 챙 -->
+    <path
+        android:fillColor="#FFC2410C"
+        android:pathData="M20,26.2h26.5c1,0 1,2.4 0,2.4h-26.5c-1,0 -1,-2.4 0,-2.4z" />
+    <!-- 모자 마크 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M32,19.5a2.2,2.2 0,1 1,0 4.4a2.2,2.2 0,1 1,0 -4.4z" />
+</vector>

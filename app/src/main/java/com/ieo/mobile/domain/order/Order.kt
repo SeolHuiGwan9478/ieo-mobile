@@ -35,6 +35,8 @@ data class Order(
     val brokerMetrics: BrokerMetrics? = null,
     /** 위치를 보내고 찾았을 때만: 운임에서 기름값을 뺀 어림값 */
     val netProfit: Long? = null,
+    /** 서류 심사 전이라 줄여 받은 오더. 상하차지는 시·구까지, 주선사·화물 내용은 비어 있다 */
+    val limited: Boolean = false,
 ) {
     val vehicleLabel: String get() = "$tonnageLabel $bodyTypeLabel"
 

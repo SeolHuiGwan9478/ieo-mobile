@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui
 
+import com.ieo.mobile.ui.login.LoginStep
 import com.ieo.mobile.domain.proof.DeliveryProof
 import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
@@ -130,7 +131,7 @@ class ScreenshotTest {
     private class FakeAuth(val existing: ExistingAccount? = null, val verifyFail: Boolean = false) : AuthRepository {
         override suspend fun requestCode(phone: String) = ApiResult.Success<String?>("381942")
         override suspend fun verify(phone: String, code: String) =
-            if (verifyFail) ApiResult.Failure(ApiError.Server(400, "AUTH_400_CODE", "인증번호가 맞지 않아요. 4번 더 틀리면 10분 동안 다시 받을 수 없어요"))
+            if (verifyFail) ApiResult.Failure(ApiError.Server(400, "AUTH_400_CODE", "인증번호가 달라요 (4번 남음)"))
             else ApiResult.Success(PhoneVerification("t", existing))
         override suspend fun login(phoneToken: String) = ApiResult.Success(Unit)
         override suspend fun signUp(phoneToken: String, name: String, consents: Set<Consent>, vehicle: NewVehicle?) = ApiResult.Success(Unit)
@@ -204,6 +205,41 @@ class ScreenshotTest {
     }
 
     @Test
+    fun V08_내차_톤수() {
+        val vm = signUpTo(LoginStep.VEHICLE)
+        vm.onPlateChange("경기82사1234")
+        shot("V08_vehicle", vm)
+    }
+
+    @Test
+    fun V09_차량종류() {
+        val vm = signUpTo(LoginStep.VEHICLE)
+        vm.onPlateChange("경기82사1234")
+        vm.vehicleDone()
+        vm.onBodyType(com.ieo.mobile.domain.vehicle.BodyType.WING)
+        shot("V09_body", vm)
+    }
+
+    @Test
+    fun V10_내차_제원입력() {
+        val vm = signUpTo(LoginStep.VEHICLE)
+        vm.onPlateChange("경기82사1234")
+        vm.onHeight(3.6)
+        vm.onDimensions(com.ieo.mobile.domain.vehicle.VehicleDimensions(249, 850, null, 3))
+        shot("V10_body_specs", vm)
+    }
+
+    private fun signUpTo(step: LoginStep): LoginViewModel {
+        val vm = LoginViewModel(FakeAuth())
+        toCode(vm)
+        compose.waitForIdle()
+        vm.agreeToTerms()
+        vm.onNameChange("김도윤")
+        vm.nameDone()
+        return vm
+    }
+
+    @Test
     fun V07_완료() {
         val vm = LoginViewModel(FakeAuth())
         toCode(vm)
@@ -217,6 +253,59 @@ class ScreenshotTest {
         shot("V07_done", vm)
     }
 
+    /** 로고·문구·버튼이 다 나타난 뒤의 시작 화면 */
+    @Test
+    fun 시작화면_완성() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            IeoTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { com.ieo.mobile.ui.login.StartScreen({}) } }
+        }
+        compose.mainClock.advanceTimeBy(4_000)
+        compose.onRoot().captureRoboImage("build/screens/M01_start_ready.png")
+    }
+
+    private fun carLogin(): com.ieo.mobile.ui.carlogin.CarLoginViewModel =
+        com.ieo.mobile.ui.carlogin.CarLoginViewModel(object : com.ieo.mobile.domain.carlogin.CarLoginRepository {
+            override suspend fun find(code: String) = ApiResult.Success(
+                com.ieo.mobile.domain.carlogin.CarLoginRequest(code, "Pleos 5톤 카고", "경기 평택", Instant.parse("2026-11-10T09:05:00Z"), true))
+            override suspend fun approve(code: String) = ApiResult.Success(Unit)
+            override suspend fun reject(code: String) = ApiResult.Success(Unit)
+        })
+
+    @Test
+    fun CL_차량로그인승인() {
+        val vm = carLogin()
+        shot("CL_ask", content = { com.ieo.mobile.ui.carlogin.CarLoginScreen("KX7P-M4QZ", vm, onClose = {}) })
+    }
+
+    private fun accountSettings() = com.ieo.mobile.ui.my.AccountSettingsViewModel(object : com.ieo.mobile.domain.account.AccountSettingsRepository {
+        override suspend fun carSessions() = ApiResult.Success(listOf(
+            com.ieo.mobile.domain.account.CarSession("a", "Pleos 5톤 카고", Instant.parse("2026-11-10T00:30:00Z")),
+            com.ieo.mobile.domain.account.CarSession("b", "Pleos 데모 차량", Instant.parse("2026-11-08T06:10:00Z"))))
+        override suspend fun revokeCarSession(id: String) = ApiResult.Success(Unit)
+        override suspend fun consents() = ApiResult.Success(listOf(
+            com.ieo.mobile.domain.account.ConsentItem("TERMS", "이용약관", true, true),
+            com.ieo.mobile.domain.account.ConsentItem("PRIVACY", "개인정보 수집·이용", true, true),
+            com.ieo.mobile.domain.account.ConsentItem("LOCATION", "위치 정보 수집", true, true),
+            com.ieo.mobile.domain.account.ConsentItem("BROKER_SHARE", "주선사 공유", false, true),
+            com.ieo.mobile.domain.account.ConsentItem("VOICE", "음성", false, true),
+            com.ieo.mobile.domain.account.ConsentItem("MARKETING", "마케팅", false, false)))
+        override suspend fun changeConsent(type: String, agreed: Boolean) = ApiResult.Failure(ApiError.Network)
+        override suspend fun business() = ApiResult.Success<com.ieo.mobile.domain.account.BusinessInfo?>(
+            com.ieo.mobile.domain.account.BusinessInfo("한길운수", "1234567891", "김도윤"))
+        override suspend fun saveBusiness(info: com.ieo.mobile.domain.account.BusinessInfo) = ApiResult.Success<com.ieo.mobile.domain.account.BusinessInfo?>(info)
+        override suspend fun clearBusiness() = ApiResult.Success(Unit)
+    })
+
+    @Test
+    fun AS_로그인된차량() = shot("AS_cars", content = { com.ieo.mobile.ui.my.AccountSettingsScreen(com.ieo.mobile.ui.my.AccountSection.CARS, accountSettings(), onBack = {}) })
+
+    @Test
+    fun AS_동의관리() = shot("AS_consents", content = { com.ieo.mobile.ui.my.AccountSettingsScreen(com.ieo.mobile.ui.my.AccountSection.CONSENTS, accountSettings(), onBack = {}) })
+
+    @Test
+    fun AS_사업자정보() = shot("AS_business", content = { com.ieo.mobile.ui.my.AccountSettingsScreen(com.ieo.mobile.ui.my.AccountSection.BUSINESS, accountSettings(), onBack = {}) })
+
     @Test
     fun M11_내정보() {
         val accounts = object : AccountRepository {
@@ -226,7 +315,7 @@ class ScreenshotTest {
             override fun signOut() = Unit
         }
         val vm = MyViewModel(accounts)
-        shot("M11_my", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 1, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}) })
+        shot("M11_my", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 1, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}, documents = documents(com.ieo.mobile.domain.document.DocumentStatus.APPROVED, null, null, null), record = com.ieo.mobile.domain.document.DriverRecord(false, 0, 0)) })
     }
 
     private val sample = Vehicle(1, "경기82사1234", Tonnage.TON_5, BodyType.CARGO, 3.6, isDefault = true, isLinkedToCar = true)
@@ -311,6 +400,21 @@ class ScreenshotTest {
         compose.waitForIdle()
         vm.open(1)
         shot("M09_detail", content = { OrderDetailScreen(vm.state.value.selected!!, vm.state.value, vm) })
+    }
+
+    @Test
+    fun M09_오더상세_서류심사전() {
+        val vm = orders()
+        vm.refresh()
+        compose.waitForIdle()
+        vm.open(1)
+        val order = vm.state.value.selected!!
+        val limited = order.copy(
+            brokerName = "", limited = true, cargoType = "일반",
+            pickup = order.pickup.copy(name = "경기 평택시", address = "경기 평택시", siteId = null),
+            dropoff = order.dropoff.copy(name = "대구 달서구", address = "대구 달서구", siteId = null),
+        )
+        shot("M09_detail_limited", content = { OrderDetailScreen(limited, vm.state.value, vm, verified = false) })
     }
 
     @Test
@@ -595,5 +699,73 @@ class ScreenshotTest {
     @Test
     fun 홈() {
         shot("M07_home", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), trip(1, TripStatus.IN_TRANSIT), 4_120_000, 870_000, 1, {}, {}, {}, {}, {}, {}) })
+    }
+    private fun documents(vararg statuses: com.ieo.mobile.domain.document.DocumentStatus?): com.ieo.mobile.domain.document.DriverDocuments {
+        val types = listOf("BUSINESS_REGISTRATION" to "사업자등록증", "VEHICLE_REGISTRATION" to "자동차등록증", "DRIVER_LICENSE" to "운전면허증", "FREIGHT_QUALIFICATION" to "화물운송종사 자격증")
+        val required = types.mapIndexed { i, (type, label) ->
+            val status = statuses.getOrNull(i)
+            val reject = if (status == com.ieo.mobile.domain.document.DocumentStatus.REJECTED) "글씨가 잘 안 보여요. 밝은 곳에서 다시 찍어 주세요" else null
+            com.ieo.mobile.domain.document.DocumentItem(type, label, true, listOf("이름이 가입한 이름과 같은지"), status?.let { com.ieo.mobile.domain.document.DocumentSubmission(i + 1L, it, null, reject) })
+        }
+        val optional = listOf(
+            com.ieo.mobile.domain.document.DocumentItem("CONSIGNMENT_CONTRACT", "위·수탁(지입) 계약서", false, emptyList(), null),
+            com.ieo.mobile.domain.document.DocumentItem("CARGO_INSURANCE", "적재물배상책임보험증서", false, emptyList(), null),
+        )
+        val approved = statuses.count { it == com.ieo.mobile.domain.document.DocumentStatus.APPROVED }
+        return com.ieo.mobile.domain.document.DriverDocuments(approved == 4, approved, 4, required + optional)
+    }
+
+    private fun documentsVm(docs: com.ieo.mobile.domain.document.DriverDocuments) =
+        com.ieo.mobile.ui.document.DocumentsViewModel(object : com.ieo.mobile.domain.document.DocumentRepository {
+            override suspend fun documents() = ApiResult.Success(docs)
+            override suspend fun submit(type: String, jpeg: ByteArray, business: com.ieo.mobile.domain.document.BusinessInfo?) = ApiResult.Success(Unit)
+        })
+
+    @Test
+    fun D01_서류_처음() = shot("D01_documents_empty", content = { com.ieo.mobile.ui.document.DocumentsScreen(documentsVm(documents())) })
+
+    @Test
+    fun D02_서류_진행중() {
+        val s = com.ieo.mobile.domain.document.DocumentStatus.entries
+        shot("D02_documents_mixed", content = { com.ieo.mobile.ui.document.DocumentsScreen(documentsVm(documents(s[1], s[0], s[2], null))) })
+    }
+
+    @Test
+    fun D03_홈_서류카드() {
+        val s = com.ieo.mobile.domain.document.DocumentStatus.entries
+        shot("D03_home_documents", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), null, 4_120_000, 0, 0, {}, {}, {}, {}, {}, {}, documents = documents(s[1], s[1], null, null)) })
+    }
+
+    @Test
+    fun D04_홈_인증차주() {
+        val s = com.ieo.mobile.domain.document.DocumentStatus.APPROVED
+        shot("D04_home_verified", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), null, 4_120_000, 0, 0, {}, {}, {}, {}, {}, {}, documents = documents(s, s, s, s)) })
+    }
+
+    @Test
+    fun D05_서류_인증완료() {
+        val s = com.ieo.mobile.domain.document.DocumentStatus.APPROVED
+        shot("D05_documents_verified", content = { com.ieo.mobile.ui.document.DocumentsScreen(documentsVm(documents(s, s, s, s))) })
+    }
+
+    @Test
+    fun D06_서류올리기_페이지() {
+        val vm = documentsVm(documents())
+        compose.waitForIdle()
+        vm.edit(vm.state.value.documents!!.required.first())
+        shot("D06_upload_business", content = { com.ieo.mobile.ui.document.DocumentsScreen(vm) })
+    }
+
+    @Test
+    fun M11_내정보_인증차주() {
+        val accounts = object : AccountRepository {
+            override suspend fun me() = ApiResult.Success(Account("김도윤", "01012345678"))
+            override suspend fun rename(name: String) = ApiResult.Success(Account(name, "01012345678"))
+            override suspend fun withdraw() = ApiResult.Success(Unit)
+            override fun signOut() = Unit
+        }
+        val vm = MyViewModel(accounts)
+        val approved = com.ieo.mobile.domain.document.DocumentStatus.APPROVED
+        shot("M11_my_verified", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 0, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}, documents = documents(approved, approved, approved, approved), record = com.ieo.mobile.domain.document.DriverRecord(true, 37, 1)) })
     }
 }

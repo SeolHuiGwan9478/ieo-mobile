@@ -177,7 +177,7 @@ private fun RequestedBadge() {
 
 /** M09 오더 상세. 서버에 주선사 전화번호가 없어 시안의 전화 버튼 자리에 신고를 둔다 */
 @Composable
-fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewModel, texts: OrderTexts = remember { OrderTexts() }, onSite: (Long) -> Unit = {}) {
+fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewModel, texts: OrderTexts = remember { OrderTexts() }, onSite: (Long) -> Unit = {}, verified: Boolean = true, onDocuments: () -> Unit = {}) {
     BackHandler(onBack = viewModel::close)
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
@@ -198,11 +198,16 @@ fun OrderDetailScreen(order: Order, state: OrdersState, viewModel: OrdersViewMod
             BrokerCard(order, texts)
             order.myRequest?.takeIf { order.isRequestedByMe }?.let { RequestCountdown(it) }
             state.message?.let { if (state.messageIsError) ErrorNotice(it) else Text(it, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp)) }
+            if (!verified && !order.isRequestedByMe) {
+                Text("서류 4가지가 승인되면 배차를 요청할 수 있어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
+            }
         }
         Row(Modifier.fillMaxWidth().background(White).padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             TonalButton("신고", viewModel::startReport, modifier = Modifier.weight(1f))
             if (order.isRequestedByMe) {
                 PrimaryButton("요청 철회", viewModel::withdraw, busy = state.isBusy, modifier = Modifier.weight(2.2f))
+            } else if (!verified) {
+                PrimaryButton("서류 올리기", onDocuments, modifier = Modifier.weight(2.2f))
             } else {
                 PrimaryButton("배차 요청", viewModel::request, busy = state.isBusy, modifier = Modifier.weight(2.2f))
             }
@@ -252,9 +257,9 @@ private fun ProfitLine(label: String, value: String) {
 private fun RouteCard(order: Order, texts: OrderTexts, onSite: (Long) -> Unit) {
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
         val distance = texts.distance(order)
-        Stop("상차" + (distance?.let { " · 내 위치에서 $it" } ?: ""), order.pickup, texts.pickupTime(order), Orange600, onSite)
+        Stop("상차" + (distance?.let { " · 내 위치에서 $it" } ?: ""), order.pickup, texts.pickupTime(order), Orange600, onSite, order.limited)
         Spacer(Modifier.height(18.dp))
-        Stop("하차", order.dropoff, texts.dropoffTime(order), TextStrong, onSite)
+        Stop("하차", order.dropoff, texts.dropoffTime(order), TextStrong, onSite, order.limited)
         Spacer(Modifier.height(14.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(CanvasGray))
         Spacer(Modifier.height(12.dp))
@@ -266,13 +271,17 @@ private fun RouteCard(order: Order, texts: OrderTexts, onSite: (Long) -> Unit) {
 }
 
 @Composable
-private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSite: (Long) -> Unit) {
+private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSite: (Long) -> Unit, limited: Boolean = false) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.padding(top = 5.dp).size(10.dp).background(dot, CircleShape))
         Column {
             Text(label, fontSize = 15.sp, color = TextSub)
             Text(site.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-            Text(site.address, fontSize = 15.sp, color = TextMid)
+            if (limited) {
+                Text("정확한 주소는 서류 승인 후 보여요", fontSize = 15.sp, color = TextSub)
+            } else {
+                Text(site.address, fontSize = 15.sp, color = TextMid)
+            }
             Text(time, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
             site.siteId?.let { id -> SiteInfoLink { onSite(id) } }
         }
@@ -282,7 +291,11 @@ private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSit
 @Composable
 private fun BrokerCard(order: Order, texts: OrderTexts) {
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {
-        Text(order.brokerName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+        if (order.limited) {
+            Text("주선사는 서류 승인 후 보여요", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextSub)
+        } else {
+            Text(order.brokerName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+        }
         order.brokerMetrics?.let { Text(texts.metrics(it), fontSize = 15.sp, lineHeight = 21.sp, color = TextSub) }
     }
 }

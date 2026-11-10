@@ -5,6 +5,8 @@ import com.ieo.mobile.ui.component.LineGray
 import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.ieo.mobile.ui.document.DocumentsScreen
+import com.ieo.mobile.ui.document.DocumentsViewModel
 import com.ieo.mobile.ui.proof.ProofScreen
 import com.ieo.mobile.ui.proof.ProofViewModel
 import com.ieo.mobile.ui.site.SiteCardScreen
@@ -254,6 +256,20 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     }
     val site: SiteCardViewModel = viewModel(key = "site") { SiteCardViewModel(container.siteRepository) }
     val siteState by site.state.collectAsStateWithLifecycle()
+    // 서류 심사 상태. 운영자가 심사하므로 앱으로 돌아올 때마다 다시 받는다
+    val documents: DocumentsViewModel = viewModel(key = "documents") { DocumentsViewModel(container.documentRepository) }
+    val documentState by documents.state.collectAsStateWithLifecycle()
+    LaunchedEffect(documents) {
+        var returning = false
+        lifecycleForTrips.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (returning) documents.refresh()
+            returning = true
+        }
+    }
+    if (documentState.isOpen) {
+        DocumentsScreen(documents)
+        return
+    }
     val proof: ProofViewModel = viewModel(key = "proof") { ProofViewModel(container.proofRepository) }
     val proofState by proof.state.collectAsStateWithLifecycle()
     if (proofState.tripId != null) {
@@ -311,7 +327,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         return
     }
     orderState.selected?.let { order ->
-        OrderDetailScreen(order, orderState, orders, onSite = site::open)
+        OrderDetailScreen(order, orderState, orders, onSite = site::open, verified = documentState.verified, onDocuments = documents::open)
         return
     }
     tripState.selected?.let { trip ->
@@ -338,6 +354,8 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                     onFindOrders = { tab = Tab.ORDERS },
                     unreadNotifications = notificationState.unreadCount,
                     onNotifications = notifications::open,
+                    documents = documentState.documents,
+                    onDocuments = documents::open,
                 )
                 Tab.ORDERS -> OrdersScreen(
                     orders,
@@ -346,7 +364,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                 )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
                 Tab.EARNINGS -> LedgerScreen(ledger)
-                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true })
+                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record)
             }
         }
         HorizontalDivider(color = LineGray)

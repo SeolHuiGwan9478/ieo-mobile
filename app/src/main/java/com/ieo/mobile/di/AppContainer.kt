@@ -1,5 +1,8 @@
 package com.ieo.mobile.di
 
+import com.ieo.mobile.data.document.DefaultDocumentRepository
+import com.ieo.mobile.data.document.DocumentApi
+import com.ieo.mobile.domain.document.DocumentRepository
 import com.ieo.mobile.data.proof.DefaultProofRepository
 import com.ieo.mobile.data.proof.ProofApi
 import com.ieo.mobile.domain.proof.ProofRepository
@@ -103,6 +106,8 @@ class AppContainer(context: Context) {
         DefaultSiteRepository(network.authenticated.create(SiteApi::class.java), network.caller)
     val proofRepository: ProofRepository =
         DefaultProofRepository(network.authenticated.create(ProofApi::class.java), network.caller, BuildConfig.API_BASE_URL)
+    val documentRepository: DocumentRepository =
+        DefaultDocumentRepository(network.authenticated.create(DocumentApi::class.java), network.caller)
     val carLoginRepository: CarLoginRepository =
         DefaultCarLoginRepository(network.authenticated.create(CarLoginApi::class.java), network.caller)
 }

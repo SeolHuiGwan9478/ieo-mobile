@@ -15,7 +15,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class OrderResponse(
     val id: Long,
-    val brokerName: String,
+    /** 서류 심사 전에는 비어 온다 ([limited]) */
+    val brokerName: String? = null,
     val pickup: OrderSiteResponse,
     val dropoff: OrderSiteResponse,
     val pickupFrom: String,
@@ -34,10 +35,12 @@ data class OrderResponse(
     val netProfit: Long? = null,
     val myRequest: DispatchRequestResponse? = null,
     val brokerMetrics: BrokerMetricsResponse? = null,
+    val limited: Boolean = false,
 ) {
     fun toDomain() = Order(
         id = id,
-        brokerName = brokerName,
+        brokerName = brokerName.orEmpty(),
+        limited = limited,
         pickup = pickup.toDomain(),
         dropoff = dropoff.toDomain(),
         pickupFrom = Instant.parse(pickupFrom),
