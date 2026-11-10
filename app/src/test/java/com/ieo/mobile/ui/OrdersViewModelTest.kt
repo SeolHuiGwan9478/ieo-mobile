@@ -58,9 +58,14 @@ class OrdersViewModelTest {
         var nearAsked: GeoPoint? = null
         var result: ApiResult<DispatchRequest> = ApiResult.Success(DispatchRequest(9, 1, DispatchRequestStatus.PENDING, tomorrow))
         val calls = mutableListOf<String>()
-        override suspend fun openOrders(limit: Int, near: GeoPoint?): ApiResult<List<Order>> {
+        var searched: com.ieo.mobile.domain.order.OrderSearch? = null
+        override suspend fun openOrders(limit: Int, near: GeoPoint?, search: com.ieo.mobile.domain.order.OrderSearch): ApiResult<List<Order>> {
             nearAsked = near
-            return ApiResult.Success(list)
+            searched = search
+            // 결제 방식과 운임은 서버가 거른다
+            return ApiResult.Success(list.filter {
+                (!search.prepaidOnly || it.paymentTypeLabel == "선불") && (search.minFare == null || it.fare >= search.minFare)
+            })
         }
         var profit: ApiResult<OrderProfit> = ApiResult.Success(OrderProfit(200_000, 50_000, 7_800, 6_000))
         var profitAsked = 0
@@ -176,7 +181,19 @@ class OrdersViewModelTest {
         assertEquals(listOf(1L), vm.visible(vm.state.value).map { it.id })
         vm.selectDay(DayFilter.ALL)
         vm.togglePrepaid()
+        advanceUntilIdle()
         assertEquals(listOf(2L), vm.visible(vm.state.value).map { it.id })
+    }
+
+    @Test
+    fun `30만 원 이상을 고르면 서버에 최소 운임을 보낸다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = TestVm(fake).apply { refresh() }
+        advanceUntilIdle()
+        vm.toggleHighFare()
+        advanceUntilIdle()
+        assertEquals(300_000L, fake.searched?.minFare)
+        assertEquals(listOf(1L, 2L), vm.visible(vm.state.value).map { it.id })
     }
 
     @Test

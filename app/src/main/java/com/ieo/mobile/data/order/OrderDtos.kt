@@ -36,6 +36,7 @@ data class OrderResponse(
     val myRequest: DispatchRequestResponse? = null,
     val brokerMetrics: BrokerMetricsResponse? = null,
     val limited: Boolean = false,
+    val routeAverageFare: Long? = null,
 ) {
     fun toDomain() = Order(
         id = id,
@@ -56,6 +57,7 @@ data class OrderResponse(
         expectedPaymentDays = expectedPaymentDays,
         distanceMeters = distanceM,
         netProfit = netProfit,
+        routeAverageFare = routeAverageFare,
         myRequest = myRequest?.toDomain(),
         cargoCategory = cargoCategory?.let(CargoCategory::fromName),
         brokerMetrics = brokerMetrics?.toDomain(),

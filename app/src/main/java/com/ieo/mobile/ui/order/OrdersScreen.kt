@@ -106,6 +106,7 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
                 BrandChip("내 위치 50km", state.nearMe && !state.locationMissing, viewModel::toggleNearMe)
                 DayFilter.entries.forEach { day -> BrandChip(day.label, state.day == day) { viewModel.selectDay(day) } }
                 BrandChip("선불만", state.prepaidOnly, viewModel::togglePrepaid)
+                BrandChip("30만 원 이상", state.highFareOnly, viewModel::toggleHighFare)
             }
             if (state.locationMissing) {
                 Text("위치를 몰라 전체 오더를 보여 드려요", fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(top = 10.dp))
@@ -242,6 +243,7 @@ private fun ProfitCard(order: Order, profit: OrderProfit?) {
             ProfitLine("기름값", formatWon(it.fuelCost))
             ProfitLine("상차지까지", "${(it.emptyMeters + 500) / 1000}km")
         }
+        order.routeAverageFare?.let { ProfitLine("이 노선 평균 운임", "${formatWon(roundedToManwon(it))} (Ieo 완료 운행 기준)") }
     }
 }
 

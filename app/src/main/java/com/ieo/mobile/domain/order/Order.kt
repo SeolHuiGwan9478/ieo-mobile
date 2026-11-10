@@ -37,6 +37,8 @@ data class Order(
     val netProfit: Long? = null,
     /** 서류 심사 전이라 줄여 받은 오더. 상하차지는 시·구까지, 주선사·화물 내용은 비어 있다 */
     val limited: Boolean = false,
+    /** 같은 노선(상하차 시·구)의 Ieo 완료 운행 평균 운임. 표본이 10건 미만이면 null (DSP-044) */
+    val routeAverageFare: Long? = null,
 ) {
     val vehicleLabel: String get() = "$tonnageLabel $bodyTypeLabel"
 

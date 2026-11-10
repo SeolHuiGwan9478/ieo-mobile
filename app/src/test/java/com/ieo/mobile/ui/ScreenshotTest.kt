@@ -391,7 +391,7 @@ class ScreenshotTest {
     )
 
     private fun orders(): OrdersViewModel = OrdersViewModel(object : OrderRepository {
-        override suspend fun openOrders(limit: Int, near: GeoPoint?) = ApiResult.Success(listOf(
+        override suspend fun openOrders(limit: Int, near: GeoPoint?, search: com.ieo.mobile.domain.order.OrderSearch) = ApiResult.Success(listOf(
             order(1, "화성 향남" to "창원 성산", 580_000, "인수증", 25),
             order(2, "평택 포승" to "부산 강서", 550_000, "선불", null),
             order(3, "평택 청북" to "대구 북구", 470_000, "인수증", 12, mine = true),

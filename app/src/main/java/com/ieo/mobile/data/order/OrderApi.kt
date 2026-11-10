@@ -15,6 +15,8 @@ interface OrderApi {
         @Query("lat") lat: Double? = null,
         @Query("lng") lng: Double? = null,
         @Query("size") size: Int? = null,
+        @Query("minFare") minFare: Long? = null,
+        @Query("paymentType") paymentType: String? = null,
     ): Response<List<OrderResponse>>
 
     /** 지금 위치에서 이 오더를 맡을 때의 실수익 내역 */

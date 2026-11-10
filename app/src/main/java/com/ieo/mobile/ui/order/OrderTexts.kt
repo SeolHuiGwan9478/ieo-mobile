@@ -21,7 +21,8 @@ class OrderTexts(private val labels: DayTimeFormatter = DayTimeFormatter()) {
     fun dropoffTime(order: Order) = "${labels.dayTime(order.dropoffBy)}까지"
 
     /** "상차지 18km". 위치를 모르면 null */
-    fun distance(order: Order): String? = order.distanceMeters?.let { if (it < 1_000) "1km 안" else "${(it + 500) / 1_000}km" }
+    /** 서버가 주는 거리는 도로 거리 어림이라 "약"을 붙인다. 상세의 실수익 내역은 실제 경로로 다시 잰다 */
+    fun distance(order: Order): String? = order.distanceMeters?.let { if (it < 1_000) "1km 안" else "약 ${(it + 500) / 1_000}km" }
 
     /** "실수익 약 28만 원". 위치를 몰라 계산하지 못하면 null */
     fun netProfit(order: Order): String? = order.netProfit?.let { "실수익 약 ${formatWon(roundedToManwon(it))}" }

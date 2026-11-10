@@ -7,6 +7,7 @@ import com.ieo.mobile.domain.order.DispatchRequest
 import com.ieo.mobile.domain.order.Order
 import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderRepository
+import com.ieo.mobile.domain.order.OrderSearch
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.domain.order.GeoPoint
 
@@ -15,8 +16,13 @@ class DefaultOrderRepository(
     private val caller: ApiCaller,
 ) : OrderRepository {
 
-    override suspend fun openOrders(limit: Int, near: GeoPoint?): ApiResult<List<Order>> =
-        caller.call { api.openOrders(lat = near?.latitude, lng = near?.longitude, size = limit) }.mapResponse { orders -> orders.map(OrderResponse::toDomain) }
+    override suspend fun openOrders(limit: Int, near: GeoPoint?, search: OrderSearch): ApiResult<List<Order>> =
+        caller.call {
+            api.openOrders(
+                lat = near?.latitude, lng = near?.longitude, size = limit,
+                minFare = search.minFare, paymentType = if (search.prepaidOnly) "PREPAID" else null,
+            )
+        }.mapResponse { orders -> orders.map(OrderResponse::toDomain) }
 
     override suspend fun profit(orderId: Long, from: GeoPoint): ApiResult<OrderProfit> =
         caller.call { api.profit(orderId, from.latitude, from.longitude) }.mapResponse { it.toDomain() }

@@ -7,6 +7,7 @@ import com.ieo.mobile.domain.order.LocationSource
 import com.ieo.mobile.domain.order.Order
 import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderRepository
+import com.ieo.mobile.domain.order.OrderSearch
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.ui.common.DayTimeFormatter
 import java.time.Clock
@@ -25,6 +26,8 @@ data class OrdersState(
     val day: DayFilter = DayFilter.ALL,
     val sort: OrderSort = OrderSort.SOON,
     val prepaidOnly: Boolean = false,
+    /** 30만 원 이상만 */
+    val highFareOnly: Boolean = false,
     /** 내 위치 근처만 찾는다 (서버 기준 50km) */
     val nearMe: Boolean = true,
     /** 위치를 알아 실제로 근처만 받았다 */
@@ -61,7 +64,7 @@ class OrdersViewModel(
     /** 화면에 보일 오더: 고른 조건과 정렬을 적용한다 */
     fun visible(state: OrdersState): List<Order> {
         val filtered = state.orders.filter { order ->
-            matchesDay(order, state.day) && (!state.prepaidOnly || order.paymentTypeLabel == PREPAID)
+            matchesDay(order, state.day)
         }
         return when (state.sort) {
             OrderSort.SOON -> filtered.sortedBy { it.pickupFrom }
@@ -81,7 +84,16 @@ class OrdersViewModel(
 
     fun toggleSort() = _state.update { it.copy(sort = if (it.sort == OrderSort.SOON) OrderSort.FARE else OrderSort.SOON) }
 
-    fun togglePrepaid() = _state.update { it.copy(prepaidOnly = !it.prepaidOnly) }
+    /** 결제 방식과 운임은 서버가 거른다 (DSP-010) */
+    fun togglePrepaid() {
+        _state.update { it.copy(prepaidOnly = !it.prepaidOnly) }
+        refresh()
+    }
+
+    fun toggleHighFare() {
+        _state.update { it.copy(highFareOnly = !it.highFareOnly) }
+        refresh()
+    }
 
     fun toggleNearMe() {
         // 위치를 못 받아 꺼져 보일 때 누르면 위치를 다시 찾는다
@@ -155,7 +167,8 @@ class OrdersViewModel(
 
     private suspend fun reload() {
         val near = if (_state.value.nearMe) location.lastKnown() else null
-        when (val result = repository.openOrders(LIST_SIZE, near)) {
+        val search = OrderSearch(minFare = if (_state.value.highFareOnly) HIGH_FARE else null, prepaidOnly = _state.value.prepaidOnly)
+        when (val result = repository.openOrders(LIST_SIZE, near, search)) {
             is ApiResult.Success -> _state.update { it.copy(orders = result.data, nearApplied = near != null, loadFailed = false) }
             is ApiResult.Failure -> {
                 _state.update { it.copy(loadFailed = true) }
@@ -182,7 +195,7 @@ class OrdersViewModel(
 
     companion object {
         private const val LIST_SIZE = 50
-        private const val PREPAID = "선불"
+        const val HIGH_FARE = 300_000L
         const val REQUESTED_MESSAGE = "배차를 요청했어요. 주선사가 확정하면 배차가 잡혀요"
         const val WITHDRAWN_MESSAGE = "요청을 철회했어요"
         const val REPORTED_MESSAGE = "신고를 접수했어요"
