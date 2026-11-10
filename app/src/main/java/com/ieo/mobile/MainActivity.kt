@@ -84,6 +84,8 @@ import com.ieo.mobile.ui.my.AccountSettingsScreen
 import com.ieo.mobile.ui.my.AccountSettingsViewModel
 import com.ieo.mobile.ui.my.MyScreen
 import com.ieo.mobile.ui.my.MyViewModel
+import com.ieo.mobile.ui.my.ProfileEditScreen
+import com.ieo.mobile.ui.my.ProfileEditViewModel
 import com.ieo.mobile.ui.ledger.LedgerOverlay
 import com.ieo.mobile.ui.ledger.LedgerScreen
 import com.ieo.mobile.ui.ledger.LedgerViewModel
@@ -222,6 +224,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     var registering by rememberSaveable { mutableStateOf(false) }
     var managingLinks by rememberSaveable { mutableStateOf(false) }
     var openingCredit by rememberSaveable { mutableStateOf(false) }
+    var editingProfile by rememberSaveable { mutableStateOf(false) }
     var accountSection by rememberSaveable { mutableStateOf<AccountSection?>(null) }
     var editingRecommendation by rememberSaveable { mutableStateOf(false) }
     val recommendation: RecommendationViewModel = viewModel(key = "recommendation") { RecommendationViewModel(container.recommendationRepository) }
@@ -229,6 +232,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     val links: LinksViewModel = viewModel(key = "links") { LinksViewModel(container.driverLinkRepository) }
     val linkState by links.state.collectAsStateWithLifecycle()
     val my: MyViewModel = viewModel(key = "my") { MyViewModel(container.accountRepository) }
+    val profileEdit: ProfileEditViewModel = viewModel(key = "profileEdit") { ProfileEditViewModel(container.accountRepository, container.authRepository) }
     val accountSettings: AccountSettingsViewModel = viewModel(key = "accountSettings") { AccountSettingsViewModel(container.accountSettingsRepository) }
     val accountSettingsState by accountSettings.state.collectAsStateWithLifecycle()
     val vehicles: VehiclesViewModel = viewModel(key = "vehicles") { VehiclesViewModel(container.vehicleRepository) }
@@ -306,6 +310,10 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         AccountSettingsScreen(section, accountSettings, onBack = { accountSection = null })
         return
     }
+    if (editingProfile) {
+        ProfileEditScreen(profileEdit, onBack = { editingProfile = false }, onSaved = { saved -> my.updated(saved); editingProfile = false })
+        return
+    }
     if (openingCredit) {
         // 크레딧은 아직 화면만 있다 (서버·결제 연결 전)
         CreditScreen(balance = 0, history = emptyList(), onBack = { openingCredit = false })
@@ -372,7 +380,12 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                 )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
                 Tab.EARNINGS -> LedgerScreen(ledger)
-                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, onCredit = { openingCredit = true })
+                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, onCredit = { openingCredit = true }, onEditProfile = {
+                    myState.account?.let { account ->
+                        profileEdit.start(account)
+                        editingProfile = true
+                    }
+                })
             }
         }
         HorizontalDivider(color = LineGray)

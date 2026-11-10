@@ -17,7 +17,7 @@ data class MyState(
     val message: String? = null,
 )
 
-/** 내 정보 (M11): 이름 바꾸기, 로그아웃, 탈퇴 (ACC-003, ACC-004) */
+/** 내 정보 (M11): 계정 값, 로그아웃, 탈퇴 (ACC-003, ACC-004). 이름·번호 고치기는 ProfileEditViewModel */
 class MyViewModel(private val accounts: AccountRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(MyState())
@@ -32,16 +32,8 @@ class MyViewModel(private val accounts: AccountRepository) : ViewModel() {
         }
     }
 
-    /** 성공하면 [onDone]을 부른다 (입력 창 닫기) */
-    fun rename(name: String, onDone: () -> Unit) = run {
-        when (val result = accounts.rename(name.trim())) {
-            is ApiResult.Success -> {
-                _state.update { it.copy(account = result.data) }
-                onDone()
-            }
-            is ApiResult.Failure -> _state.update { it.copy(message = result.error.message) }
-        }
-    }
+    /** 내 정보 수정에서 저장한 값으로 바꾼다 */
+    fun updated(account: Account) = _state.update { it.copy(account = account, message = null) }
 
     /** 성공하면 세션이 끝나 시작 화면으로 돌아간다 */
     fun withdraw() = run {

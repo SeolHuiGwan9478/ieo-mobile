@@ -42,8 +42,6 @@ class VehiclesViewModelTest {
             updatedTonnage = tonnage
             return result
         }
-        override suspend fun setDefault(vehicleId: Long) = ApiResult.Success(Unit)
-        override suspend fun delete(vehicleId: Long) = ApiResult.Success(Unit)
     }
 
     @Test

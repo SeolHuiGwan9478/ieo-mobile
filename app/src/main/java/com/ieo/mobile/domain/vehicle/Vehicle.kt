@@ -84,8 +84,4 @@ interface VehicleRepository {
         dimensions: VehicleDimensions = VehicleDimensions(),
         plateNumber: String? = null,
     ): ApiResult<Unit>
-
-    suspend fun setDefault(vehicleId: Long): ApiResult<Unit>
-
-    suspend fun delete(vehicleId: Long): ApiResult<Unit>
 }

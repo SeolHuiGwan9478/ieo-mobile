@@ -73,9 +73,8 @@ import com.ieo.mobile.ui.vehicle.VehiclesState
  * 자주 쓰는 바로가기 네 칸, 그리고 묶음별 메뉴. 메뉴마다 그림을 붙여 글을 덜 읽어도 찾게 한다
  */
 @Composable
-fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, creditBalance: Long = 0, onCredit: () -> Unit = {}) {
+fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, creditBalance: Long = 0, onCredit: () -> Unit = {}, onEditProfile: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var renaming by remember { mutableStateOf(false) }
     var withdrawing by remember { mutableStateOf(false) }
     val name = state.account?.name.orEmpty()
     val verified = documents?.verified == true
@@ -94,7 +93,7 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
                 }
                 Text(PhoneFormat.hyphen(state.account?.phone.orEmpty()), fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 2.dp))
             }
-            QuietButton("이름 변경", { renaming = true })
+            QuietButton("내 정보 수정", onEditProfile)
         }
 
         // 크레딧 (충전식 이용료). 결제 연결 전이라 화면만 있다
@@ -146,7 +145,6 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
         }
     }
 
-    if (renaming) RenameDialog(name, state.isBusy, viewModel) { renaming = false }
     if (withdrawing) {
         AlertDialog(
             onDismissRequest = { withdrawing = false },
@@ -230,16 +228,3 @@ private fun Divider() {
     Box(Modifier.fillMaxWidth().height(8.dp).background(CanvasGray.copy(alpha = 0.6f)))
 }
 
-@Composable
-private fun RenameDialog(current: String, busy: Boolean, viewModel: MyViewModel, onClose: () -> Unit) {
-    var name by remember { mutableStateOf(current) }
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text("이름 변경") },
-        text = { FormField(name, { name = it.take(30) }, "이름") },
-        confirmButton = {
-            TextButton(onClick = { viewModel.rename(name, onClose) }, enabled = name.isNotBlank() && !busy) { Text("저장", color = Orange700) }
-        },
-        dismissButton = { TextButton(onClick = onClose) { Text("취소", color = TextMid) } },
-    )
-}

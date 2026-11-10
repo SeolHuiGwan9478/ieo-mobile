@@ -105,9 +105,12 @@ fun FormField(
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    /** 칸 안쪽 오른쪽에 두는 버튼이나 표시 (예: 인증 요청) */
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     OutlinedTextField(
         visualTransformation = visualTransformation,
+        trailingIcon = trailing,
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, fontSize = 16.sp) },
@@ -118,6 +121,14 @@ fun FormField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = modifier.fillMaxWidth(),
     )
+}
+
+/** 입력칸 안쪽 오른쪽의 작은 글자 버튼 (인증 요청, 확인) */
+@Composable
+fun FieldAction(text: String, onClick: () -> Unit, enabled: Boolean = true) {
+    androidx.compose.material3.TextButton(onClick = onClick, enabled = enabled, modifier = Modifier.padding(end = 4.dp)) {
+        Text(text, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (enabled) Orange700 else TextSub)
+    }
 }
 
 /** 단계 표시: "1 / 4 · 휴대폰 인증" */

@@ -75,7 +75,7 @@ class AppContainer(context: Context) {
     val authRepository: AuthRepository =
         DefaultAuthRepository(network.public.create(AuthApi::class.java), network.caller, session, device)
     val accountRepository: AccountRepository =
-        DefaultAccountRepository(network.authenticated.create(AccountApi::class.java), network.caller, session)
+        DefaultAccountRepository(network.authenticated.create(AccountApi::class.java), network.caller, session, device)
     val accountSettingsRepository: AccountSettingsRepository =
         DefaultAccountSettingsRepository(network.authenticated.create(AccountSettingsApi::class.java), network.caller)
     val vehicleRepository: VehicleRepository =

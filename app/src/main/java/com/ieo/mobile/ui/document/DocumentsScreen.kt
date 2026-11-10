@@ -385,13 +385,8 @@ private fun DocumentRow(item: DocumentItem, uploading: Boolean, onClick: () -> U
     }
 }
 
-/** 숫자만 받아 하이픈을 붙여 보여 준다 */
+/** 개업일 숫자 검사 */
 internal object BusinessFields {
-    fun formatNumber(digits: String): String = when {
-        digits.length <= 3 -> digits
-        digits.length <= 5 -> "${digits.take(3)}-${digits.drop(3)}"
-        else -> "${digits.take(3)}-${digits.substring(3, 5)}-${digits.drop(5)}"
-    }
 
     fun formatDate(digits: String): String = when {
         digits.length <= 4 -> digits

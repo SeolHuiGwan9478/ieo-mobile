@@ -15,7 +15,6 @@ class DocumentsTextTest {
 
     @Test
     fun 사업자번호와_개업일은_숫자만_받아_하이픈을_붙인다() {
-        assertEquals("123-45-67890", BusinessFields.formatNumber("1234567890"))
         assertEquals("2020-01", BusinessFields.formatDate("202001"))
         assertEquals("2020-01-31", BusinessFields.openedOn("20200131"))
         assertNull(BusinessFields.openedOn("20201331"))

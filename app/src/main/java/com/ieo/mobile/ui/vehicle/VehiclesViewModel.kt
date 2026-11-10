@@ -9,7 +9,6 @@ import com.ieo.mobile.domain.vehicle.PlateNumber
 import com.ieo.mobile.domain.vehicle.Tonnage
 import com.ieo.mobile.domain.vehicle.Vehicle
 import com.ieo.mobile.domain.vehicle.VehicleDimensions
-import com.ieo.mobile.domain.vehicle.VehicleHeight
 import com.ieo.mobile.domain.vehicle.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -83,8 +82,6 @@ class VehiclesViewModel(private val vehicles: VehicleRepository) : ViewModel() {
     }
 
     fun onBodyType(value: BodyType) = editForm { it.copy(bodyType = value) }
-
-    fun stepHeight(delta: Double) = editForm { it.copy(heightMeters = VehicleHeight.step(it.heightMeters, delta)) }
 
     fun setHeight(value: Double?) = editForm { it.copy(heightMeters = value) }
 

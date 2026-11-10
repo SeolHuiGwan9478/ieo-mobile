@@ -311,6 +311,7 @@ class ScreenshotTest {
         val accounts = object : AccountRepository {
             override suspend fun me() = ApiResult.Success(Account("김도윤", "01012345678"))
             override suspend fun rename(name: String) = ApiResult.Success(Account(name, "01012345678"))
+            override suspend fun changePhone(phoneToken: String) = ApiResult.Success(Account("김도윤", "01099998888"))
             override suspend fun withdraw() = ApiResult.Success(Unit)
             override fun signOut() = Unit
         }
@@ -325,8 +326,6 @@ class ScreenshotTest {
         override suspend fun list() = ApiResult.Success(saved)
         override suspend fun add(vehicle: NewVehicle) = ApiResult.Success(Unit)
         override suspend fun update(vehicleId: Long, tonnage: Tonnage, bodyType: BodyType, heightMeters: Double?, dimensions: com.ieo.mobile.domain.vehicle.VehicleDimensions, plateNumber: String?) = ApiResult.Success(Unit)
-        override suspend fun setDefault(vehicleId: Long) = ApiResult.Success(Unit)
-        override suspend fun delete(vehicleId: Long) = ApiResult.Success(Unit)
     })
 
     @Test
@@ -750,6 +749,7 @@ class ScreenshotTest {
         val accounts = object : AccountRepository {
             override suspend fun me() = ApiResult.Success(Account("김도윤", "01012345678"))
             override suspend fun rename(name: String) = ApiResult.Success(Account(name, "01012345678"))
+            override suspend fun changePhone(phoneToken: String) = ApiResult.Success(Account("김도윤", "01099998888"))
             override suspend fun withdraw() = ApiResult.Success(Unit)
             override fun signOut() = Unit
         }
@@ -790,5 +790,22 @@ class ScreenshotTest {
         compose.waitForIdle()
         vm.edit(vm.state.value.documents!!.required[1])
         shot("D08_document_pending", content = { com.ieo.mobile.ui.document.DocumentsScreen(vm) })
+    }
+
+    @Test
+    fun M12_내정보수정_번호인증() {
+        val accounts = object : AccountRepository {
+            override suspend fun me() = ApiResult.Success(Account("김도윤", "01012345678"))
+            override suspend fun rename(name: String) = ApiResult.Success(Account(name, "01012345678"))
+            override suspend fun changePhone(phoneToken: String) = ApiResult.Success(Account("김도윤", "01099998888"))
+            override suspend fun withdraw() = ApiResult.Success(Unit)
+            override fun signOut() = Unit
+        }
+        val vm = com.ieo.mobile.ui.my.ProfileEditViewModel(accounts, FakeAuth())
+        vm.start(Account("김도윤", "01012345678"))
+        vm.onPhone("01099998888")
+        vm.sendCode()
+        compose.waitForIdle()
+        shot("M12_profile_edit", content = { com.ieo.mobile.ui.my.ProfileEditScreen(vm, onBack = {}, onSaved = {}) })
     }
 }

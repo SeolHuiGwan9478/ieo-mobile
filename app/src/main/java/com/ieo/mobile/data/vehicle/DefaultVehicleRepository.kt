@@ -13,7 +13,6 @@ import com.ieo.mobile.domain.vehicle.VehicleRepository
 import kotlinx.serialization.Serializable
 import retrofit2.Response
 import retrofit2.http.Body
-import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -29,12 +28,6 @@ interface VehicleApi {
 
     @PATCH("api/vehicles/{id}")
     suspend fun update(@Path("id") id: Long, @Body body: UpdateVehicleRequest): Response<VehicleResponse>
-
-    @POST("api/vehicles/{id}/default")
-    suspend fun setDefault(@Path("id") id: Long): Response<Unit>
-
-    @DELETE("api/vehicles/{id}")
-    suspend fun delete(@Path("id") id: Long): Response<Unit>
 }
 
 @Serializable
@@ -115,9 +108,4 @@ class DefaultVehicleRepository(
         )
     }.map { }
 
-    override suspend fun setDefault(vehicleId: Long): ApiResult<Unit> =
-        caller.callOptional { api.setDefault(vehicleId) }.map { }
-
-    override suspend fun delete(vehicleId: Long): ApiResult<Unit> =
-        caller.callOptional { api.delete(vehicleId) }.map { }
 }

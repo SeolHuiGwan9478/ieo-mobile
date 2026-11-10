@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.login
 
+import com.ieo.mobile.ui.component.PhoneHyphenTransformation
 import com.ieo.mobile.domain.vehicle.PlateNumber
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.ieo.mobile.domain.vehicle.VehicleDimensions
@@ -82,9 +83,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -595,24 +593,3 @@ private fun ErrorLine(error: String?) {
     }
 }
 
-/** 입력한 숫자에 하이픈을 그려 준다. 값에는 숫자만 남는다 */
-private object PhoneHyphenTransformation : VisualTransformation {
-    override fun filter(text: androidx.compose.ui.text.AnnotatedString): TransformedText {
-        val digits = text.text
-        val formatted = PhoneFormat.hyphen(digits)
-        val mapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                var seen = 0
-                formatted.forEachIndexed { index, c ->
-                    if (seen == offset) return index
-                    if (c != '-') seen++
-                }
-                return formatted.length
-            }
-
-            override fun transformedToOriginal(offset: Int): Int =
-                formatted.take(offset).count { it != '-' }
-        }
-        return TransformedText(androidx.compose.ui.text.AnnotatedString(formatted), mapping)
-    }
-}

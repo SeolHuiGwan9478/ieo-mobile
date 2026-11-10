@@ -1,5 +1,6 @@
 package com.ieo.mobile.data.account
 
+import com.ieo.mobile.core.session.DeviceInfo
 import com.ieo.mobile.core.network.ApiCaller
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.core.network.map
@@ -21,6 +22,9 @@ interface AccountApi {
     @PATCH("api/users/me")
     suspend fun rename(@Body body: UpdateUserRequest): Response<UserResponse>
 
+    @POST("api/users/me/phone")
+    suspend fun changePhone(@Body body: ChangePhoneRequest): Response<UserResponse>
+
     @POST("api/users/me/withdraw")
     suspend fun withdraw(): Response<Unit>
 }
@@ -29,12 +33,16 @@ interface AccountApi {
 data class UpdateUserRequest(val name: String)
 
 @Serializable
+data class ChangePhoneRequest(val phoneToken: String, val deviceId: String)
+
+@Serializable
 data class UserResponse(val name: String? = null, val phone: String? = null)
 
 class DefaultAccountRepository(
     private val api: AccountApi,
     private val caller: ApiCaller,
     private val session: SessionManager,
+    private val device: DeviceInfo,
 ) : AccountRepository {
 
     override suspend fun me(): ApiResult<Account> =
@@ -42,6 +50,9 @@ class DefaultAccountRepository(
 
     override suspend fun rename(name: String): ApiResult<Account> =
         caller.call { api.rename(UpdateUserRequest(name)) }.map { Account(it.name.orEmpty(), it.phone.orEmpty()) }
+
+    override suspend fun changePhone(phoneToken: String): ApiResult<Account> =
+        caller.call { api.changePhone(ChangePhoneRequest(phoneToken, device.deviceId)) }.map { Account(it.name.orEmpty(), it.phone.orEmpty()) }
 
     override suspend fun withdraw(): ApiResult<Unit> =
         caller.callNoContent { api.withdraw() }.map { session.signOut() }

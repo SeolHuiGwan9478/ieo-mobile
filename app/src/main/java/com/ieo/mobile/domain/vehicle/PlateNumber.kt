@@ -16,11 +16,4 @@ object PlateNumber {
     fun normalize(input: String): String = input.replace(Regex("[\\s-]"), "")
 
     fun isValid(input: String): Boolean = PATTERN.matches(normalize(input))
-
-    /** 쓰는 중에는 조용히 있다가, 다 쓴 것 같은데 틀리면 알려 준다 */
-    fun hint(input: String): String? = when {
-        normalize(input).length < 7 -> null
-        isValid(input) -> null
-        else -> "번호를 확인해 주세요 (예: 12가3456, 경기82사1234)"
-    }
 }
