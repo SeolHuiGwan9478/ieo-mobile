@@ -73,7 +73,7 @@ import com.ieo.mobile.ui.vehicle.VehiclesState
  * 자주 쓰는 바로가기 네 칸, 그리고 묶음별 메뉴. 메뉴마다 그림을 붙여 글을 덜 읽어도 찾게 한다
  */
 @Composable
-fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null) {
+fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, creditBalance: Long = 0, onCredit: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var renaming by remember { mutableStateOf(false) }
     var withdrawing by remember { mutableStateOf(false) }
@@ -96,6 +96,10 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
             }
             QuietButton("이름 변경", { renaming = true })
         }
+
+        // 크레딧 (충전식 이용료). 결제 연결 전이라 화면만 있다
+        CreditCard(creditBalance, onCredit)
+        Spacer(Modifier.height(12.dp))
 
         // 주선사에게 보이는 내 기록
         Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth().border(1.dp, LineGray, RoundedCornerShape(14.dp)).padding(16.dp)) {
@@ -123,24 +127,28 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
 
         // 바로가기 네 칸
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 18.dp)) {
-            Shortcut(Icons.Outlined.LocalShipping, "내 차량", Modifier.weight(1f), onVehicles)
-            Shortcut(Icons.Outlined.Description, "서류", Modifier.weight(1f), onDocuments)
-            Shortcut(Icons.Outlined.Handshake, "단골 주선사", Modifier.weight(1f), onLinks, dot = invitationCount > 0)
-            Shortcut(Icons.Outlined.AutoAwesome, "배차 추천", Modifier.weight(1f), onRecommendation)
+            Shortcut(R.drawable.ic_menu_truck, "내 차량", Modifier.weight(1f), onVehicles)
+            Shortcut(R.drawable.ic_menu_document, "서류", Modifier.weight(1f), onDocuments)
+            Shortcut(R.drawable.ic_menu_partner, "단골 주선사", Modifier.weight(1f), onLinks, dot = invitationCount > 0)
+            Shortcut(R.drawable.ic_menu_recommend, "배차 추천", Modifier.weight(1f), onRecommendation)
         }
         Divider()
 
         Group("나의 운행")
-        MenuRow(Icons.Outlined.LocalShipping, "내 차량", vehicles.defaultVehicle?.label ?: "등록해 주세요", onClick = onVehicles)
-        MenuRow(Icons.Outlined.TaskAlt, "서류 인증", documents?.let(::documentsSummary).orEmpty(), onClick = onDocuments)
-        MenuRow(Icons.Outlined.Handshake, "단골 주선사", if (invitationCount > 0) "요청 ${invitationCount}건" else "${linkCount}곳", highlight = invitationCount > 0, onClick = onLinks)
-        MenuRow(Icons.Outlined.AutoAwesome, "다음 배차 추천", recommendationSummary.orEmpty(), onClick = onRecommendation)
+        MenuRow(R.drawable.ic_menu_truck, "내 차량", vehicles.defaultVehicle?.label ?: "등록해 주세요", onClick = onVehicles)
+        MenuRow(R.drawable.ic_menu_document, "서류 인증", documents?.let(::documentsSummary).orEmpty(), onClick = onDocuments)
+        MenuRow(R.drawable.ic_menu_partner, "단골 주선사", if (invitationCount > 0) "요청 ${invitationCount}건" else "${linkCount}곳", highlight = invitationCount > 0, onClick = onLinks)
+        MenuRow(R.drawable.ic_menu_recommend, "다음 배차 추천", recommendationSummary.orEmpty(), onClick = onRecommendation)
+        Divider()
+
+        Group("크레딧")
+        MenuRow(R.drawable.ic_credit_coin, "충전·사용 내역", formatCredit(creditBalance), onClick = onCredit)
         Divider()
 
         Group("설정")
-        MenuRow(Icons.Outlined.Tv, "로그인된 차량", "${carSessionCount}대") { onAccountSection(AccountSection.CARS) }
-        MenuRow(Icons.Outlined.VerifiedUser, "동의 관리", "") { onAccountSection(AccountSection.CONSENTS) }
-        MenuRow(Icons.Outlined.Storefront, "사업자 정보", "선택") { onAccountSection(AccountSection.BUSINESS) }
+        MenuRow(R.drawable.ic_menu_car_login, "로그인된 차량", "${carSessionCount}대") { onAccountSection(AccountSection.CARS) }
+        MenuRow(R.drawable.ic_menu_consent, "동의 관리", "") { onAccountSection(AccountSection.CONSENTS) }
+        MenuRow(R.drawable.ic_menu_business, "사업자 정보", "선택") { onAccountSection(AccountSection.BUSINESS) }
 
         state.message?.let { Text(it, fontSize = 16.sp, color = IeoStatus.colors.warning, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.Center) {
@@ -163,6 +171,30 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
     }
 }
 
+/** 크레딧 카드: 동전 그림·잔액, 아래에 충전과 내역 */
+@Composable
+private fun CreditCard(balance: Long, onCredit: () -> Unit) {
+    Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth().background(CanvasGray.copy(alpha = 0.6f), RoundedCornerShape(14.dp))) {
+        Row(Modifier.fillMaxWidth().clickable(onClick = onCredit).padding(start = 16.dp, end = 10.dp, top = 14.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Image(painterResource(R.drawable.ic_credit_coin), contentDescription = null, modifier = Modifier.size(24.dp))
+            Text("크레딧", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f).padding(start = 8.dp))
+            Text(formatCredit(balance), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub)
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onCredit) { Text("충전", fontSize = 15.sp, color = TextStrong) }
+            Box(Modifier.width(1.dp).height(14.dp).background(LineGray))
+            TextButton(onClick = onCredit) { Text("내역", fontSize = 15.sp, color = TextStrong) }
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.background(TextStrong, RoundedCornerShape(50)).clickable(onClick = onCredit).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text("충전하기", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = White)
+            }
+        }
+    }
+}
+
+internal fun formatCredit(won: Long): String = "%,d원".format(won)
+
 @Composable
 private fun Stat(value: String, label: String, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -172,11 +204,11 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
 }
 
 @Composable
-private fun Shortcut(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit, dot: Boolean = false) {
+private fun Shortcut(icon: Int, label: String, modifier: Modifier, onClick: () -> Unit, dot: Boolean = false) {
     Column(modifier.clickable(onClick = onClick).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box {
             Box(Modifier.size(52.dp).background(CanvasGray, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = TextStrong, modifier = Modifier.size(26.dp))
+                Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(30.dp))
             }
             if (dot) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(Orange600, CircleShape))
         }
@@ -190,12 +222,12 @@ private fun Group(title: String) {
 }
 
 @Composable
-private fun MenuRow(icon: ImageVector, label: String, value: String, highlight: Boolean = false, onClick: () -> Unit) {
+private fun MenuRow(icon: Int, label: String, value: String, highlight: Boolean = false, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = TextMid, modifier = Modifier.size(22.dp))
+        Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
         Text(label, fontSize = 16.sp, color = TextStrong, modifier = Modifier.weight(1f).padding(start = 14.dp))
         Text(value, fontSize = 15.sp, fontWeight = if (highlight) FontWeight.Bold else FontWeight.Normal, color = if (highlight) Orange700 else TextSub)
         Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub, modifier = Modifier.size(22.dp))

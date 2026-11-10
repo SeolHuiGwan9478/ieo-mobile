@@ -5,6 +5,7 @@ import com.ieo.mobile.ui.component.LineGray
 import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.ieo.mobile.ui.credit.CreditScreen
 import com.ieo.mobile.ui.document.DocumentsScreen
 import com.ieo.mobile.ui.document.DocumentsViewModel
 import com.ieo.mobile.ui.proof.ProofScreen
@@ -220,6 +221,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     var managingVehicles by rememberSaveable { mutableStateOf(false) }
     var registering by rememberSaveable { mutableStateOf(false) }
     var managingLinks by rememberSaveable { mutableStateOf(false) }
+    var openingCredit by rememberSaveable { mutableStateOf(false) }
     var accountSection by rememberSaveable { mutableStateOf<AccountSection?>(null) }
     var editingRecommendation by rememberSaveable { mutableStateOf(false) }
     val recommendation: RecommendationViewModel = viewModel(key = "recommendation") { RecommendationViewModel(container.recommendationRepository) }
@@ -303,6 +305,11 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         AccountSettingsScreen(section, accountSettings, onBack = { accountSection = null })
         return
     }
+    if (openingCredit) {
+        // 크레딧은 아직 화면만 있다 (서버·결제 연결 전)
+        CreditScreen(balance = 0, history = emptyList(), onBack = { openingCredit = false })
+        return
+    }
     if (managingLinks) {
         LinksScreen(links, onBack = { managingLinks = false })
         return
@@ -364,7 +371,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                 )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
                 Tab.EARNINGS -> LedgerScreen(ledger)
-                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record)
+                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, onCredit = { openingCredit = true })
             }
         }
         HorizontalDivider(color = LineGray)

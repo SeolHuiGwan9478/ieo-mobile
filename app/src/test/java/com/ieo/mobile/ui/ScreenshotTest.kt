@@ -768,4 +768,20 @@ class ScreenshotTest {
         val approved = com.ieo.mobile.domain.document.DocumentStatus.APPROVED
         shot("M11_my_verified", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 0, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}, documents = documents(approved, approved, approved, approved), record = com.ieo.mobile.domain.document.DriverRecord(true, 37, 1)) })
     }
+
+    @Test
+    fun C01_크레딧() = shot("C01_credit", content = { com.ieo.mobile.ui.credit.CreditScreen(0, emptyList(), onBack = {}) })
+
+    @Test
+    fun C02_크레딧_내역() = shot("C02_credit_history", content = {
+        com.ieo.mobile.ui.credit.CreditScreen(
+            42_000,
+            listOf(
+                com.ieo.mobile.ui.credit.CreditHistory("크레딧 충전", "11월 8일", 50_000),
+                com.ieo.mobile.ui.credit.CreditHistory("배차 이용료 · 평택 → 대구", "11월 9일", -5_000),
+                com.ieo.mobile.ui.credit.CreditHistory("배차 이용료 · 이천 → 부산", "11월 10일", -3_000),
+            ),
+            onBack = {},
+        )
+    })
 }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 배차 추천: 보라 큰 반짝임 + 노란 작은 반짝임 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FF8B5CF6" android:pathData="M10,2.5l1.9,5.6L17.5,10l-5.6,1.9L10,17.5L8.1,11.9L2.5,10l5.6,-1.9z" />
+    <path android:fillColor="#FFFFB020" android:pathData="M18,13l1,2.5l2.5,1l-2.5,1L18,20l-1,-2.5l-2.5,-1l2.5,-1z" />
+</vector>

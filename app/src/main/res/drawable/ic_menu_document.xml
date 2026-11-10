@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 서류: 노란 종이와 접힌 모서리 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFFB020" android:pathData="M6,2h8.2L19,6.8V21a1,1 0,0 1,-1 1H6a1,1 0,0 1,-1 -1V3a1,1 0,0 1,1 -1z" />
+    <path android:fillColor="#FFF59E0B" android:pathData="M14.2,2v4.8H19z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M8,11h8v1.7H8z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M8,14.4h8v1.7H8z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M8,17.8h5v1.7H8z" />
+</vector>
