@@ -1,5 +1,6 @@
 package com.ieo.mobile
 
+import com.ieo.mobile.domain.recommendation.PreferenceExcludedCargoStore
 import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.component.LineGray
 import androidx.compose.material3.HorizontalDivider
@@ -236,7 +237,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     val accountSettings: AccountSettingsViewModel = viewModel(key = "accountSettings") { AccountSettingsViewModel(container.accountSettingsRepository) }
     val accountSettingsState by accountSettings.state.collectAsStateWithLifecycle()
     val vehicles: VehiclesViewModel = viewModel(key = "vehicles") { VehiclesViewModel(container.vehicleRepository) }
-    val orders: OrdersViewModel = viewModel(key = "orders") { OrdersViewModel(container.orderRepository, container.locationSource) }
+    val orders: OrdersViewModel = viewModel(key = "orders") { OrdersViewModel(container.orderRepository, container.locationSource, excludedCargo = PreferenceExcludedCargoStore(container.recommendationRepository)) }
     val trips: TripsViewModel = viewModel(key = "trips") { TripsViewModel(container.tripRepository) }
     val ledger: LedgerViewModel = viewModel(key = "ledger") { LedgerViewModel(container.ledgerRepository, container.expenseRepository) }
     val ledgerState by ledger.state.collectAsStateWithLifecycle()

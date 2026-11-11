@@ -195,6 +195,25 @@ class OrdersViewModelTest {
     }
 
     @Test
+    fun `제외할 화물은 배차 추천 설정에서 읽고 바꾸면 거기에 저장한다`() = runTest(main.dispatcher) {
+        val store = object : com.ieo.mobile.domain.recommendation.ExcludedCargoStore {
+            var saved: Set<CargoCategory> = setOf(CargoCategory.MOVING)
+            override suspend fun load() = saved
+            override suspend fun save(excluded: Set<CargoCategory>) { saved = excluded }
+        }
+        val vm = OrdersViewModel(Fake(), { here }, clock, store).apply { refresh() }
+        advanceUntilIdle()
+        assertEquals(setOf(CargoCategory.MOVING), vm.state.value.conditions.excluded)
+
+        vm.openConditions()
+        vm.editDraft { it.copy(excluded = setOf(CargoCategory.HAZARDOUS)) }
+        vm.applyConditions()
+        advanceUntilIdle()
+        assertEquals(setOf(CargoCategory.HAZARDOUS), store.saved)
+        assertEquals(setOf(CargoCategory.HAZARDOUS), vm.state.value.conditions.excluded)
+    }
+
+    @Test
     fun `30만 원 이상을 고르면 서버에 최소 운임을 보낸다`() = runTest(main.dispatcher) {
         val fake = Fake()
         val vm = TestVm(fake).apply { refresh() }

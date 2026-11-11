@@ -280,7 +280,7 @@ private fun ConditionsSheet(draft: OrderConditions, count: Int?, viewModel: Orde
             ConditionGroup("결제 방식") {
                 PaymentFilter.entries.forEach { p -> ConditionChip(p.label, draft.payment == p) { viewModel.editDraft { it.copy(payment = p) } } }
             }
-            ConditionGroup("제외할 화물", last = true) {
+            ConditionGroup("제외할 화물", last = true, note = "배차 추천에도 똑같이 적용돼요") {
                 CargoCategory.entries.filter { it.excludable }.forEach { c ->
                     ConditionChip(c.label, c in draft.excluded) {
                         viewModel.editDraft { it.copy(excluded = if (c in it.excluded) it.excluded - c else it.excluded + c) }
@@ -305,9 +305,10 @@ private fun ConditionsSheet(draft: OrderConditions, count: Int?, viewModel: Orde
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ConditionGroup(title: String, last: Boolean = false, chips: @Composable () -> Unit) {
+private fun ConditionGroup(title: String, last: Boolean = false, note: String? = null, chips: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().then(if (last) Modifier else Modifier.ruled()).padding(vertical = 14.dp)) {
-        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(bottom = 10.dp))
+        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(bottom = if (note == null) 10.dp else 2.dp))
+        note?.let { Text(it, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.padding(bottom = 10.dp)) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { chips() }
     }
 }

@@ -9,6 +9,7 @@ import com.ieo.mobile.domain.order.Order
 import com.ieo.mobile.domain.order.OrderProfit
 import com.ieo.mobile.domain.order.OrderRepository
 import com.ieo.mobile.domain.order.ReportType
+import com.ieo.mobile.domain.recommendation.ExcludedCargoStore
 import com.ieo.mobile.ui.common.DayTimeFormatter
 import java.time.Clock
 import java.time.Instant
@@ -61,6 +62,8 @@ class OrdersViewModel(
     private val repository: OrderRepository,
     private val location: LocationSource,
     private val clock: Clock = Clock.system(DayTimeFormatter.KOREA),
+    /** 제외할 화물은 배차 추천 설정과 같이 쓴다 */
+    private val excludedCargo: ExcludedCargoStore = ExcludedCargoStore.None,
 ) : ViewModel() {
 
     private val labels = DayTimeFormatter(clock)
@@ -80,10 +83,11 @@ class OrdersViewModel(
         }
     }
 
-    /** 처음 열 때, 새로고침 버튼, 아래로 당기기 */
+    /** 처음 열 때, 새로고침 버튼, 아래로 당기기. 배차 추천에서 바꾼 제외할 화물도 이때 다시 읽는다 */
     fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, message = null) }
+            excludedCargo.load()?.let { saved -> _state.update { it.copy(conditions = it.conditions.copy(excluded = saved)) } }
             reload(markNew = false)
             _state.update { it.copy(isLoading = false) }
         }
@@ -125,8 +129,17 @@ class OrdersViewModel(
         val draft = _state.value.draft ?: return
         countJob?.cancel()
         refreshPending = false
+        val excludedChanged = draft.excluded != _state.value.conditions.excluded
         _state.update { it.copy(conditions = draft, draft = null, draftCount = null, newIds = emptySet()) }
-        refresh()
+        if (excludedChanged) {
+            // 저장한 뒤에 다시 받아야 refresh가 옛 값으로 되돌리지 않는다
+            viewModelScope.launch {
+                excludedCargo.save(draft.excluded)
+                refresh()
+            }
+        } else {
+            refresh()
+        }
     }
 
     fun open(orderId: Long) {

@@ -25,6 +25,33 @@ data class RecommendationPreference(
     }
 }
 
+/**
+ * 오더 찾기의 "제외할 화물"과 배차 추천의 "제외할 화물"은 같은 설정이다 (DSP-010, REC-004).
+ * 한쪽에서 바꾸면 다른 쪽에도 그대로 적용된다. 서버에는 추천 설정으로 저장한다
+ */
+interface ExcludedCargoStore {
+    /** 저장된 제외할 화물. 못 받으면 null */
+    suspend fun load(): Set<CargoCategory>?
+
+    suspend fun save(excluded: Set<CargoCategory>)
+
+    /** 저장소 없이 쓸 때 (화면 미리보기·테스트) */
+    object None : ExcludedCargoStore {
+        override suspend fun load(): Set<CargoCategory>? = null
+        override suspend fun save(excluded: Set<CargoCategory>) = Unit
+    }
+}
+
+/** 추천 설정을 읽어 제외할 화물만 바꿔 저장한다 */
+class PreferenceExcludedCargoStore(private val repository: RecommendationRepository) : ExcludedCargoStore {
+    override suspend fun load(): Set<CargoCategory>? = (repository.preference() as? ApiResult.Success)?.data?.excludedCargo
+
+    override suspend fun save(excluded: Set<CargoCategory>) {
+        val current = (repository.preference() as? ApiResult.Success)?.data ?: return
+        if (current.excludedCargo != excluded) repository.save(current.copy(excludedCargo = excluded))
+    }
+}
+
 interface RecommendationRepository {
 
     suspend fun preference(): ApiResult<RecommendationPreference>

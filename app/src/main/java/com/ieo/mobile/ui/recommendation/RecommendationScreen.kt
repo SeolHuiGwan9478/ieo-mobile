@@ -92,7 +92,8 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
                         }
                     }
                     Spacer(Modifier.height(24.dp))
-                    Label("빼고 싶은 화물")
+                    Label("제외할 화물")
+                    Text("오더 찾기 조건에도 똑같이 적용돼요", fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(bottom = 8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         CargoCategory.entries.filter { it.excludable }.forEach { cargo ->
                             BrandChip(cargo.label, cargo in draft.excludedCargo) { viewModel.toggleCargo(cargo) }
