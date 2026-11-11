@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 현장 정보: 주황 지붕 창고와 셔터 문. 상하차지 정보 카드 링크·제목에 쓴다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFF6C37" android:pathData="M1.5,9.2L12,3l10.5,6.2V11H1.5z" />
+    <path android:fillColor="#FF475569" android:pathData="M3,11h18v10a1,1 0,0 1,-1 1H4a1,1 0,0 1,-1 -1z" />
+    <path android:fillColor="#FFE2E8F0" android:pathData="M7,13.5h10V22H7z" />
+    <path android:fillColor="#FF94A3B8" android:pathData="M7,15.3h10v0.9H7zM7,17.6h10v0.9H7zM7,19.9h10v0.9H7z" />
+    <path android:fillColor="#FFFFE2D6" android:pathData="M10.5,6.8h3v2h-3z" />
+</vector>

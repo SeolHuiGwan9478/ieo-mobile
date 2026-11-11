@@ -1,5 +1,7 @@
 package com.ieo.mobile.ui.component
 
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.BorderStroke
@@ -75,7 +77,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true, mo
 }
 
 @Composable
-fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, icon: ImageVector? = null, @DrawableRes colorIcon: Int? = null) {
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -85,6 +87,8 @@ fun TonalButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modi
         modifier = modifier.heightIn(min = 52.dp),
     ) {
         icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(22.dp)) }
+        // 색을 채운 SVG 아이콘은 색을 덮지 않는다
+        colorIcon?.let { Icon(painterResource(it), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.padding(end = 8.dp).size(24.dp)) }
         Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
     }
 }

@@ -1,5 +1,7 @@
 package com.ieo.mobile.ui.component
 
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 import com.ieo.mobile.ui.component.ruled
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,9 +62,10 @@ fun ActionRow(icon: ImageVector, title: String, detail: String?, onClick: () -> 
 
 /** 아이콘 위, 항목 이름, 값이 쌓인 작은 칸. 한눈에 비교하는 정보에 쓴다 */
 @Composable
-fun InfoTile(icon: ImageVector, label: String, value: String, modifier: Modifier = Modifier, known: Boolean = true) {
+fun InfoTile(@DrawableRes icon: Int, label: String, value: String, modifier: Modifier = Modifier, known: Boolean = true) {
     Column(modifier.ruled().padding(vertical = 16.dp).semantics(mergeDescendants = true) {}) {
-        IconBadge(icon, size = 38.dp)
+        // 설정 메뉴처럼 색을 채운 아이콘 (현장 정보 카드)
+        Icon(painterResource(icon), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(32.dp))
         Spacer(Modifier.size(10.dp))
         Text(label, fontSize = 15.sp, color = TextSub)
         Text(value, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = if (known) FontWeight.Bold else FontWeight.Medium, color = if (known) TextStrong else TextSub)

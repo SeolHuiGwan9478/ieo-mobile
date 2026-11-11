@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 지도: 접힌 초록 지도와 주황 핀 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FF86EFAC" android:pathData="M2,6l6,-2v16l-6,2z" />
+    <path android:fillColor="#FF4ADE80" android:pathData="M8,4l8,2v16l-8,-2z" />
+    <path android:fillColor="#FF86EFAC" android:pathData="M16,6l6,-2v16l-6,2z" />
+    <path android:fillColor="#FFFF6C37" android:pathData="M12,6.5a4,4 0,0 1,4 4c0,3 -4,7.5 -4,7.5s-4,-4.5 -4,-7.5a4,4 0,0 1,4 -4z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9a1.5,1.5 0,1 1,0 3a1.5,1.5 0,1 1,0 -3z" />
+</vector>

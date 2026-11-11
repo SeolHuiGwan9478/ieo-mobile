@@ -1,14 +1,8 @@
 package com.ieo.mobile.ui.site
 
 import com.ieo.mobile.ui.component.ruled
-import androidx.compose.material.icons.outlined.Height
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Construction
-import androidx.compose.material.icons.outlined.LocalParking
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Info
 import com.ieo.mobile.ui.component.InfoTile
 import android.content.Intent
 import android.net.Uri
@@ -40,6 +34,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.res.painterResource
+import com.ieo.mobile.R
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,7 +84,7 @@ fun SiteInfoLink(onClick: () -> Unit) {
         // 왼쪽은 위 주소 글자와 줄을 맞춘다. 누르는 자리는 오른쪽으로 넉넉히
         modifier = Modifier.padding(top = 6.dp).heightIn(min = 48.dp).clickable(onClick = onClick).padding(end = 14.dp),
     ) {
-        Icon(Icons.Outlined.Info, contentDescription = null, tint = Orange700)
+        Icon(painterResource(R.drawable.ic_site_info), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(24.dp))
         Text("현장 정보", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Orange700)
     }
 }
@@ -131,19 +128,19 @@ private fun androidx.compose.foundation.layout.ColumnScope.ViewMode(card: SiteCa
         }
         HeightNotice(card.height)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            InfoTile(Icons.Outlined.Height, "높이 제한", card.attributes.heightLimitM?.let(::meters) ?: "몰라요", Modifier.weight(1f), card.attributes.heightLimitM != null)
-            InfoTile(Icons.Outlined.Schedule, "평균 대기", card.stats?.avgWaitMinutes?.let { "${it}분" } ?: "기록 부족", Modifier.weight(1f), card.stats?.avgWaitMinutes != null)
+            InfoTile(R.drawable.ic_site_height, "높이 제한", card.attributes.heightLimitM?.let(::meters) ?: "몰라요", Modifier.weight(1f), card.attributes.heightLimitM != null)
+            InfoTile(R.drawable.ic_site_wait, "평균 대기", card.stats?.avgWaitMinutes?.let { "${it}분" } ?: "기록 부족", Modifier.weight(1f), card.stats?.avgWaitMinutes != null)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            InfoTile(Icons.Outlined.Construction, "지게차", yesNo(card.attributes.forklift), Modifier.weight(1f), card.attributes.forklift != null)
-            InfoTile(Icons.Outlined.LocalParking, "주차", yesNo(card.attributes.parking), Modifier.weight(1f), card.attributes.parking != null)
+            InfoTile(R.drawable.ic_site_forklift, "지게차", yesNo(card.attributes.forklift), Modifier.weight(1f), card.attributes.forklift != null)
+            InfoTile(R.drawable.ic_site_parking, "주차", yesNo(card.attributes.parking), Modifier.weight(1f), card.attributes.parking != null)
         }
         card.attributes.updatedAt?.let { Text("${timeAgo(it)} 기사님 제보", fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(horizontal = 4.dp)) }
         state.saved?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done, modifier = Modifier.padding(horizontal = 4.dp)) }
         TonalButton("지도", {
             val query = Uri.encode(card.name)
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${card.latitude},${card.longitude}?q=${card.latitude},${card.longitude}($query)"))) }
-        }, modifier = Modifier.fillMaxWidth(), icon = Icons.Outlined.Map)
+        }, modifier = Modifier.fillMaxWidth(), colorIcon = R.drawable.ic_site_map)
         Text("기사님들의 메모", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
         if (card.notes.isEmpty()) {
             Section { Text("아직 메모가 없어요. 첫 메모를 남겨 주세요", fontSize = 16.sp, color = TextMid) }

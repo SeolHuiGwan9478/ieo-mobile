@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 높이 제한: 노랑·검정 줄무늬 가로대가 있는 진입 게이트와 파란 위아래 화살표 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FF64748B" android:pathData="M3,4h2.4v18H3zM18.6,4H21v18h-2.4z" />
+    <path android:fillColor="#FFFFB020" android:pathData="M3,4h18v3.4H3z" />
+    <path android:fillColor="#FF1F2937" android:pathData="M5.5,4h2.2l-2.2,3.4H3.3zM10.1,4h2.2l-2.2,3.4H7.9zM14.7,4h2.2l-2.2,3.4h-2.2zM19.3,4H21v0.8l-1.7,2.6h-2.2z" />
+    <path android:fillColor="#FF3B82F6" android:pathData="M12,8.6l3,3.2h-2v4.4h2l-3,3.2l-3,-3.2h2v-4.4H9z" />
+</vector>
