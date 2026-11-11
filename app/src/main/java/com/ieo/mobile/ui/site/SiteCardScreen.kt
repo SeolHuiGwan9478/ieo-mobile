@@ -1,5 +1,7 @@
 package com.ieo.mobile.ui.site
 
+import android.content.Context
+import android.content.ActivityNotFoundException
 import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EditNote
@@ -127,6 +129,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.ViewMode(card: SiteCa
             Text(card.address, fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
         }
         HeightNotice(card.height)
+        // 정보 칸 위 제목 줄. 언제 누가 남긴 정보인지 칸과 함께 읽히게 한다 (메모 제목과 같은 모양)
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp), verticalAlignment = Alignment.Bottom) {
+            Text("기사님들이 남긴 정보", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+            card.attributes.updatedAt?.let { Text("${timeAgo(it)} 제보", fontSize = 14.sp, color = TextSub) }
+        }
+        state.saved?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done, modifier = Modifier.padding(horizontal = 4.dp)) }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             InfoTile(R.drawable.ic_site_height, "높이 제한", card.attributes.heightLimitM?.let(::meters) ?: "몰라요", Modifier.weight(1f), card.attributes.heightLimitM != null)
             InfoTile(R.drawable.ic_site_wait, "평균 대기", card.stats?.avgWaitMinutes?.let { "${it}분" } ?: "기록 부족", Modifier.weight(1f), card.stats?.avgWaitMinutes != null)
@@ -135,12 +143,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.ViewMode(card: SiteCa
             InfoTile(R.drawable.ic_site_forklift, "지게차", yesNo(card.attributes.forklift), Modifier.weight(1f), card.attributes.forklift != null)
             InfoTile(R.drawable.ic_site_parking, "주차", yesNo(card.attributes.parking), Modifier.weight(1f), card.attributes.parking != null)
         }
-        card.attributes.updatedAt?.let { Text("${timeAgo(it)} 기사님 제보", fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(horizontal = 4.dp)) }
-        state.saved?.let { Text(it, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done, modifier = Modifier.padding(horizontal = 4.dp)) }
-        TonalButton("지도", {
-            val query = Uri.encode(card.name)
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${card.latitude},${card.longitude}?q=${card.latitude},${card.longitude}($query)"))) }
-        }, modifier = Modifier.fillMaxWidth(), colorIcon = R.drawable.ic_site_map)
+        TonalButton("길 안내", { openRoute(context, card.name, card.latitude, card.longitude) }, modifier = Modifier.fillMaxWidth())
         Text("기사님들의 메모", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
         if (card.notes.isEmpty()) {
             Section { Text("아직 메모가 없어요. 첫 메모를 남겨 주세요", fontSize = 16.sp, color = TextMid) }
@@ -236,5 +239,21 @@ private fun androidx.compose.foundation.layout.ColumnScope.NoteMode(state: SiteC
     }
     Column(Modifier.fillMaxWidth().background(White).padding(horizontal = 24.dp, vertical = 12.dp)) {
         PrimaryButton("남기기", viewModel::saveNote, enabled = state.canSaveNote, busy = state.isBusy)
+    }
+}
+
+/**
+ * 이 상하차지로 길 안내를 연다. 화물차 기사님이 많이 쓰는 TMAP을 먼저 열고, TMAP이 없으면 휴대폰 기본 지도 앱으로 넘긴다.
+ * TMAP 바로가기 주소(tmap://route)는 공식 문서가 없어 개발자들이 쓰는 rGoName·rGoX(경도)·rGoY(위도) 형식을 쓴다.
+ * 실제 TMAP이 깔린 휴대폰에서 목적지가 제대로 잡히는지 확인해야 한다
+ */
+private fun openRoute(context: Context, name: String, latitude: Double, longitude: Double) {
+    val label = Uri.encode(name)
+    val tmap = Intent(Intent.ACTION_VIEW, Uri.parse("tmap://route?rGoName=$label&rGoX=$longitude&rGoY=$latitude"))
+    val map = Intent(Intent.ACTION_VIEW, Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude($label)"))
+    try {
+        context.startActivity(tmap)
+    } catch (e: ActivityNotFoundException) {
+        runCatching { context.startActivity(map) }
     }
 }
