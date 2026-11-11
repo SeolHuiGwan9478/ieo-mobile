@@ -10,6 +10,11 @@ enum class CargoCategory(val label: String, val excludable: Boolean) {
     COLD("냉동·냉장", excludable = true),
     MOVING("이사", excludable = true),
     HAZARDOUS("위험물", excludable = true),
+    HEAVY("중량물", excludable = true),
+    LONG("장척물", excludable = true),
+    CONSTRUCTION("건자재", excludable = true),
+    FARM("농수산물", excludable = true),
+    WASTE("폐기물", excludable = true),
     ;
 
     companion object {
