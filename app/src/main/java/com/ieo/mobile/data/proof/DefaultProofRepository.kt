@@ -9,6 +9,7 @@ import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
 import com.ieo.mobile.domain.proof.ProofRepository
 import com.ieo.mobile.domain.proof.WaitRecord
+import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.domain.trip.StopType
 import java.time.Instant
 import kotlinx.serialization.Serializable
@@ -16,8 +17,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -27,8 +30,11 @@ interface ProofApi {
     @GET("api/trips/{tripId}/waits")
     suspend fun waits(@Path("tripId") tripId: Long): Response<List<WaitRecordBody>>
 
-    @POST("api/trips/{tripId}/stops/{stopType}/wait/proof")
-    suspend fun waitProof(@Path("tripId") tripId: Long, @Path("stopType") stopType: String): Response<ProofLinkBody>
+    @POST("api/trips/{tripId}/wait-proof")
+    suspend fun waitProof(@Path("tripId") tripId: Long): Response<ProofLinkBody>
+
+    @PATCH("api/trips/{tripId}/stops/{stopType}/wait")
+    suspend fun editWait(@Path("tripId") tripId: Long, @Path("stopType") stopType: String, @Body body: EditWaitBody): Response<WaitRecordBody>
 
     @GET("api/trips/{tripId}/delivery-proof")
     suspend fun deliveryProof(@Path("tripId") tripId: Long): Response<DeliveryProofBody>
@@ -69,6 +75,10 @@ data class WaitRecordBody(
     )
 }
 
+/** 서버 EditWaitRequest. 세 값을 모두 보낸다 (비운 것은 null) */
+@Serializable
+data class EditWaitBody(val arrivedAt: String, val workStartedAt: String?, val departedAt: String?)
+
 @Serializable
 data class ProofLinkBody(val path: String, val expiresAt: String) {
     fun toDomain(baseUrl: String) = ProofLink(baseUrl.trimEnd('/') + path, Instant.parse(expiresAt))
@@ -108,8 +118,13 @@ class DefaultProofRepository(
     override suspend fun waits(tripId: Long): ApiResult<List<WaitRecord>> =
         caller.call { api.waits(tripId) }.mapResponse { list -> list.map { it.toDomain() } }
 
-    override suspend fun waitProofLink(tripId: Long, stop: StopType): ApiResult<ProofLink> =
-        caller.call { api.waitProof(tripId, stop.name) }.mapResponse { it.toDomain(publicBaseUrl) }
+    override suspend fun waitProofLink(tripId: Long): ApiResult<ProofLink> =
+        caller.call { api.waitProof(tripId) }.mapResponse { it.toDomain(publicBaseUrl) }
+
+    override suspend fun editWait(tripId: Long, stop: StopType, times: WaitTimes): ApiResult<WaitRecord> =
+        caller.call {
+            api.editWait(tripId, stop.name, EditWaitBody(times.arrivedAt.toString(), times.workStartedAt?.toString(), times.departedAt?.toString()))
+        }.mapResponse { it.toDomain() }
 
     override suspend fun deliveryProof(tripId: Long): ApiResult<DeliveryProof?> =
         when (val result = caller.call { api.deliveryProof(tripId) }) {

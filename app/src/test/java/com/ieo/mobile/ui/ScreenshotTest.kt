@@ -6,6 +6,7 @@ import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
 import com.ieo.mobile.domain.proof.ProofRepository
 import com.ieo.mobile.domain.proof.WaitRecord
+import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.ui.proof.ProofScreen
 import com.ieo.mobile.ui.proof.ProofViewModel
 import com.ieo.mobile.domain.site.HeightCheck
@@ -685,7 +686,9 @@ class ScreenshotTest {
             ),
         )
         val proof = DeliveryProof("http://x/r/a", if (signed) DeliveryProofStatus.SIGNED else DeliveryProofStatus.PENDING, "김수하".takeIf { signed }, now.takeIf { signed }, null, 0, null)
-        override suspend fun waitProofLink(tripId: Long, stop: StopType) = ApiResult.Success(ProofLink("http://x/w/a", now))
+        override suspend fun waitProofLink(tripId: Long) = ApiResult.Success(ProofLink("http://x/w/a", now))
+        override suspend fun editWait(tripId: Long, stop: StopType, times: WaitTimes) =
+            ApiResult.Success(WaitRecord(stop, "평택 포승", times.arrivedAt, times.workStartedAt, times.departedAt, 0, 0, true, true))
         override suspend fun deliveryProof(tripId: Long) = ApiResult.Success<DeliveryProof?>(proof)
         override suspend fun issueDeliveryProof(tripId: Long) = ApiResult.Success(proof)
         override suspend fun uploadPaperPhoto(tripId: Long, jpeg: ByteArray) = ApiResult.Success(proof)

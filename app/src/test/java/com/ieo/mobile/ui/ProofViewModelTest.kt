@@ -7,6 +7,7 @@ import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
 import com.ieo.mobile.domain.proof.ProofRepository
 import com.ieo.mobile.domain.proof.WaitRecord
+import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.domain.trip.StopType
 import com.ieo.mobile.testing.MainDispatcherRule
 import com.ieo.mobile.ui.proof.ProofViewModel
@@ -45,7 +46,9 @@ class ProofViewModelTest {
         val calls = mutableListOf<String>()
         var uploadFails = false
         override suspend fun waits(tripId: Long) = ApiResult.Success(emptyList<WaitRecord>())
-        override suspend fun waitProofLink(tripId: Long, stop: StopType) = ApiResult.Success(ProofLink("http://x/w/a", Instant.EPOCH))
+        override suspend fun waitProofLink(tripId: Long) = ApiResult.Success(ProofLink("http://x/w/a", Instant.EPOCH))
+        override suspend fun editWait(tripId: Long, stop: StopType, times: WaitTimes) =
+            ApiResult.Success(WaitRecord(stop, "평택", times.arrivedAt, times.workStartedAt, times.departedAt, 0, 0, true, true))
         override suspend fun deliveryProof(tripId: Long) = ApiResult.Success(delivery)
         override suspend fun issueDeliveryProof(tripId: Long): ApiResult<DeliveryProof> {
             calls += "issue"

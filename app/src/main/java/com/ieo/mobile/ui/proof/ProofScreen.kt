@@ -111,6 +111,7 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
     val reader = remember(context) { PaperPhotoReader(context) }
     val labels = remember { DayTimeFormatter() }
     var choosing by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<WaitRecord?>(null) }
     var preview by remember { mutableStateOf<ByteArray?>(null) }
     var captureUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -166,13 +167,35 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
                         Card { Text("상하차지에 도착하면 차량 앱이 자동으로 기록해요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid) }
                     }
                     state.waits.forEach { record ->
-                        WaitCard(record, labels, state.busy == ProofAction.WaitLink(record.stopType)) { viewModel.shareWaitProof(record) }
+                        WaitCard(record, labels, onEdit = { editing = record })
+                    }
+                    if (state.waits.isNotEmpty()) {
+                        // 운행 하나에 링크 하나: 상차지·하차지 기록을 함께 보낸다 (WAIT-020)
+                        PrimaryButton(
+                            "대기 증빙 보내기",
+                            viewModel::shareWaitProof,
+                            busy = state.busy == ProofAction.WaitLink,
+                            icon = Icons.Outlined.Share,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
                     }
                     Heading("인수증")
                     DeliveryCard(state, labels, viewModel, onPhoto = { choosing = true })
                 }
             }
         }
+    }
+
+    editing?.let { record ->
+        EditWaitDialog(
+            record = record,
+            labels = labels,
+            onSave = { times ->
+                editing = null
+                viewModel.editWait(record, times)
+            },
+            onDismiss = { editing = null },
+        )
     }
 
     if (choosing) {
@@ -228,7 +251,7 @@ private fun Card(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, busy: Boolean, onShare: () -> Unit) {
+private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, onEdit: () -> Unit) {
     Card {
         val stop = if (record.stopType == StopType.PICKUP) "상차" else "하차"
         Text("$stop · ${record.siteName}" + if (record.edited) " · 수정됨" else "", fontSize = 16.sp, color = TextSub)
@@ -236,7 +259,7 @@ private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, busy: Boolean
         val amount = (record.chargeableAmount ?: 0) > 0
         Text(waitChargeText(record), fontSize = 16.sp, lineHeight = 23.sp, fontWeight = if (amount) FontWeight.Bold else FontWeight.Normal, color = if (amount) IeoStatus.colors.done else TextMid)
         StepTimeline(listOf("도착" to labels.time(record.arrivedAt), "작업" to record.workStartedAt?.let(labels::time), "출발" to record.departedAt?.let(labels::time)))
-        PrimaryButton("주선사에게 보내기", onShare, busy = busy, icon = Icons.Outlined.Share, modifier = Modifier.padding(top = 6.dp))
+        QuietButton("시각 고치기", onEdit)
     }
 }
 

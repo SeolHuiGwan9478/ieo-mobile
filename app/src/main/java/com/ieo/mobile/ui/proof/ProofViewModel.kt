@@ -6,6 +6,7 @@ import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.domain.proof.DeliveryProof
 import com.ieo.mobile.domain.proof.ProofRepository
 import com.ieo.mobile.domain.proof.WaitRecord
+import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.domain.trip.StopType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +30,8 @@ data class ProofState(
 )
 
 sealed interface ProofAction {
-    data class WaitLink(val stop: StopType) : ProofAction
+    data object WaitLink : ProofAction
+    data class EditWait(val stop: StopType) : ProofAction
     data object DeliveryLink : ProofAction
     data object Upload : ProofAction
     data object Check : ProofAction
@@ -88,9 +90,20 @@ class ProofViewModel(private val repository: ProofRepository) : ViewModel() {
 
     private fun fail(message: String) = _state.update { it.copy(error = message) }
 
-    fun shareWaitProof(record: WaitRecord) = run(ProofAction.WaitLink(record.stopType)) { tripId ->
-        when (val result = repository.waitProofLink(tripId, record.stopType)) {
-            is ApiResult.Success -> _state.update { it.copy(share = "${record.siteName} 대기 증빙이에요. 도착·작업 시각과 대기 시간을 확인해 주세요.\n${result.data.url}") }
+    /** 운행 하나에 링크 하나: 상차지·하차지 기록을 함께 보여 준다 (WAIT-020) */
+    fun shareWaitProof() = run(ProofAction.WaitLink) { tripId ->
+        when (val result = repository.waitProofLink(tripId)) {
+            is ApiResult.Success -> _state.update { it.copy(share = "대기 증빙이에요. 상차지·하차지 도착·작업 시각과 대기 시간을 확인해 주세요.\n${result.data.url}") }
+            is ApiResult.Failure -> fail(result.error.message)
+        }
+    }
+
+    /** 대기 시각 고치기 (WAIT-006). 고친 기록으로 바꿔 끼운다 */
+    fun editWait(record: WaitRecord, times: WaitTimes) = run(ProofAction.EditWait(record.stopType)) { tripId ->
+        when (val result = repository.editWait(tripId, record.stopType, times)) {
+            is ApiResult.Success -> _state.update { state ->
+                state.copy(waits = state.waits.map { if (it.stopType == record.stopType) result.data else it }, message = "시각을 고쳤어요")
+            }
             is ApiResult.Failure -> fail(result.error.message)
         }
     }
