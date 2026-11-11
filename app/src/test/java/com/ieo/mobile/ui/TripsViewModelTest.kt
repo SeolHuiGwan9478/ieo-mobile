@@ -2,6 +2,7 @@ package com.ieo.mobile.ui
 
 import com.ieo.mobile.core.network.ApiError
 import com.ieo.mobile.core.network.ApiResult
+import com.ieo.mobile.domain.trip.CancelReason
 import com.ieo.mobile.domain.trip.NewTrip
 import com.ieo.mobile.domain.trip.PaymentType
 import com.ieo.mobile.domain.trip.PlaceSearch
@@ -45,14 +46,16 @@ class TripsViewModelTest {
         var registered: NewTrip? = null
         var registerResult: ApiResult<Unit> = ApiResult.Success(Unit)
         val cancelled = mutableListOf<Long>()
+        val reasons = mutableListOf<CancelReason?>()
         override suspend fun list() = ApiResult.Success(trips)
         override suspend fun visitedSites() = ApiResult.Success(listOf(VisitedSite(1, "평택", "경기 평택시")))
         override suspend fun register(trip: NewTrip): ApiResult<Unit> {
             registered = trip
             return registerResult
         }
-        override suspend fun cancel(tripId: Long): ApiResult<Unit> {
+        override suspend fun cancel(tripId: Long, reason: CancelReason?): ApiResult<Unit> {
             cancelled += tripId
+            reasons += reason
             return ApiResult.Success(Unit)
         }
     }
@@ -80,10 +83,40 @@ class TripsViewModelTest {
     }
 
     @Test
-    fun `직접 등록한 예정 운행만 취소할 수 있다`() {
+    fun `직접 등록은 출발 전만, 이에오 배차는 짐을 싣기 전까지 사유를 골라 취소한다`() {
         assertTrue(trip(1, TripStatus.SCHEDULED).canCancel)
-        assertFalse(trip(1, TripStatus.SCHEDULED, manual = false).canCancel)
         assertFalse(trip(1, TripStatus.IN_TRANSIT).canCancel)
+        assertFalse(trip(1, TripStatus.SCHEDULED).needsCancelReason)
+
+        assertTrue(trip(1, TripStatus.SCHEDULED, manual = false).canCancel)
+        assertTrue(trip(1, TripStatus.AT_PICKUP, manual = false).canCancel)
+        assertTrue(trip(1, TripStatus.AT_PICKUP, manual = false).needsCancelReason)
+        assertFalse(trip(1, TripStatus.IN_TRANSIT, manual = false).canCancel)
+        assertTrue(trip(1, TripStatus.IN_TRANSIT, manual = false).cancelOnlyByBroker)
+    }
+
+    @Test
+    fun `상차 2시간 이내 이에오 배차 취소는 늦은 취소다`() {
+        val now = clock.instant()
+        assertTrue(trip(1, TripStatus.SCHEDULED, now.plusSeconds(3_600), manual = false).isLateCancel(now))
+        assertFalse(trip(1, TripStatus.SCHEDULED, now.plusSeconds(3 * 3_600), manual = false).isLateCancel(now))
+        assertFalse(trip(1, TripStatus.SCHEDULED, now.plusSeconds(3_600)).isLateCancel(now))
+    }
+
+    @Test
+    fun `이에오 배차는 사유가 없으면 보내지 않고 사유와 함께 보낸다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        fake.trips = fake.trips.map { if (it.id == 1L) it.copy(isManual = false) else it }
+        val vm = TripsViewModel(fake)
+        advanceUntilIdle()
+        vm.open(1)
+        vm.cancel()
+        advanceUntilIdle()
+        assertTrue(fake.cancelled.isEmpty())
+
+        vm.cancel(CancelReason.SCHEDULE_CONFLICT)
+        advanceUntilIdle()
+        assertEquals(listOf<CancelReason?>(CancelReason.SCHEDULE_CONFLICT), fake.reasons)
     }
 
     @Test

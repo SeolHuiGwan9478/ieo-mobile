@@ -4,6 +4,7 @@ import com.ieo.mobile.core.network.ApiCaller
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.core.network.map
 import com.ieo.mobile.core.network.mapResponse
+import com.ieo.mobile.domain.trip.CancelReason
 import com.ieo.mobile.domain.trip.NewTrip
 import com.ieo.mobile.domain.trip.StopChoice
 import com.ieo.mobile.domain.trip.Trip
@@ -32,8 +33,9 @@ interface TripApi {
     suspend fun cancel(@Path("id") id: Long, @Body body: CancelTripRequest): Response<TripResponse>
 }
 
+/** 서버 CancelTripRequest. 직접 등록한 운행은 사유를 비운다 */
 @Serializable
-class CancelTripRequest
+data class CancelTripRequest(val reason: String? = null)
 
 @Serializable
 data class TripResponse(
@@ -119,8 +121,8 @@ class DefaultTripRepository(
         )
     }.map { }
 
-    override suspend fun cancel(tripId: Long): ApiResult<Unit> =
-        caller.callOptional { api.cancel(tripId, CancelTripRequest()) }.map { }
+    override suspend fun cancel(tripId: Long, reason: CancelReason?): ApiResult<Unit> =
+        caller.callOptional { api.cancel(tripId, CancelTripRequest(reason?.name)) }.map { }
 
     private companion object {
         const val LIST_SIZE = 50

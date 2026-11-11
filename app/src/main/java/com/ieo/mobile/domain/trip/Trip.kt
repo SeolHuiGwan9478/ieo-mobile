@@ -1,6 +1,7 @@
 package com.ieo.mobile.domain.trip
 
 import com.ieo.mobile.core.network.ApiResult
+import java.time.Duration
 import java.time.Instant
 
 /** 운행 상태. 진행은 차량 앱이 맡고, 폰은 보여 주기만 한다 */
@@ -34,11 +35,35 @@ data class Trip(
     val isManual: Boolean,
     val createdAt: Instant,
 ) {
-    /** 이에오 배차는 사유를 받아야 해서 폰에서는 직접 등록한 예정 운행만 취소한다 */
-    val canCancel: Boolean get() = isManual && status == TripStatus.SCHEDULED
+    /**
+     * 취소할 수 있나 (DSP-031). 직접 등록한 운행은 출발 전만, 이에오 배차는 짐을 싣기 전(상차지까지)만.
+     * 이에오 배차는 사유를 골라야 하고([needsCancelReason]), 짐을 실은 뒤에는 주선사가 취소한다([cancelOnlyByBroker])
+     */
+    val canCancel: Boolean get() = if (isManual) status == TripStatus.SCHEDULED else status in BEFORE_LOADING
+
+    val needsCancelReason: Boolean get() = !isManual
+
+    /** 이에오 배차인데 짐을 실었다. 앱에서 취소하지 못하고 주선사에게 연락한다 */
+    val cancelOnlyByBroker: Boolean get() = !isManual && (status == TripStatus.IN_TRANSIT || status == TripStatus.AT_DROPOFF)
+
+    /** 상차 예정 2시간 이내 취소는 "늦은 취소"로 주선사에게 보이는 내 기록에 남는다 (DSP-031, 033) */
+    fun isLateCancel(now: Instant): Boolean =
+        !isManual && pickup.plannedAt?.let { !now.isBefore(it.minus(LATE_CANCEL_WINDOW)) } == true
 
     /** 사진을 올리면 인수가 끝난 것으로 치고 되돌릴 수 없어, 하차지에 도착한 뒤에만 연다 (POD-009) */
     val canUploadPaperProof: Boolean get() = status == TripStatus.AT_DROPOFF || status == TripStatus.COMPLETED
+}
+
+private val BEFORE_LOADING = setOf(TripStatus.SCHEDULED, TripStatus.TO_PICKUP, TripStatus.AT_PICKUP)
+private val LATE_CANCEL_WINDOW: Duration = Duration.ofHours(2)
+
+/** 배차 취소 사유. 서버 CancelReason과 같은 이름 (DSP-030) */
+enum class CancelReason(val label: String) {
+    VEHICLE_PROBLEM("차량 고장·사고"),
+    SCHEDULE_CONFLICT("일정이 겹침"),
+    SHIPPER_CANCELED("화주가 취소함"),
+    CONDITION_CHANGED("운임·화물 조건이 바뀜"),
+    OTHER("기타"),
 }
 
 /** 서버 PaymentType과 같은 이름 */
@@ -76,7 +101,8 @@ interface TripRepository {
 
     suspend fun register(trip: NewTrip): ApiResult<Unit>
 
-    suspend fun cancel(tripId: Long): ApiResult<Unit>
+    /** 이에오 배차는 [reason]이 있어야 한다 */
+    suspend fun cancel(tripId: Long, reason: CancelReason? = null): ApiResult<Unit>
 }
 
 /** 주소로 장소 찾기 */

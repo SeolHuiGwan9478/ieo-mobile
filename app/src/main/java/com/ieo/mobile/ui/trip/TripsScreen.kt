@@ -23,12 +23,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,6 +59,7 @@ import com.ieo.mobile.ui.theme.TextMid
 import com.ieo.mobile.ui.theme.TextStrong
 import com.ieo.mobile.ui.theme.TextSub
 import com.ieo.mobile.ui.theme.White
+import java.time.Instant
 
 fun tripRoute(trip: Trip) = "${trip.pickup.name} → ${trip.dropoff.name}"
 
@@ -168,16 +167,24 @@ fun TripDetailScreen(trip: Trip, state: TripsState, viewModel: TripsViewModel, l
                 Text("출발과 도착은 차량 앱에서 진행돼요", fontSize = 16.sp, color = TextMid, modifier = Modifier.padding(vertical = 14.dp))
             }
             state.error?.let { ErrorNotice(it) }
-            if (trip.canCancel) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { QuietButton("운행 취소", { cancelling = true }) }
+            if (trip.canCancel) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    QuietButton(if (trip.needsCancelReason) "배차 취소" else "운행 취소", { cancelling = true })
+                }
+            } else if (trip.cancelOnlyByBroker) {
+                Text("짐을 실은 뒤에는 앱에서 취소할 수 없어요. 취소해야 하면 주선사에게 연락해 주세요.", fontSize = 15.sp, lineHeight = 22.sp, color = TextSub, modifier = Modifier.padding(vertical = 14.dp))
+            }
         }
     }
     if (cancelling) {
-        AlertDialog(
-            onDismissRequest = { cancelling = false },
-            title = { Text("운행을 취소할까요?") },
-            text = { Text("취소하면 되돌릴 수 없어요.", color = TextMid, fontSize = 16.sp) },
-            confirmButton = { TextButton(onClick = { cancelling = false; viewModel.cancel() }) { Text("취소하기", color = IeoStatus.colors.warning, fontSize = 16.sp) } },
-            dismissButton = { TextButton(onClick = { cancelling = false }) { Text("아니요", color = TextMid, fontSize = 16.sp) } },
+        CancelTripDialog(
+            trip = trip,
+            late = trip.isLateCancel(Instant.now()),
+            onCancel = { reason ->
+                cancelling = false
+                viewModel.cancel(reason)
+            },
+            onDismiss = { cancelling = false },
         )
     }
 }

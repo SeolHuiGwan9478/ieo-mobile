@@ -3,6 +3,7 @@ package com.ieo.mobile.ui.trip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ieo.mobile.core.network.ApiResult
+import com.ieo.mobile.domain.trip.CancelReason
 import com.ieo.mobile.domain.trip.Trip
 import com.ieo.mobile.domain.trip.TripRepository
 import com.ieo.mobile.domain.trip.TripStatus
@@ -59,12 +60,14 @@ class TripsViewModel(private val repository: TripRepository) : ViewModel() {
 
     fun close() = _state.update { it.copy(selectedId = null, error = null) }
 
-    fun cancel() {
+    /** 이에오 배차는 [reason]을 골라야 보낸다 */
+    fun cancel(reason: CancelReason? = null) {
         val trip = _state.value.selected?.takeIf { it.canCancel } ?: return
+        if (trip.needsCancelReason && reason == null) return
         if (_state.value.isBusy) return
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
-            when (val result = repository.cancel(trip.id)) {
+            when (val result = repository.cancel(trip.id, reason)) {
                 is ApiResult.Success -> {
                     _state.update { it.copy(selectedId = null) }
                     refresh()

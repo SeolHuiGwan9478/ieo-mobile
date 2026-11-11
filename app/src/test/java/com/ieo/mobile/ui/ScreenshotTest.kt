@@ -72,6 +72,7 @@ import com.ieo.mobile.domain.order.OrderSite
 import com.ieo.mobile.domain.order.ReportType
 import com.ieo.mobile.domain.recommendation.RecommendationPreference
 import com.ieo.mobile.domain.recommendation.RecommendationRepository
+import com.ieo.mobile.domain.trip.CancelReason
 import com.ieo.mobile.domain.trip.NewTrip
 import com.ieo.mobile.domain.trip.PaymentType
 import com.ieo.mobile.domain.trip.PlaceSearch
@@ -103,6 +104,7 @@ import com.ieo.mobile.ui.order.OrdersViewModel
 import com.ieo.mobile.ui.recommendation.RecommendationScreen
 import com.ieo.mobile.ui.recommendation.RecommendationViewModel
 import com.ieo.mobile.ui.theme.IeoTheme
+import com.ieo.mobile.ui.trip.CancelTripDialog
 import com.ieo.mobile.ui.trip.RegisterTripScreen
 import com.ieo.mobile.ui.trip.RegisterTripViewModel
 import com.ieo.mobile.ui.trip.TripDetailScreen
@@ -453,7 +455,7 @@ class ScreenshotTest {
         override suspend fun list() = ApiResult.Success(listOf(trip(1, TripStatus.IN_TRANSIT), trip(2, TripStatus.SCHEDULED, manual = true), trip(3, TripStatus.COMPLETED)))
         override suspend fun visitedSites() = ApiResult.Success(listOf(VisitedSite(1, "평택 포승", "경기 평택시 포승읍"), VisitedSite(2, "대구 성서", "대구 달서구")))
         override suspend fun register(trip: NewTrip) = ApiResult.Success(Unit)
-        override suspend fun cancel(tripId: Long) = ApiResult.Success(Unit)
+        override suspend fun cancel(tripId: Long, reason: CancelReason?) = ApiResult.Success(Unit)
     }
 
     private val places = object : PlaceSearch {
@@ -473,6 +475,21 @@ class ScreenshotTest {
         compose.waitForIdle()
         vm.open(2)
         shot("TR_detail", content = { TripDetailScreen(vm.state.value.selected!!, vm.state.value, vm) })
+    }
+
+    @Test
+    fun 배차취소_늦은취소() {
+        shot("TR_cancel_late", content = {
+            CancelTripDialog(trip(4, TripStatus.SCHEDULED), late = true, onCancel = {}, onDismiss = {})
+        })
+    }
+
+    @Test
+    fun 배차상세_짐실은뒤() {
+        val vm = TripsViewModel(tripRepo)
+        compose.waitForIdle()
+        vm.open(1)
+        shot("TR_detail_loaded", content = { TripDetailScreen(vm.state.value.selected!!, vm.state.value, vm) })
     }
 
     @Test
