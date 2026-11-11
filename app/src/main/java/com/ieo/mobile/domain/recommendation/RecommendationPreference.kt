@@ -3,7 +3,7 @@ package com.ieo.mobile.domain.recommendation
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.domain.order.CargoCategory
 
-/** 다음 배차 추천 설정 (REC-004, 025). 차량 앱의 음성·수락 창에 쓰인다. [minNetProfit]이 null이면 조건 없음 */
+/** 배차 추천 설정 (REC-004, 005). 차량 앱이 차를 세웠을 때 보여 주는 근처 추천 3건에 쓰인다. [minNetProfit]이 null이면 조건 없음 */
 data class RecommendationPreference(
     val enabled: Boolean = true,
     val radiusKm: Int = DEFAULT_RADIUS_KM,

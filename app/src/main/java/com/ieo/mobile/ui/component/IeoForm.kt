@@ -150,11 +150,11 @@ fun BrandChip(text: String, selected: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .background(if (selected) TextStrong else CanvasGray, ChipShape)
+            .background(if (selected) Orange50 else CanvasGray, ChipShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
     ) {
-        Text(text, fontSize = 16.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, color = if (selected) White else TextMid)
+        Text(text, fontSize = 16.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = if (selected) Orange700 else TextMid)
     }
 }
 

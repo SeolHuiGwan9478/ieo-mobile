@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,7 +51,7 @@ import com.ieo.mobile.ui.theme.White
 /** null은 조건 없음 */
 private val MIN_PROFITS: List<Long?> = listOf(null, 100_000, 200_000, 300_000, 400_000, 500_000)
 
-/** 다음 배차 추천 설정. 고친 게 있을 때만 저장 버튼이 켜진다 */
+/** 배차 추천 설정 (03). 고친 게 있을 때만 저장 버튼이 켜진다 */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit) {
@@ -63,22 +64,21 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
             IconButton(onClick = tryLeave) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = TextStrong) }
-            Text("다음 배차 추천", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            Text("배차 추천", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
             if (state.loadFailed) state.error?.let { ErrorNotice(it, viewModel::load) }
             if (state.isLoading) SkeletonCards(2)
             if (state.saved != null) {
-                Text("운행 중 하차지 근처 오더를 음성으로 알려 드려요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
+                Text("차를 세우면 세운 곳 근처 오더 중 실수익 높은 3건을 차량 화면에 보여 드려요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
                 Spacer(Modifier.height(20.dp))
-                Label("추천")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BrandChip("켬", draft.enabled) { viewModel.setEnabled(true) }
-                    BrandChip("끔", !draft.enabled) { viewModel.setEnabled(false) }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text("추천 받기", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+                    Switch(checked = draft.enabled, onCheckedChange = viewModel::setEnabled)
                 }
                 if (draft.enabled) {
                     Spacer(Modifier.height(24.dp))
-                    Label("찾는 범위 · 하차지에서")
+                    Label("찾는 범위 · 세운 곳에서")
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         TonalButton("−5", { viewModel.stepRadius(-RecommendationPreference.RADIUS_STEP_KM) }, modifier = Modifier.width(88.dp))
                         Text("${draft.radiusKm}km", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)

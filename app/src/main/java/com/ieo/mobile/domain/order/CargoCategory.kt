@@ -2,7 +2,7 @@ package com.ieo.mobile.domain.order
 
 /**
  * 화물 종류 (서버 CargoCategory, DSP-001). 주선사가 오더를 올릴 때 고른다.
- * 차주는 다음 배차 추천에서 뺄 종류를 고를 수 있다 (REC-004)
+ * 차주는 배차 추천에서 뺄 종류를 고를 수 있다 (REC-004)
  */
 enum class CargoCategory(val label: String, val excludable: Boolean) {
     /** 일반을 빼면 추천이 거의 사라지므로 고르는 칸에 두지 않는다 */

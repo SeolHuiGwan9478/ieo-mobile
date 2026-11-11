@@ -26,7 +26,7 @@ data class RecommendationState(
     val hasChanges: Boolean get() = saved != null && draft != saved
 }
 
-/** 다음 배차 추천 설정 (REC-004, 025) */
+/** 배차 추천 설정 (REC-004, 005) */
 class RecommendationViewModel(private val repository: RecommendationRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(RecommendationState())
