@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 하차지: 짙은 남색 핀 + 아래 화살표 (내리는 곳) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FF334155" android:pathData="M12,2a7,7 0,0 1,7 7c0,5 -7,13 -7,13S5,14 5,9a7,7 0,0 1,7 -7z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,12.5l-3.2,-3.4h2.1V6h2.2v3.1h2.1z" />
+</vector>

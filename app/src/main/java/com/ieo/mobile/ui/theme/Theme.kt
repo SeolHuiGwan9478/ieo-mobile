@@ -33,7 +33,8 @@ val CanvasGray = Color(0xFFF2F4F6)   // 화면 바탕, 보조 버튼, 시각 칸
 val HoverGray = Color(0xFFF9FAFB)
 val TextStrong = Color(0xFF191F28)   // 제목·금액
 val TextMid = Color(0xFF4E5968)      // 보조 버튼 글자
-val TextSub = Color(0xFF5F6B78)      // 설명 글자
+// 설명 글자. 어르신도 읽히게 차량 앱과 같은 본문 회색 (흰 바탕 대비 7.4:1, 예전 #5F6B78은 5.6:1). 보조 글은 크기·굵기로 구분한다
+val TextSub = Color(0xFF4E5968)
 val WarningPale = Color(0xFFFDECEC)  // 미수금 아이콘 바탕
 val DrivingPale = Color(0xFFE8EFFD)  // 운행 상태 꼬리표 바탕
 val WaitingPale = Color(0xFFFEF9C3)  // 대기 상태 꼬리표 바탕

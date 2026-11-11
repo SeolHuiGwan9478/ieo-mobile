@@ -7,7 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import com.ieo.mobile.ui.theme.Orange500
 import com.ieo.mobile.domain.order.CargoCategory
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.Lifecycle
@@ -26,6 +25,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.TextUnit
+import com.ieo.mobile.R
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -140,7 +143,7 @@ fun OrdersScreen(viewModel: OrdersViewModel, texts: OrderTexts = remember { Orde
                 Text("위치를 몰라 전국 오더를 보여 드려요", fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(top = 8.dp))
             }
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (state.isLoading && state.orders.isEmpty()) "" else "${orders.size}건", fontSize = 14.sp, color = TextSub, modifier = Modifier.weight(1f))
+                Text(if (state.isLoading && state.orders.isEmpty()) "" else "${orders.size}건", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.weight(1f))
                 Text(
                     "${state.sort.label} ▾",
                     fontSize = 14.sp,
@@ -202,7 +205,7 @@ private fun UpdatedLabel(updatedAt: Instant) {
             delay(30_000)
         }
     }
-    Text(updatedLabel(updatedAt, Instant.ofEpochMilli(now)), fontSize = 13.sp, color = TextSub, modifier = Modifier.padding(start = 8.dp))
+    Text(updatedLabel(updatedAt, Instant.ofEpochMilli(now)), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.padding(start = 8.dp))
 }
 
 internal fun updatedLabel(updatedAt: Instant, now: Instant): String {
@@ -217,10 +220,11 @@ private fun OrderRow(order: Order, texts: OrderTexts, isNew: Boolean, onClick: (
     Column(Modifier.fillMaxWidth().ruled().clickable(onClick = onClick).padding(vertical = 16.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Row(Modifier.weight(1f).height(IntrinsicSize.Min)) {
-                Column(Modifier.width(14.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.padding(top = 7.dp).size(9.dp).background(Orange500, CircleShape))
-                    Box(Modifier.padding(vertical = 3.dp).width(2.dp).weight(1f).background(LineGray))
-                    Box(Modifier.padding(bottom = 25.dp).size(9.dp).background(TextStrong, CircleShape))
+                // 위 화살표 핀은 싣는 곳, 아래 화살표 핀은 내리는 곳 (차량 앱과 같다)
+                Column(Modifier.width(18.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    PinIcon(R.drawable.ic_pin_pickup, Modifier.padding(top = 2.dp).size(18.dp))
+                    Box(Modifier.padding(vertical = 2.dp).width(2.dp).weight(1f).background(LineGray))
+                    PinIcon(R.drawable.ic_pin_dropoff, Modifier.padding(bottom = 22.dp).size(18.dp))
                 }
                 Spacer(Modifier.width(8.dp))
                 Column {
@@ -236,27 +240,19 @@ private fun OrderRow(order: Order, texts: OrderTexts, isNew: Boolean, onClick: (
                             )
                         }
                     }
-                    Text(texts.pickupTime(order), fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(top = 1.dp, bottom = 8.dp))
+                    Text(texts.pickupTime(order), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.padding(top = 1.dp, bottom = 8.dp))
                     Text(order.dropoff.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-                    Text(texts.dropoffTime(order), fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(top = 1.dp))
+                    Text(texts.dropoffTime(order), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.padding(top = 1.dp))
                 }
             }
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 12.dp)) {
                 Text(formatWon(order.fare), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
                 texts.netProfit(order)?.let { Text(it, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Orange700, modifier = Modifier.padding(top = 2.dp)) }
-                texts.distance(order)?.let { Text("상차지까지 $it", fontSize = 13.sp, color = TextSub, modifier = Modifier.padding(top = 8.dp)) }
+                texts.distance(order)?.let { Text("상차지까지 $it", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.padding(top = 8.dp)) }
             }
         }
         FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            texts.tags(order).forEach { tag ->
-                Text(
-                    tag.text,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = tag.color.content,
-                    modifier = Modifier.background(tag.color.background, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 3.dp),
-                )
-            }
+            texts.tags(order).forEach { TagChip(it) }
         }
         if (order.isRequestedByMe) Box(Modifier.padding(top = 8.dp)) { RequestedBadge() }
     }
@@ -336,7 +332,26 @@ private fun ConditionChip(text: String, selected: Boolean, onClick: () -> Unit) 
 /** 상세 위 태그를 글자 한 줄로 쓴다 */
 @Composable
 private fun Tags(order: Order, texts: OrderTexts) {
-    Text(texts.tags(order).joinToString(" · ") { it.text }, fontSize = 15.sp, lineHeight = 21.sp, color = TextMid)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        texts.detailTags(order).forEach { TagChip(it, fontSize = 14.sp) }
+    }
+}
+
+/** 목록·상세 태그 한 칸 (차량 앱 KeywordTag와 같은 색) */
+@Composable
+private fun TagChip(tag: OrderTag, fontSize: TextUnit = 13.sp) {
+    Text(
+        tag.text,
+        fontSize = fontSize,
+        fontWeight = FontWeight.Medium,
+        color = tag.color.content,
+        modifier = Modifier.background(tag.color.background, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
+private fun PinIcon(@DrawableRes pin: Int, modifier: Modifier) {
+    Icon(painterResource(pin), contentDescription = null, tint = Color.Unspecified, modifier = modifier)
 }
 
 @Composable
@@ -456,28 +471,29 @@ private fun ProfitLine(label: String, value: String) {
 @Composable
 private fun RouteCard(order: Order, texts: OrderTexts, onSite: (Long) -> Unit) {
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 18.dp)) {
-        Stop("상차", order.pickup, texts.pickupTime(order), Orange600, onSite, order.limited)
+        Stop("상차", order.pickup, texts.pickupTime(order), R.drawable.ic_pin_pickup, onSite, order.limited)
         Spacer(Modifier.height(18.dp))
-        Stop("하차", order.dropoff, texts.dropoffTime(order), TextStrong, onSite, order.limited)
+        Stop("하차", order.dropoff, texts.dropoffTime(order), R.drawable.ic_pin_dropoff, onSite, order.limited)
         Spacer(Modifier.height(14.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(CanvasGray))
         Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("화물", fontSize = 16.sp, color = TextSub)
-            Text(texts.cargo(order), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            Text("화물", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextSub)
+            Text(texts.cargo(order), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            texts.loadingTag(order)?.let { TagChip(it, fontSize = 14.sp) }
         }
     }
 }
 
 @Composable
-private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSite: (Long) -> Unit, limited: Boolean = false) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.padding(top = 5.dp).size(10.dp).background(dot, CircleShape))
+private fun Stop(label: String, site: OrderSite, time: String, @DrawableRes pin: Int, onSite: (Long) -> Unit, limited: Boolean = false) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        PinIcon(pin, Modifier.size(22.dp))
         Column {
-            Text(label, fontSize = 15.sp, color = TextSub)
+            Text(label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextSub)
             Text(site.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             if (limited) {
-                Text("정확한 주소는 서류 승인 후 보여요", fontSize = 15.sp, color = TextSub)
+                Text("정확한 주소는 서류 승인 후 보여요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextSub)
             } else {
                 Text(site.address, fontSize = 15.sp, color = TextMid)
             }
@@ -490,12 +506,16 @@ private fun Stop(label: String, site: OrderSite, time: String, dot: Color, onSit
 @Composable
 private fun BrokerCard(order: Order, texts: OrderTexts) {
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {
-        if (order.limited) {
-            Text("주선사는 서류 승인 후 보여요", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextSub)
-        } else {
-            Text(order.brokerName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            if (order.limited) {
+                Text("주선사는 서류 승인 후 보여요", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextSub)
+            } else {
+                Text(order.brokerName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            }
+            order.brokerMetrics?.let { TagChip(texts.brokerTag(it), fontSize = 14.sp) }
         }
-        order.brokerMetrics?.let { Text(texts.metrics(it), fontSize = 15.sp, lineHeight = 21.sp, color = TextSub) }
+        // 기록이 적으면 이름 옆 태그로 충분하다
+        order.brokerMetrics?.takeIf { it.published }?.let { Text(texts.metrics(it), fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium, color = TextSub) }
     }
 }
 
@@ -527,7 +547,7 @@ private fun ReportSheet(busy: Boolean, viewModel: OrdersViewModel) {
     ModalBottomSheet(onDismissRequest = viewModel::cancelReport, sheetState = sheetState, containerColor = White) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
             Text("무엇이 문제인가요?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-            Text("운영팀이 확인해요. 신고는 오더마다 한 번 할 수 있어요", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+            Text("운영팀이 확인해요. 신고는 오더마다 한 번 할 수 있어요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextSub, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
             ReportType.entries.forEachIndexed { index, type ->
                 if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(CanvasGray))
                 Text(

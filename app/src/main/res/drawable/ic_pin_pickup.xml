@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 상차지: 주황 핀 + 위 화살표 (싣는 곳). 하차 핀(ic_pin_dropoff)과 모양으로도 구분된다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFF6C37" android:pathData="M12,2a7,7 0,0 1,7 7c0,5 -7,13 -7,13S5,14 5,9a7,7 0,0 1,7 -7z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,5.5l3.2,3.4h-2.1V12h-2.2V8.9H8.8z" />
+</vector>
