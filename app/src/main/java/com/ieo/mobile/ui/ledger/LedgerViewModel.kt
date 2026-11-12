@@ -3,11 +3,13 @@ package com.ieo.mobile.ui.ledger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ieo.mobile.core.network.ApiResult
+import com.ieo.mobile.core.network.map
 import com.ieo.mobile.domain.expense.Expense
 import com.ieo.mobile.domain.expense.ExpenseCategory
 import com.ieo.mobile.domain.expense.ExpenseRepository
 import com.ieo.mobile.domain.ledger.ExtraIncome
 import com.ieo.mobile.domain.ledger.LedgerEntry
+import com.ieo.mobile.domain.ledger.LedgerReport
 import com.ieo.mobile.domain.ledger.LedgerRepository
 import com.ieo.mobile.domain.ledger.ManualEntry
 import com.ieo.mobile.domain.ledger.MonthlyLedger
@@ -17,11 +19,14 @@ import com.ieo.mobile.ui.common.DayTimeFormatter
 import java.time.Clock
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** 입력 창 종류 */
 enum class FormKind { EXPENSE, MANUAL, EDIT_FARE }
@@ -43,7 +48,10 @@ data class LedgerForm(
 
 /** 저장 뒤 알림. [undo]가 있으면 되돌리기를 보여 준다 */
 /** 내려받은 장부 파일 */
-class ExportedLedger(val fileName: String, val bytes: ByteArray)
+class ExportedLedger(val fileName: String, val bytes: ByteArray, val mimeType: String)
+
+/** 내보내기 형식: 세무 신고용 엑셀(CSV)은 서버가, 보관·전달용 PDF는 휴대폰이 만든다 */
+enum class ExportFormat(val label: String) { PDF("PDF"), CSV("엑셀(CSV)") }
 
 enum class ExportPeriod(val label: String) { MONTH("보고 있는 달"), THIS_YEAR("올해"), LAST_YEAR("작년") }
 
@@ -67,6 +75,8 @@ data class LedgerState(
     val error: String? = null,
     val notice: LedgerNotice? = null,
     val choosingExport: Boolean = false,
+    /** 내보내기 창에서 고른 형식 */
+    val exportFormat: ExportFormat = ExportFormat.PDF,
     /** 받아 온 파일. 화면이 공유 창을 열고 지운다 */
     val exported: ExportedLedger? = null,
 ) {
@@ -115,6 +125,10 @@ class LedgerViewModel(
     private val ledger: LedgerRepository,
     private val expenses: ExpenseRepository,
     private val clock: Clock = Clock.system(DayTimeFormatter.KOREA),
+    /** PDF 그리기. 테스트에서는 바꿔 끼운다 */
+    private val renderPdf: (LedgerReport) -> ByteArray = LedgerPdf::render,
+    /** PDF를 그리는 곳. 화면이 멈추지 않게 기본은 계산용 스레드 */
+    private val pdfDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     private fun today(): LocalDate = clock.instant().atZone(DayTimeFormatter.KOREA).toLocalDate()
@@ -209,11 +223,13 @@ class LedgerViewModel(
 
     fun openExport() = _state.update { it.copy(choosingExport = true, error = null) }
 
+    fun chooseExportFormat(format: ExportFormat) = _state.update { it.copy(exportFormat = format) }
+
     fun closeExport() = _state.update { it.copy(choosingExport = false) }
 
     fun exportConsumed() = _state.update { it.copy(exported = null) }
 
-    /** 고른 기간의 장부를 받는다 (LEDG-033). 다 받으면 화면이 공유 창을 연다 */
+    /** 고른 기간의 장부를 고른 형식으로 만든다 (LEDG-033). 다 만들면 화면이 공유 창을 연다 */
     fun export(period: ExportPeriod) {
         val current = _state.value
         if (current.isBusy) return
@@ -224,12 +240,31 @@ class LedgerViewModel(
         }
         _state.update { it.copy(isBusy = true, choosingExport = false, error = null, notice = null) }
         viewModelScope.launch {
-            when (val result = ledger.export(from, to)) {
-                is ApiResult.Success -> _state.update { it.copy(exported = ExportedLedger("이에오_장부_${from}_$to.csv", result.data)) }
+            val result = when (current.exportFormat) {
+                ExportFormat.CSV -> ledger.export(from, to).map { ExportedLedger("이에오_장부_${from}_$to.csv", it, "text/csv") }
+                ExportFormat.PDF -> pdf(from, to)
+            }
+            when (result) {
+                is ApiResult.Success -> _state.update { it.copy(exported = result.data) }
                 is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
             }
             _state.update { it.copy(isBusy = false) }
         }
+    }
+
+    /** 그 기간의 운행 줄과 경비를 받아 휴대폰에서 PDF로 그린다 */
+    private suspend fun pdf(from: LocalDate, to: LocalDate): ApiResult<ExportedLedger> {
+        val entries = when (val result = ledger.entries(from, to)) {
+            is ApiResult.Success -> result.data
+            is ApiResult.Failure -> return result
+        }
+        val spent = when (val result = expenses.expenses(from, to)) {
+            is ApiResult.Success -> result.data
+            is ApiResult.Failure -> return result
+        }
+        val report = LedgerReport(from, to, entries, spent, today())
+        val bytes = withContext(pdfDispatcher) { renderPdf(report) }
+        return ApiResult.Success(ExportedLedger("이에오_장부_${report.fileLabel}.pdf", bytes, "application/pdf"))
     }
 
     private fun change(closeForm: Boolean = false, notice: LedgerNotice, block: suspend () -> ApiResult<Unit>) {

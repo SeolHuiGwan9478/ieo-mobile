@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -80,18 +81,34 @@ private fun shareLedgerFile(context: Context, file: ExportedLedger) {
         val folder = File(context.cacheDir, "exports").apply { mkdirs() }
         val target = File(folder, file.fileName).apply { writeBytes(file.bytes) }
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", target)
-        val send = Intent(Intent.ACTION_SEND).setType("text/csv").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val send = Intent(Intent.ACTION_SEND).setType(file.mimeType).putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         context.startActivity(Intent.createChooser(send, "보낼 곳을 골라 주세요"))
     }
 }
 
+/** 형식(PDF·엑셀)을 고르고 기간을 누르면 바로 만든다 */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExportDialog(viewModel: LedgerViewModel) {
+private fun ExportDialog(format: ExportFormat, viewModel: LedgerViewModel) {
     AlertDialog(
         onDismissRequest = viewModel::closeExport,
-        title = { Text("어느 기간을 내보낼까요?") },
+        title = { Text("장부 내보내기") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ExportFormat.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == format,
+                            onClick = { viewModel.chooseExportFormat(option) },
+                            label = { Text(option.label, fontSize = 15.sp) },
+                        )
+                    }
+                }
+                Text(
+                    if (format == ExportFormat.PDF) "보관하거나 주선사·세무사에게 보낼 때. 합계와 운행·경비 표가 들어가요" else "세금 신고용. 엑셀에서 열어 고칠 수 있어요",
+                    fontSize = 14.sp, lineHeight = 20.sp, color = TextMid,
+                )
+                Text("어느 기간을 내보낼까요?", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 4.dp))
                 ExportPeriod.entries.forEach { period -> TonalButton(period.label, { viewModel.export(period) }, modifier = Modifier.fillMaxWidth()) }
             }
         },
@@ -139,7 +156,7 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
                     days.forEach { DaySection(it, viewModel) }
                     state.error?.takeIf { !state.loadFailed }?.let { ErrorNotice(it) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        QuietButton(if (state.isBusy) "장부 받는 중…" else "세금 신고용 장부 내보내기", viewModel::openExport)
+                        QuietButton(if (state.isBusy) "장부 만드는 중…" else "장부 내보내기 (PDF·엑셀)", viewModel::openExport)
                     }
                 }
             }
@@ -149,7 +166,7 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
             PrimaryButton("경비 추가", viewModel::openExpense, modifier = Modifier.weight(1.4f))
         }
     }
-    if (state.choosingExport) ExportDialog(viewModel)
+    if (state.choosingExport) ExportDialog(state.exportFormat, viewModel)
 }
 
 @Composable

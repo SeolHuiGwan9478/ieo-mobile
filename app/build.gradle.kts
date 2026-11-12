@@ -11,6 +11,7 @@ android {
     defaultConfig {
         applicationId = "com.ieo.mobile"
         minSdk = 28
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
@@ -75,6 +76,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     testImplementation(libs.junit)
+    // 기기에서만 되는 확인 (PDF 그리기는 Robolectric이 흉내 내지 못한다)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
     // 폰 없이 휴대폰 크기 화면을 그려 확인한다 (ScreenshotTest)
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi.core)

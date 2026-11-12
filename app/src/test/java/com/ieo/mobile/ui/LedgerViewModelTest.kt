@@ -78,18 +78,39 @@ class LedgerViewModelTest {
         }
     }
 
-    private fun vm(fake: Fake) = LedgerViewModel(fake, fake, clock)
+    /** 테스트에서는 PDF를 그리지 않고 받은 내용만 남긴다 */
+    private var rendered: com.ieo.mobile.domain.ledger.LedgerReport? = null
+
+    private fun vm(fake: Fake) = LedgerViewModel(fake, fake, clock, renderPdf = { report -> rendered = report; byteArrayOf(0x25, 0x50) }, pdfDispatcher = main.dispatcher)
 
     @Test
     fun `작년 장부를 받으면 파일을 넘기고 넘긴 뒤 지운다`() = runTest(main.dispatcher) {
         val vm = vm(Fake())
         advanceUntilIdle()
         val lastYear = vm.state.value.currentMonth.year - 1
+        vm.chooseExportFormat(com.ieo.mobile.ui.ledger.ExportFormat.CSV)
         vm.export(com.ieo.mobile.ui.ledger.ExportPeriod.LAST_YEAR)
         advanceUntilIdle()
         assertEquals("이에오_장부_$lastYear-01-01_$lastYear-12-31.csv", vm.state.value.exported?.fileName)
+        assertEquals("text/csv", vm.state.value.exported?.mimeType)
         vm.exportConsumed()
         assertEquals(null, vm.state.value.exported)
+    }
+
+    @Test
+    fun `PDF는 그 기간 운행과 경비를 받아 휴대폰에서 만든다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = vm(fake)
+        advanceUntilIdle()
+        assertEquals(com.ieo.mobile.ui.ledger.ExportFormat.PDF, vm.state.value.exportFormat)
+        vm.export(com.ieo.mobile.ui.ledger.ExportPeriod.MONTH)
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 11, 1) to LocalDate.of(2026, 11, 30), fake.range)
+        assertEquals("이에오_장부_2026-11.pdf", vm.state.value.exported?.fileName)
+        assertEquals("application/pdf", vm.state.value.exported?.mimeType)
+        assertEquals("2026년 11월", rendered?.periodLabel)
+        assertEquals(350_000L, rendered?.expenseTotal)
+        assertFalse(vm.state.value.isBusy)
     }
 
     @Test
