@@ -58,6 +58,7 @@ fun LedgerOverlay(viewModel: LedgerViewModel) {
     BackHandler(onBack = viewModel::back)
     val form = state.form
     val entry = state.selected
+    DeleteDialog(state.deleting, viewModel)
     when {
         form != null -> FormScreen(form, state, viewModel)
         entry != null -> EntryDetail(entry, state, viewModel)
@@ -93,6 +94,8 @@ private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: Ledge
                 entry.distanceKm?.let { AmountLine("거리", "${it}km") }
                 entry.waitMinutes?.let { AmountLine("대기", "${it}분") }
                 QuietButton("운임·거리 고치기", viewModel::openEditFare)
+                // 직접 추가한 줄만 지운다. 운행이 끝나 생긴 줄은 운행 기록과 짝이라 지우지 않는다
+                if (!entry.auto) QuietButton("이 운행 지우기", { viewModel.askDelete(entry) })
             }
             if (entry.extraIncomes.isNotEmpty()) {
                 Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {

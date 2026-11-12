@@ -19,4 +19,6 @@ class DefaultExpenseRepository(
     override suspend fun add(category: ExpenseCategory, amount: Long, memo: String?): ApiResult<Expense> =
         caller.call { api.add(CreateExpenseRequest(category.name, amount, memo?.takeIf { it.isNotBlank() })) }
             .mapResponse { it.toDomain() }
+
+    override suspend fun delete(expenseId: Long): ApiResult<Unit> = caller.callNoContent { api.delete(expenseId) }
 }

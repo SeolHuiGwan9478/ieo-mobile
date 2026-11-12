@@ -60,6 +60,12 @@ enum class ExportPeriod(val label: String) { MONTH("보고 있는 달"), THIS_YE
 
 data class LedgerNotice(val text: String, val undo: (() -> Unit)? = null)
 
+/** 지우기 전에 묻는 것: 경비 한 건 또는 직접 추가한 운행 줄 */
+sealed interface Deletion {
+    data class OfExpense(val expense: Expense) : Deletion
+    data class OfEntry(val entry: LedgerEntry) : Deletion
+}
+
 /** 그래프의 한 달 */
 data class MonthPoint(val month: YearMonth, val net: Long)
 
@@ -78,6 +84,8 @@ data class LedgerState(
     val error: String? = null,
     val notice: LedgerNotice? = null,
     val choosingExport: Boolean = false,
+    /** "지울까요?" 창. 닫으면 null */
+    val deleting: Deletion? = null,
     /** 내보내기 창에서 고른 형식 */
     val exportFormat: ExportFormat = ExportFormat.PDF,
     /** 받아 온 파일. 화면이 공유 창을 열고 지운다 */
@@ -188,6 +196,32 @@ class LedgerViewModel(
     fun addAmount(won: Long) = editForm { it.copy(amount = (it.amountValue + won).toString()) }
 
     fun dismissNotice() = _state.update { it.copy(notice = null) }
+
+    fun askDelete(expense: Expense) = _state.update { it.copy(deleting = Deletion.OfExpense(expense), error = null) }
+
+    /** 운행이 끝나 생긴 줄은 지울 수 없다 (서버도 거절한다) */
+    fun askDelete(entry: LedgerEntry) {
+        if (entry.auto) return
+        _state.update { it.copy(deleting = Deletion.OfEntry(entry), error = null) }
+    }
+
+    fun cancelDelete() = _state.update { it.copy(deleting = null) }
+
+    /** 지운다. 운행 줄이면 상세도 닫는다 */
+    fun confirmDelete() {
+        val target = _state.value.deleting ?: return
+        _state.update { it.copy(deleting = null) }
+        when (target) {
+            is Deletion.OfExpense -> change(notice = LedgerNotice("${target.expense.category.label} 경비를 지웠어요")) {
+                expenses.delete(target.expense.id)
+            }
+            is Deletion.OfEntry -> change(notice = LedgerNotice("운행을 지웠어요")) {
+                ledger.deleteEntry(target.entry.id).also { result ->
+                    if (result is ApiResult.Success) _state.update { it.copy(selectedEntryId = null) }
+                }
+            }
+        }
+    }
 
     fun setPaid(entry: LedgerEntry, paid: Boolean): Unit = change(
         block = { ledger.setPaid(entry.id, paid).toUnit() },

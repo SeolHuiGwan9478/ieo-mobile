@@ -36,6 +36,9 @@ interface LedgerApi {
     @POST("api/ledger/{entryId}/paid")
     suspend fun markPaid(@Path("entryId") entryId: Long): Response<LedgerEntryResponse>
 
+    @DELETE("api/ledger/{entryId}")
+    suspend fun delete(@Path("entryId") entryId: Long): Response<Unit>
+
     @DELETE("api/ledger/{entryId}/paid")
     suspend fun unmarkPaid(@Path("entryId") entryId: Long): Response<LedgerEntryResponse>
 

@@ -78,6 +78,16 @@ class LedgerViewModelTest {
             calls += "expense:$category:$amount:$memo"
             return ApiResult.Success(Expense(9, today, category, amount, memo))
         }
+        override suspend fun delete(expenseId: Long): ApiResult<Unit> {
+            calls += "delete expense $expenseId"
+            spent = spent.filter { it.id != expenseId }
+            return ApiResult.Success(Unit)
+        }
+        override suspend fun deleteEntry(entryId: Long): ApiResult<Unit> {
+            calls += "delete entry $entryId"
+            list = list.filter { it.id != entryId }
+            return ApiResult.Success(Unit)
+        }
     }
 
     /** 테스트에서는 PDF를 그리지 않고 받은 내용만 남긴다 */
@@ -255,5 +265,45 @@ class LedgerViewModelTest {
         assertEquals("못 받음", paidTag(entry(1)).first)
         assertEquals("412만", shortWon(4_120_000))
         assertTrue(shortWon(0) == "0만")
+    }
+
+    @Test
+    fun `잘못 넣은 경비는 묻고 나서 지운다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val vm = vm(fake)
+        advanceUntilIdle()
+        val fuel = fake.spent.first()
+        vm.askDelete(fuel)
+        assertEquals(com.ieo.mobile.ui.ledger.Deletion.OfExpense(fuel), vm.state.value.deleting)
+        vm.cancelDelete()
+        assertNull(vm.state.value.deleting)
+        assertTrue(fake.calls.none { it.startsWith("delete") })
+
+        vm.askDelete(fuel)
+        vm.confirmDelete()
+        advanceUntilIdle()
+        assertTrue("delete expense 1" in fake.calls)
+        assertEquals("주유 경비를 지웠어요", vm.state.value.notice?.text)
+        assertTrue(vm.state.value.expenses.none { it.id == 1L })
+    }
+
+    @Test
+    fun `직접 추가한 운행만 지우고 지우면 상세를 닫는다`() = runTest(main.dispatcher) {
+        val fake = Fake()
+        val manual = entry(5).copy(auto = false)
+        fake.list = fake.list + manual
+        val vm = vm(fake)
+        advanceUntilIdle()
+
+        vm.askDelete(fake.list.first())
+        assertNull(vm.state.value.deleting)
+
+        vm.openEntry(manual)
+        vm.askDelete(manual)
+        vm.confirmDelete()
+        advanceUntilIdle()
+        assertTrue("delete entry 5" in fake.calls)
+        assertNull(vm.state.value.selectedEntryId)
+        assertEquals("운행을 지웠어요", vm.state.value.notice?.text)
     }
 }

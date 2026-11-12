@@ -558,11 +558,13 @@ class ScreenshotTest {
         override suspend fun setExtraIncomePaid(extraIncomeId: Long, paid: Boolean) = ApiResult.Success(Unit)
         override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType, distanceKm: Int?) = ApiResult.Success(entry)
         override suspend fun addManual(entry: ManualEntry) = ApiResult.Success(entry(9, false, false, "x"))
+        override suspend fun deleteEntry(entryId: Long) = ApiResult.Success(Unit)
     }, object : ExpenseRepository {
         override suspend fun expenses(from: LocalDate, to: LocalDate) = ApiResult.Success(listOf(
             Expense(1, day, ExpenseCategory.FUEL, 180_000, null), Expense(2, day, ExpenseCategory.TOLL, 32_000, "대구 톨"), Expense(3, day.minusDays(1), ExpenseCategory.MEAL, 9_000, null),
         ))
         override suspend fun add(category: ExpenseCategory, amount: Long, memo: String?) = ApiResult.Success(Expense(9, day, category, amount, memo))
+        override suspend fun delete(expenseId: Long) = ApiResult.Success(Unit)
     })
 
     @Test

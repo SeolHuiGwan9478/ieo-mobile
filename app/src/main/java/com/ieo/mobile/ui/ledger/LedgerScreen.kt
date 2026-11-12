@@ -167,6 +167,7 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
         }
     }
     if (state.choosingExport) ExportDialog(state.exportFormat, viewModel)
+    DeleteDialog(state.deleting, viewModel)
 }
 
 @Composable
@@ -243,7 +244,7 @@ private fun DaySection(day: LedgerDay, viewModel: LedgerViewModel) {
     Text(day.date.format(DayFormat), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextMid, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
     Column(Modifier.fillMaxWidth().ruled().padding(vertical = 4.dp)) {
         day.entries.forEach { EntryRow(it) { viewModel.openEntry(it) } }
-        day.expenses.forEach { ExpenseRow(it) }
+        day.expenses.forEach { expense -> ExpenseRow(expense) { viewModel.askDelete(expense) } }
     }
 }
 
@@ -262,10 +263,34 @@ fun EntryRow(entry: LedgerEntry, onClick: () -> Unit) {
     }
 }
 
+/** 경비 한 줄. 누르면 지울지 묻는다 (잘못 넣은 경비) */
 @Composable
-private fun ExpenseRow(expense: Expense) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun ExpenseRow(expense: Expense, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(listOfNotNull(expense.category.label, expense.memo).joinToString(" · "), fontSize = 16.sp, color = TextMid, modifier = Modifier.weight(1f))
         Text("−${formatWon(expense.amount)}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextMid)
     }
+}
+
+/** "지울까요?" 확인 창. 수익 화면과 장부 상세가 함께 쓴다 */
+@Composable
+fun DeleteDialog(deleting: Deletion?, viewModel: LedgerViewModel) {
+    deleting ?: return
+    val (title, detail) = when (deleting) {
+        is Deletion.OfExpense -> with(deleting.expense) {
+            "${category.label} ${formatWon(amount)}을 지울까요?" to "${spentOn.monthValue}월 ${spentOn.dayOfMonth}일" + (memo?.let { " · $it" } ?: "")
+        }
+        is Deletion.OfEntry -> with(deleting.entry) {
+            "이 운행을 장부에서 지울까요?" to "${workDate.monthValue}월 ${workDate.dayOfMonth}일 · $description · ${formatWon(fare)}"
+        }
+    }
+    AlertDialog(
+        onDismissRequest = viewModel::cancelDelete,
+        title = { Text(title) },
+        text = { Text("$detail\n지우면 되돌릴 수 없어요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid) },
+        confirmButton = {
+            TextButton(onClick = viewModel::confirmDelete) { Text("지우기", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.warning) }
+        },
+        dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text("취소", fontSize = 16.sp, color = TextMid) } },
+    )
 }

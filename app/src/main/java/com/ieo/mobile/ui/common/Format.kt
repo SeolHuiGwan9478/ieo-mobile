@@ -8,7 +8,10 @@ fun roundedToManwon(amount: Long): Long = Math.round(amount / 10_000.0) * 10_000
 
 /** 만 원 단위로 떨어지면 "38만 원", 아니면 "372,229원" */
 fun formatWon(amount: Long): String =
-    if (amount >= 10_000 && amount % 10_000 == 0L) {
+    if (amount < 0) {
+        // 마이너스(경비가 더 많은 달의 실수익)도 같은 모양으로: "−102만 원"
+        "−" + formatWon(-amount)
+    } else if (amount >= 10_000 && amount % 10_000 == 0L) {
         "${amount / 10_000}만 원"
     } else {
         NumberFormat.getNumberInstance(Locale.KOREA).format(amount) + "원"

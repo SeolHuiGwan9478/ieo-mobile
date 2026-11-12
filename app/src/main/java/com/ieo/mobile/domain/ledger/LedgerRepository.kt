@@ -28,6 +28,9 @@ interface LedgerRepository {
 
     /** Ieo로 등록하지 않은 운행 직접 추가 (LEDG-004). 지급 예정일은 서버가 결제 방식으로 정한다 */
     suspend fun addManual(entry: ManualEntry): ApiResult<LedgerEntry>
+
+    /** 직접 추가한 줄 지우기. 운행이 끝나 생긴 줄은 서버가 거절한다 (409) */
+    suspend fun deleteEntry(entryId: Long): ApiResult<Unit>
 }
 
 data class ManualEntry(

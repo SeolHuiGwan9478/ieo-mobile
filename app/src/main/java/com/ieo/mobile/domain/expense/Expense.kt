@@ -29,4 +29,7 @@ interface ExpenseRepository {
 
     /** 오늘 쓴 경비. 진행 중인 운행이 있으면 서버가 그 운행에 붙인다 */
     suspend fun add(category: ExpenseCategory, amount: Long, memo: String?): ApiResult<Expense>
+
+    /** 잘못 넣은 경비 지우기 */
+    suspend fun delete(expenseId: Long): ApiResult<Unit>
 }

@@ -45,4 +45,6 @@ class DefaultLedgerRepository(
 
     override suspend fun addManual(entry: ManualEntry): ApiResult<LedgerEntry> =
         caller.call { api.addManual(CreateLedgerEntryRequest.from(entry)) }.mapResponse { it.toDomain() }
+
+    override suspend fun deleteEntry(entryId: Long): ApiResult<Unit> = caller.callNoContent { api.delete(entryId) }
 }
