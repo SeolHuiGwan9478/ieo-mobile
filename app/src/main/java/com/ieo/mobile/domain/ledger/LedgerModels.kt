@@ -34,6 +34,8 @@ data class LedgerEntry(
     val overdue: Boolean,
     /** 대기비 */
     val extraIncomes: List<ExtraIncome>,
+    /** 이 운행의 세금계산서를 발행한 시각. 안 했으면 null (LEDG-043) */
+    val taxInvoiceIssuedAt: java.time.Instant? = null,
 ) {
     /** 운임 + 대기비 */
     val total: Long get() = fare + extraIncomes.sumOf { it.amount }
@@ -77,3 +79,27 @@ data class Receivables(
 }
 
 data class OverdueBroker(val brokerName: String, val amount: Long, val overdueDays: Int)
+
+/** 세금계산서의 공급자·받는 사람 */
+data class InvoiceParty(val businessNumber: String?, val name: String?, val representative: String?)
+
+/**
+ * 운행 한 건의 운송료 세금계산서 (LEDG-040~045). issued=false면 발행 전 초안이고 missing에 빈 정보가 있다.
+ * demo면 국세청에 보내지 않은 시연용 발행이다
+ */
+data class TaxInvoice(
+    val entryId: Long,
+    val issued: Boolean,
+    val writeDate: LocalDate,
+    val supplier: InvoiceParty,
+    val buyer: InvoiceParty,
+    val item: String,
+    val fareAmount: Long,
+    val waitFeeAmount: Long,
+    val supplyAmount: Long,
+    val vat: Long,
+    val totalAmount: Long,
+    val missing: List<String>,
+    val demo: Boolean,
+    val approvalNumber: String?,
+)

@@ -117,7 +117,7 @@ private fun ExportDialog(format: ExportFormat, viewModel: LedgerViewModel) {
 }
 
 @Composable
-fun LedgerScreen(viewModel: LedgerViewModel) {
+fun LedgerScreen(viewModel: LedgerViewModel, onPlan: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val ledger = state.ledger
     val days = ledger.days()
@@ -146,6 +146,10 @@ fun LedgerScreen(viewModel: LedgerViewModel) {
                 if (state.loadFailed) state.error?.let { ErrorNotice(it, viewModel::refresh) }
                 if (state.isLoading && state.entries.isEmpty()) {
                     SkeletonCards(3)
+                } else if (state.historyLocked && state.month != state.currentMonth) {
+                    // 베이직은 이번 달만 (12장). 지난 달을 고르면 잠금 안내
+                    EmptyState("지난 장부는 프로부터 볼 수 있어요", "프로로 바꾸면 지난 장부와 PDF·엑셀 내보내기가 열려요")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { QuietButton("플랜 보기", onPlan) }
                 } else {
                     SummaryCard(state, viewModel)
                     if (state.owedTotal > 0) OwedCard(state, viewModel)

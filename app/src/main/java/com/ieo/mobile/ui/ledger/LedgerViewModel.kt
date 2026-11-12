@@ -2,6 +2,7 @@ package com.ieo.mobile.ui.ledger
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ieo.mobile.core.network.ApiError
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.core.network.map
 import com.ieo.mobile.domain.expense.Expense
@@ -14,6 +15,7 @@ import com.ieo.mobile.domain.ledger.LedgerRepository
 import com.ieo.mobile.domain.ledger.ManualEntry
 import com.ieo.mobile.domain.ledger.MonthlyLedger
 import com.ieo.mobile.domain.ledger.Receivables
+import com.ieo.mobile.domain.ledger.TaxInvoice
 import com.ieo.mobile.domain.trip.PaymentType
 import com.ieo.mobile.ui.common.DayTimeFormatter
 import java.time.Clock
@@ -90,6 +92,10 @@ data class LedgerState(
     val exportFormat: ExportFormat = ExportFormat.PDF,
     /** 받아 온 파일. 화면이 공유 창을 열고 지운다 */
     val exported: ExportedLedger? = null,
+    /** 베이직이라 지난 장부와 내보내기가 잠겼다 (서버 PLAN_403_UPGRADE). 이번 달만 받아 온다 */
+    val historyLocked: Boolean = false,
+    /** 열어 둔 세금계산서 (상세 위에 뜨는 창). 닫으면 null */
+    val taxInvoice: TaxInvoice? = null,
 ) {
     val firstMonth: YearMonth get() = currentMonth.minusMonths(MONTHS_KEPT - 1)
     val canGoBack: Boolean get() = month.isAfter(firstMonth)
@@ -128,6 +134,8 @@ data class LedgerState(
         /** 서버는 한 번에 366일까지 준다 */
         const val MONTHS_KEPT = 12L
         const val CHART_MONTHS = 6L
+        const val PLAN_UPGRADE = "PLAN_403_UPGRADE"
+        const val LOCKED_EXPORT = "장부 내보내기는 프로 플랜부터 쓸 수 있어요. 내 정보 > 내 플랜에서 바꿀 수 있어요."
     }
 }
 
@@ -183,6 +191,7 @@ class LedgerViewModel(
     /** 위에 열린 화면을 하나 닫는다 */
     fun back() = _state.update {
         when {
+            it.taxInvoice != null -> it.copy(taxInvoice = null, error = null)
             it.form != null -> it.copy(form = null, error = null)
             it.selectedEntryId != null -> it.copy(selectedEntryId = null, error = null)
             else -> it.copy(showingReceivables = false, error = null)
@@ -259,7 +268,41 @@ class LedgerViewModel(
         is ApiResult.Failure -> this
     }
 
-    fun openExport() = _state.update { it.copy(choosingExport = true, error = null) }
+    /** 내보내기는 프로부터 (12장). 베이직이면 창 대신 안내 */
+    fun openExport() = _state.update {
+        if (it.historyLocked) it.copy(error = LedgerState.LOCKED_EXPORT) else it.copy(choosingExport = true, error = null)
+    }
+
+    /** 상세에서 세금계산서 열기: 발행했으면 발행한 것, 아니면 초안 */
+    fun openTaxInvoice() {
+        val entry = _state.value.selected ?: return
+        if (_state.value.isBusy) return
+        viewModelScope.launch {
+            _state.update { it.copy(isBusy = true, error = null) }
+            when (val result = ledger.taxInvoice(entry.id)) {
+                is ApiResult.Success -> _state.update { it.copy(isBusy = false, taxInvoice = result.data) }
+                is ApiResult.Failure -> _state.update { it.copy(isBusy = false, error = result.error.message) }
+            }
+        }
+    }
+
+    fun closeTaxInvoice() = _state.update { it.copy(taxInvoice = null, error = null) }
+
+    /** 세금계산서 발행 (지금은 시연용). 발행하면 장부 줄에도 표시되게 다시 불러온다 */
+    fun issueTaxInvoice() {
+        val draft = _state.value.taxInvoice?.takeIf { !it.issued && it.missing.isEmpty() } ?: return
+        if (_state.value.isBusy) return
+        viewModelScope.launch {
+            _state.update { it.copy(isBusy = true, error = null) }
+            when (val result = ledger.issueTaxInvoice(draft.entryId)) {
+                is ApiResult.Success -> {
+                    _state.update { it.copy(isBusy = false, taxInvoice = result.data, notice = LedgerNotice("세금계산서를 발행했어요")) }
+                    reload()
+                }
+                is ApiResult.Failure -> _state.update { it.copy(isBusy = false, error = result.error.message) }
+            }
+        }
+    }
 
     fun chooseExportFormat(format: ExportFormat) = _state.update { it.copy(exportFormat = format) }
 
@@ -322,9 +365,15 @@ class LedgerViewModel(
 
     private suspend fun reload() {
         val current = _state.value
-        val from = current.firstMonth.atDay(1)
         val to = current.currentMonth.atEndOfMonth()
-        val entries = ledger.entries(from, to)
+        var from = current.firstMonth.atDay(1)
+        var entries = ledger.entries(from, to)
+        // 베이직은 지난 장부가 잠겨 있다: 이번 달만 다시 받는다
+        val locked = (entries as? ApiResult.Failure)?.error.let { it is ApiError.Server && it.code == LedgerState.PLAN_UPGRADE }
+        if (locked) {
+            from = current.currentMonth.atDay(1)
+            entries = ledger.entries(from, to)
+        }
         val spent = expenses.expenses(from, to)
         val owed = ledger.receivables()
         val failure = listOf(entries, spent, owed).filterIsInstance<ApiResult.Failure>().firstOrNull()
@@ -335,6 +384,7 @@ class LedgerViewModel(
                 receivables = (owed as? ApiResult.Success)?.data ?: it.receivables,
                 loadFailed = failure != null,
                 error = failure?.error?.message,
+                historyLocked = locked,
             )
         }
     }

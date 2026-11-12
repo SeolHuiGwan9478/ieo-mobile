@@ -52,12 +52,17 @@ class LedgerViewModelTest {
         var manual: ManualEntry? = null
         var updated: Pair<Long, PaymentType>? = null
         var updatedDistance: Int? = null
+        /** 베이직: 이번 달보다 앞선 기간을 달라고 하면 서버가 PLAN_403_UPGRADE */
+        var basic = false
         override suspend fun today() = ApiResult.Success(DailySummary(this@LedgerViewModelTest.today, 0, 0))
         override suspend fun export(from: java.time.LocalDate, to: java.time.LocalDate): ApiResult<ByteArray> = ApiResult.Success(byteArrayOf(1, 2))
         override suspend fun receivables() = ApiResult.Success(Receivables(400_000, 0, 30_000, listOf(entry(1))))
         override suspend fun entries(from: LocalDate, to: LocalDate): ApiResult<List<LedgerEntry>> {
             range = from to to
-            return ApiResult.Success(list)
+            if (basic && from.isBefore(today.withDayOfMonth(1))) {
+                return ApiResult.Failure(com.ieo.mobile.core.network.ApiError.Server(403, "PLAN_403_UPGRADE", "잠김"))
+            }
+            return ApiResult.Success(list.filter { !basic || !it.workDate.isBefore(from) })
         }
         override suspend fun setPaid(entryId: Long, paid: Boolean): ApiResult<LedgerEntry> {
             calls += "paid$entryId:$paid"
@@ -83,6 +88,8 @@ class LedgerViewModelTest {
             spent = spent.filter { it.id != expenseId }
             return ApiResult.Success(Unit)
         }
+        override suspend fun taxInvoice(entryId: Long): ApiResult<com.ieo.mobile.domain.ledger.TaxInvoice> = ApiResult.Failure(com.ieo.mobile.core.network.ApiError.Unexpected)
+        override suspend fun issueTaxInvoice(entryId: Long): ApiResult<com.ieo.mobile.domain.ledger.TaxInvoice> = ApiResult.Failure(com.ieo.mobile.core.network.ApiError.Unexpected)
         override suspend fun deleteEntry(entryId: Long): ApiResult<Unit> {
             calls += "delete entry $entryId"
             list = list.filter { it.id != entryId }
@@ -94,6 +101,20 @@ class LedgerViewModelTest {
     private var rendered: com.ieo.mobile.domain.ledger.LedgerReport? = null
 
     private fun vm(fake: Fake) = LedgerViewModel(fake, fake, clock, renderPdf = { report -> rendered = report; byteArrayOf(0x25, 0x50) }, pdfDispatcher = main.dispatcher)
+
+    @Test
+    fun `베이직이면 이번 달만 받고 지난 달과 내보내기를 잠근다`() = runTest(main.dispatcher) {
+        val fake = Fake().apply { basic = true }
+        val vm = vm(fake)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.historyLocked)
+        assertFalse(vm.state.value.loadFailed)
+        assertEquals(today.withDayOfMonth(1), fake.range?.first)
+        assertEquals(1, vm.state.value.entries.size)
+        vm.openExport()
+        assertFalse(vm.state.value.choosingExport)
+        assertNotNull(vm.state.value.error)
+    }
 
     @Test
     fun `작년 장부를 받으면 파일을 넘기고 넘긴 뒤 지운다`() = runTest(main.dispatcher) {

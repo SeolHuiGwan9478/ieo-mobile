@@ -31,6 +31,12 @@ interface LedgerRepository {
 
     /** 직접 추가한 줄 지우기. 운행이 끝나 생긴 줄은 서버가 거절한다 (409) */
     suspend fun deleteEntry(entryId: Long): ApiResult<Unit>
+
+    /** 운행 한 건의 세금계산서: 발행했으면 그것, 아니면 초안 */
+    suspend fun taxInvoice(entryId: Long): ApiResult<TaxInvoice>
+
+    /** 세금계산서 발행 (지금은 시연용 발행) */
+    suspend fun issueTaxInvoice(entryId: Long): ApiResult<TaxInvoice>
 }
 
 data class ManualEntry(

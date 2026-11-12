@@ -1,5 +1,8 @@
 package com.ieo.mobile.ui.my
 
+import com.ieo.mobile.domain.plan.MyPlan
+import com.ieo.mobile.ui.plan.CurrentTicket
+import com.ieo.mobile.ui.plan.TicketShape
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -73,7 +77,7 @@ import com.ieo.mobile.ui.vehicle.VehiclesState
  * 자주 쓰는 바로가기 네 칸, 그리고 묶음별 메뉴. 메뉴마다 그림을 붙여 글을 덜 읽어도 찾게 한다
  */
 @Composable
-fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, creditBalance: Long = 0, onCredit: () -> Unit = {}, onEditProfile: () -> Unit = {}) {
+fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, plan: MyPlan? = null, onPlan: () -> Unit = {}, onEditProfile: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var withdrawing by remember { mutableStateOf(false) }
     val name = state.account?.name.orEmpty()
@@ -96,8 +100,8 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
             QuietButton("내 정보 수정", onEditProfile)
         }
 
-        // 크레딧 (충전식 이용료). 결제 연결 전이라 화면만 있다
-        CreditCard(creditBalance, onCredit)
+        // 내 플랜 티켓 (크레딧 대신 30일 플랜, 2026-11-12)
+        PlanCard(plan, onPlan)
         Spacer(Modifier.height(12.dp))
 
         // 주선사에게 보이는 내 기록
@@ -158,29 +162,21 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
     }
 }
 
-/** 크레딧 카드: 동전 그림·잔액, 아래에 충전과 내역 */
+/** 지금 내 플랜 티켓. 누르면 플랜 화면 (PLAN-007). 아직 못 불러왔으면 자리만 둔다 */
 @Composable
-private fun CreditCard(balance: Long, onCredit: () -> Unit) {
-    Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth().background(CanvasGray.copy(alpha = 0.6f), RoundedCornerShape(14.dp))) {
-        Row(Modifier.fillMaxWidth().clickable(onClick = onCredit).padding(start = 16.dp, end = 10.dp, top = 14.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.ic_credit_coin), contentDescription = null, modifier = Modifier.size(24.dp))
-            Text("크레딧", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f).padding(start = 8.dp))
-            Text(formatCredit(balance), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub)
+private fun PlanCard(plan: MyPlan?, onPlan: () -> Unit) {
+    Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("내 플랜", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+            TextButton(onClick = onPlan) { Text("플랜 보기", fontSize = 15.sp, color = TextSub) }
         }
-        Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onCredit) { Text("충전", fontSize = 15.sp, color = TextStrong) }
-            Box(Modifier.width(1.dp).height(14.dp).background(LineGray))
-            TextButton(onClick = onCredit) { Text("내역", fontSize = 15.sp, color = TextStrong) }
-            Spacer(Modifier.weight(1f))
-            Box(Modifier.background(TextStrong, RoundedCornerShape(50)).clickable(onClick = onCredit).padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text("충전하기", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = White)
-            }
+        if (plan != null) {
+            CurrentTicket(plan, Modifier.clip(TicketShape()).clickable(onClick = onPlan))
+        } else {
+            Box(Modifier.fillMaxWidth().height(150.dp).background(CanvasGray, TicketShape()).clickable(onClick = onPlan))
         }
     }
 }
-
-internal fun formatCredit(won: Long): String = "%,d원".format(won)
 
 @Composable
 private fun Stat(value: String, label: String, modifier: Modifier) {

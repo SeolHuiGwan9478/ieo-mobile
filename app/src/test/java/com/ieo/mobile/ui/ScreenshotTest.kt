@@ -559,6 +559,8 @@ class ScreenshotTest {
         override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType, distanceKm: Int?) = ApiResult.Success(entry)
         override suspend fun addManual(entry: ManualEntry) = ApiResult.Success(entry(9, false, false, "x"))
         override suspend fun deleteEntry(entryId: Long) = ApiResult.Success(Unit)
+        override suspend fun taxInvoice(entryId: Long): ApiResult<com.ieo.mobile.domain.ledger.TaxInvoice> = ApiResult.Failure(com.ieo.mobile.core.network.ApiError.Unexpected)
+        override suspend fun issueTaxInvoice(entryId: Long): ApiResult<com.ieo.mobile.domain.ledger.TaxInvoice> = ApiResult.Failure(com.ieo.mobile.core.network.ApiError.Unexpected)
     }, object : ExpenseRepository {
         override suspend fun expenses(from: LocalDate, to: LocalDate) = ApiResult.Success(listOf(
             Expense(1, day, ExpenseCategory.FUEL, 180_000, null), Expense(2, day, ExpenseCategory.TOLL, 32_000, "대구 톨"), Expense(3, day.minusDays(1), ExpenseCategory.MEAL, 9_000, null),
@@ -827,21 +829,37 @@ class ScreenshotTest {
         shot("M11_my_verified", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 0, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}, documents = documents(approved, approved, approved, approved), record = com.ieo.mobile.domain.document.DriverRecord(true, 37, 1)) })
     }
 
-    @Test
-    fun C01_크레딧() = shot("C01_credit", content = { com.ieo.mobile.ui.credit.CreditScreen(0, emptyList(), onBack = {}) })
+    private fun samplePlan(code: com.ieo.mobile.domain.plan.PlanCode, renews: Boolean = true, trial: Boolean = false): com.ieo.mobile.domain.plan.MyPlan {
+        val options = listOf(
+            com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.BASIC, "베이직", 0, listOf("오더·배차·운행 안내", "대기 증빙 30일 3건", "세금계산서 월 10장")),
+            com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.PRO, "프로", 14_400, listOf("대기 증빙 무제한", "장부 전체 기간·내보내기", "세금계산서 월 40장·자동 발행")),
+        )
+        val paid = code != com.ieo.mobile.domain.plan.PlanCode.BASIC
+        return com.ieo.mobile.domain.plan.MyPlan(
+            code, options.first { it.code == code }.label, options.first { it.code == code }.price, trial, !paid, renews && !trial,
+            if (paid) java.time.LocalDate.of(2026, 12, 12) else null, if (paid) 23 else null,
+            com.ieo.mobile.domain.plan.PlanUsage(2, if (paid) null else 3, 4, if (paid) 40 else 10), options, true,
+        )
+    }
+
+    private fun planVm(plan: com.ieo.mobile.domain.plan.MyPlan) = com.ieo.mobile.ui.plan.PlanViewModel(object : com.ieo.mobile.domain.plan.PlanRepository {
+        override suspend fun mine() = ApiResult.Success(plan)
+        override suspend fun choose(code: com.ieo.mobile.domain.plan.PlanCode) = ApiResult.Success(plan)
+        override suspend fun startTrial() = ApiResult.Success(plan)
+        override suspend fun resume() = ApiResult.Success(plan)
+    })
 
     @Test
-    fun C02_크레딧_내역() = shot("C02_credit_history", content = {
-        com.ieo.mobile.ui.credit.CreditScreen(
-            42_000,
-            listOf(
-                com.ieo.mobile.ui.credit.CreditHistory("크레딧 충전", "11월 8일", 50_000),
-                com.ieo.mobile.ui.credit.CreditHistory("배차 이용료 · 평택 → 대구", "11월 9일", -5_000),
-                com.ieo.mobile.ui.credit.CreditHistory("배차 이용료 · 이천 → 부산", "11월 10일", -3_000),
-            ),
-            onBack = {},
-        )
-    })
+    fun C01_플랜_베이직() {
+        val plan = samplePlan(com.ieo.mobile.domain.plan.PlanCode.BASIC)
+        shot("C01_plan_basic", content = { com.ieo.mobile.ui.plan.PlanScreen(planVm(plan), com.ieo.mobile.ui.plan.PlanState(plan), onBack = {}) })
+    }
+
+    @Test
+    fun C02_플랜_프로() {
+        val plan = samplePlan(com.ieo.mobile.domain.plan.PlanCode.PRO)
+        shot("C02_plan_pro", content = { com.ieo.mobile.ui.plan.PlanScreen(planVm(plan), com.ieo.mobile.ui.plan.PlanState(plan), onBack = {}) })
+    }
 
     @Test
     fun D07_서류_반려_상세() {

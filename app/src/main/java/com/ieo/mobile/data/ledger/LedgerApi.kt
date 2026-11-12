@@ -36,6 +36,12 @@ interface LedgerApi {
     @POST("api/ledger/{entryId}/paid")
     suspend fun markPaid(@Path("entryId") entryId: Long): Response<LedgerEntryResponse>
 
+    @GET("api/ledger/{entryId}/tax-invoice")
+    suspend fun taxInvoice(@Path("entryId") entryId: Long): Response<TaxInvoiceResponse>
+
+    @POST("api/ledger/{entryId}/tax-invoice")
+    suspend fun issueTaxInvoice(@Path("entryId") entryId: Long): Response<TaxInvoiceResponse>
+
     @DELETE("api/ledger/{entryId}")
     suspend fun delete(@Path("entryId") entryId: Long): Response<Unit>
 

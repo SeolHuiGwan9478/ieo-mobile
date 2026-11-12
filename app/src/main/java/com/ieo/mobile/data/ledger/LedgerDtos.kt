@@ -47,6 +47,7 @@ data class LedgerEntryResponse(
     val paid: Boolean = false,
     val overdue: Boolean = false,
     val extraIncomes: List<ExtraIncomeResponse> = emptyList(),
+    val taxInvoiceIssuedAt: String? = null,
 ) {
     fun toDomain() = LedgerEntry(
         id = id,
@@ -62,6 +63,45 @@ data class LedgerEntryResponse(
         paid = paid,
         overdue = overdue,
         extraIncomes = extraIncomes.map(ExtraIncomeResponse::toDomain),
+        taxInvoiceIssuedAt = taxInvoiceIssuedAt?.let(java.time.Instant::parse),
+    )
+}
+
+@Serializable
+data class TaxInvoiceResponse(
+    val ledgerEntryId: Long,
+    val issued: Boolean,
+    val writeDate: String,
+    val supplier: Party,
+    val buyer: Party,
+    val item: String,
+    val fareAmount: Long,
+    val waitFeeAmount: Long,
+    val supplyAmount: Long,
+    val vat: Long,
+    val totalAmount: Long,
+    val missing: List<String> = emptyList(),
+    val provider: String? = null,
+    val approvalNumber: String? = null,
+) {
+    @Serializable
+    data class Party(val businessNumber: String? = null, val name: String? = null, val representative: String? = null)
+
+    fun toDomain() = com.ieo.mobile.domain.ledger.TaxInvoice(
+        entryId = ledgerEntryId,
+        issued = issued,
+        writeDate = LocalDate.parse(writeDate),
+        supplier = com.ieo.mobile.domain.ledger.InvoiceParty(supplier.businessNumber, supplier.name, supplier.representative),
+        buyer = com.ieo.mobile.domain.ledger.InvoiceParty(buyer.businessNumber, buyer.name, buyer.representative),
+        item = item,
+        fareAmount = fareAmount,
+        waitFeeAmount = waitFeeAmount,
+        supplyAmount = supplyAmount,
+        vat = vat,
+        totalAmount = totalAmount,
+        missing = missing,
+        demo = provider == null || provider == "DEMO",
+        approvalNumber = approvalNumber,
     )
 }
 

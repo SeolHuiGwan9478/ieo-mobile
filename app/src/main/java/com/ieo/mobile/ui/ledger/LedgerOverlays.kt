@@ -59,7 +59,9 @@ fun LedgerOverlay(viewModel: LedgerViewModel) {
     val form = state.form
     val entry = state.selected
     DeleteDialog(state.deleting, viewModel)
+    val invoice = state.taxInvoice
     when {
+        invoice != null -> TaxInvoiceScreen(invoice, state.isBusy, state.error, viewModel::closeTaxInvoice, viewModel::issueTaxInvoice)
         form != null -> FormScreen(form, state, viewModel)
         entry != null -> EntryDetail(entry, state, viewModel)
         else -> ReceivablesScreen(state, viewModel)
@@ -96,6 +98,13 @@ private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: Ledge
                 QuietButton("운임·거리 수정", viewModel::openEditFare)
                 // 직접 추가한 줄만 지운다. 운행이 끝나 생긴 줄은 운행 기록과 짝이라 지우지 않는다
                 if (!entry.auto) QuietButton("이 운행 지우기", { viewModel.askDelete(entry) })
+            }
+            // 운송료 세금계산서 (LEDG-041~043): 운행 1건에 1장
+            Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("세금계산서", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                val issuedAt = entry.taxInvoiceIssuedAt?.atZone(java.time.ZoneId.of("Asia/Seoul"))?.toLocalDate()
+                Text(issuedAt?.let { "${it.monthValue}월 ${it.dayOfMonth}일에 발행했어요" } ?: "아직 발행하지 않았어요", fontSize = 15.sp, color = TextMid)
+                QuietButton(if (issuedAt != null) "세금계산서 보기" else "세금계산서 발행", viewModel::openTaxInvoice)
             }
             if (entry.extraIncomes.isNotEmpty()) {
                 Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {

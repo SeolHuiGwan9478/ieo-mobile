@@ -1,5 +1,8 @@
 package com.ieo.mobile.di
 
+import com.ieo.mobile.data.plan.DefaultPlanRepository
+import com.ieo.mobile.data.plan.PlanApi
+import com.ieo.mobile.domain.plan.PlanRepository
 import com.ieo.mobile.data.document.DefaultDocumentRepository
 import com.ieo.mobile.data.document.DocumentApi
 import com.ieo.mobile.domain.document.DocumentRepository
@@ -90,6 +93,8 @@ class AppContainer(context: Context) {
         DefaultLedgerRepository(network.authenticated.create(LedgerApi::class.java), network.caller)
     val expenseRepository: ExpenseRepository =
         DefaultExpenseRepository(network.authenticated.create(ExpenseApi::class.java), network.caller)
+    val planRepository: PlanRepository =
+        DefaultPlanRepository(network.authenticated.create(PlanApi::class.java), network.caller)
     val driverLinkRepository: DriverLinkRepository =
         DefaultDriverLinkRepository(network.authenticated.create(DriverLinkApi::class.java), network.caller)
     val recommendationRepository: RecommendationRepository =

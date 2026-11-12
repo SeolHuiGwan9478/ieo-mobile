@@ -6,7 +6,8 @@ import com.ieo.mobile.ui.component.LineGray
 import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import com.ieo.mobile.ui.credit.CreditScreen
+import com.ieo.mobile.ui.plan.PlanScreen
+import com.ieo.mobile.ui.plan.PlanViewModel
 import com.ieo.mobile.ui.document.DocumentsScreen
 import com.ieo.mobile.ui.document.DocumentsViewModel
 import com.ieo.mobile.ui.proof.ProofScreen
@@ -224,7 +225,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     var managingVehicles by rememberSaveable { mutableStateOf(false) }
     var registering by rememberSaveable { mutableStateOf(false) }
     var managingLinks by rememberSaveable { mutableStateOf(false) }
-    var openingCredit by rememberSaveable { mutableStateOf(false) }
+    var openingPlan by rememberSaveable { mutableStateOf(false) }
     var editingProfile by rememberSaveable { mutableStateOf(false) }
     var accountSection by rememberSaveable { mutableStateOf<AccountSection?>(null) }
     var editingRecommendation by rememberSaveable { mutableStateOf(false) }
@@ -241,6 +242,9 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     val trips: TripsViewModel = viewModel(key = "trips") { TripsViewModel(container.tripRepository) }
     val ledger: LedgerViewModel = viewModel(key = "ledger") { LedgerViewModel(container.ledgerRepository, container.expenseRepository) }
     val ledgerState by ledger.state.collectAsStateWithLifecycle()
+    val plans: PlanViewModel = viewModel(key = "plans") { PlanViewModel(container.planRepository) }
+    val planState by plans.state.collectAsStateWithLifecycle()
+    LaunchedEffect(tab) { if (tab == Tab.MY) plans.load() }
     val orderState by orders.state.collectAsStateWithLifecycle()
     val tripState by trips.state.collectAsStateWithLifecycle()
     val myState by my.state.collectAsStateWithLifecycle()
@@ -315,9 +319,8 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         ProfileEditScreen(profileEdit, onBack = { editingProfile = false }, onSaved = { saved -> my.updated(saved); editingProfile = false })
         return
     }
-    if (openingCredit) {
-        // 크레딧은 아직 화면만 있다 (서버·결제 연결 전)
-        CreditScreen(balance = 0, history = emptyList(), onBack = { openingCredit = false })
+    if (openingPlan) {
+        PlanScreen(plans, planState, onBack = { openingPlan = false })
         return
     }
     if (managingLinks) {
@@ -380,8 +383,8 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                     onAddVehicle = { managingVehicles = true },
                 )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
-                Tab.EARNINGS -> LedgerScreen(ledger)
-                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, onCredit = { openingCredit = true }, onEditProfile = {
+                Tab.EARNINGS -> LedgerScreen(ledger, onPlan = { openingPlan = true })
+                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, plan = planState.plan, onPlan = { openingPlan = true }, onEditProfile = {
                     myState.account?.let { account ->
                         profileEdit.start(account)
                         editingProfile = true

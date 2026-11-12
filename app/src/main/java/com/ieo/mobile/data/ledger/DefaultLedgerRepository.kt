@@ -9,6 +9,7 @@ import com.ieo.mobile.domain.ledger.LedgerRepository
 import com.ieo.mobile.domain.ledger.ManualEntry
 import com.ieo.mobile.domain.trip.PaymentType
 import com.ieo.mobile.domain.ledger.Receivables
+import com.ieo.mobile.domain.ledger.TaxInvoice
 import java.time.LocalDate
 
 class DefaultLedgerRepository(
@@ -47,4 +48,10 @@ class DefaultLedgerRepository(
         caller.call { api.addManual(CreateLedgerEntryRequest.from(entry)) }.mapResponse { it.toDomain() }
 
     override suspend fun deleteEntry(entryId: Long): ApiResult<Unit> = caller.callNoContent { api.delete(entryId) }
+
+    override suspend fun taxInvoice(entryId: Long): ApiResult<TaxInvoice> =
+        caller.call { api.taxInvoice(entryId) }.mapResponse { it.toDomain() }
+
+    override suspend fun issueTaxInvoice(entryId: Long): ApiResult<TaxInvoice> =
+        caller.call { api.issueTaxInvoice(entryId) }.mapResponse { it.toDomain() }
 }
