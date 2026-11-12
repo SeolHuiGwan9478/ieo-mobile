@@ -23,8 +23,8 @@ interface LedgerRepository {
     /** 대기비를 받았음 / 아직 못 받음으로 되돌림 */
     suspend fun setExtraIncomePaid(extraIncomeId: Long, paid: Boolean): ApiResult<Unit>
 
-    /** 운임·결제 방식 고치기 (LEDG-003). 지급 예정일은 그대로 둔다 */
-    suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType): ApiResult<LedgerEntry>
+    /** 운임·결제 방식·주행거리 고치기 (LEDG-003). 지급 예정일은 그대로 둔다. 거리를 비우면 지운다 */
+    suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType, distanceKm: Int?): ApiResult<LedgerEntry>
 
     /** Ieo로 등록하지 않은 운행 직접 추가 (LEDG-004). 지급 예정일은 서버가 결제 방식으로 정한다 */
     suspend fun addManual(entry: ManualEntry): ApiResult<LedgerEntry>
@@ -36,4 +36,6 @@ data class ManualEntry(
     val fare: Long,
     val paymentType: PaymentType,
     val brokerName: String?,
+    /** 주행거리(km). 모르면 null */
+    val distanceKm: Int? = null,
 )

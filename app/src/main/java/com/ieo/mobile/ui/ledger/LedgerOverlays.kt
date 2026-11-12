@@ -92,7 +92,7 @@ private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: Ledge
                 entry.expectedPaymentDate?.let { AmountLine("지급 예정일", "${it.monthValue}월 ${it.dayOfMonth}일") }
                 entry.distanceKm?.let { AmountLine("거리", "${it}km") }
                 entry.waitMinutes?.let { AmountLine("대기", "${it}분") }
-                QuietButton("운임 고치기", viewModel::openEditFare)
+                QuietButton("운임·거리 고치기", viewModel::openEditFare)
             }
             if (entry.extraIncomes.isNotEmpty()) {
                 Column(Modifier.fillMaxWidth().ruled().padding(vertical = 14.dp)) {
@@ -158,7 +158,7 @@ private fun FormScreen(form: LedgerForm, state: LedgerState, viewModel: LedgerVi
     val title = when (form.kind) {
         FormKind.EXPENSE -> "얼마 쓰셨어요?"
         FormKind.MANUAL -> "어떤 운행이었어요?"
-        FormKind.EDIT_FARE -> "운임을 고칠게요"
+        FormKind.EDIT_FARE -> "장부를 고칠게요"
     }
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding().imePadding()) {
         BackBar("", viewModel)
@@ -198,6 +198,11 @@ private fun FormScreen(form: LedgerForm, state: LedgerState, viewModel: LedgerVi
                 }
                 Spacer(Modifier.height(18.dp))
                 FormField(form.brokerName, { value -> viewModel.editForm { it.copy(brokerName = value.take(50)) } }, "주선사 (없으면 비워 두세요)")
+            }
+            // 운행을 마칠 때 차가 자동으로 재지만, 틀리거나 비었으면 여기서 고친다
+            if (form.kind != FormKind.EXPENSE) {
+                Spacer(Modifier.height(18.dp))
+                FormField(form.distance, { value -> viewModel.editForm { it.copy(distance = value.filter(Char::isDigit).take(4)) } }, "주행거리 km (모르면 비워 두세요)", KeyboardType.Number)
             }
             state.error?.let {
                 Spacer(Modifier.height(12.dp))

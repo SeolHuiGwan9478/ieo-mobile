@@ -40,7 +40,10 @@ data class LedgerForm(
     val description: String = "",
     val paymentType: PaymentType = PaymentType.RECEIPT,
     val brokerName: String = "",
+    /** 주행거리(km). 비우면 모르는 것으로 */
+    val distance: String = "",
 ) {
+    val distanceValue: Int? get() = distance.toIntOrNull()?.takeIf { it > 0 }
     val amountValue: Long get() = amount.toLongOrNull() ?: 0
     val canSave: Boolean
         get() = amountValue > 0 && (kind != FormKind.MANUAL || description.isNotBlank())
@@ -164,7 +167,7 @@ class LedgerViewModel(
 
     fun openEditFare() {
         val entry = _state.value.selected ?: return
-        openForm(LedgerForm(FormKind.EDIT_FARE, amount = entry.fare.toString(), paymentType = entry.paymentType))
+        openForm(LedgerForm(FormKind.EDIT_FARE, amount = entry.fare.toString(), paymentType = entry.paymentType, distance = entry.distanceKm?.toString().orEmpty()))
     }
 
     private fun openForm(form: LedgerForm) = _state.update { it.copy(form = form, error = null) }
@@ -209,9 +212,10 @@ class LedgerViewModel(
                         fare = form.amountValue,
                         paymentType = form.paymentType,
                         brokerName = form.brokerName.trim().ifEmpty { null },
+                        distanceKm = form.distanceValue,
                     ),
                 ).toUnit()
-                FormKind.EDIT_FARE -> ledger.update(entry!!, form.amountValue, form.paymentType).toUnit()
+                FormKind.EDIT_FARE -> ledger.update(entry!!, form.amountValue, form.paymentType, form.distanceValue).toUnit()
             }
         })
     }

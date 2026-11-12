@@ -556,7 +556,7 @@ class ScreenshotTest {
         )
         override suspend fun setPaid(entryId: Long, paid: Boolean) = ApiResult.Success(entry(1, paid, false, "△△로지스"))
         override suspend fun setExtraIncomePaid(extraIncomeId: Long, paid: Boolean) = ApiResult.Success(Unit)
-        override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType) = ApiResult.Success(entry)
+        override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType, distanceKm: Int?) = ApiResult.Success(entry)
         override suspend fun addManual(entry: ManualEntry) = ApiResult.Success(entry(9, false, false, "x"))
     }, object : ExpenseRepository {
         override suspend fun expenses(from: LocalDate, to: LocalDate) = ApiResult.Success(listOf(

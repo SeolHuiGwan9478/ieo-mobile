@@ -51,6 +51,7 @@ class LedgerViewModelTest {
         val calls = mutableListOf<String>()
         var manual: ManualEntry? = null
         var updated: Pair<Long, PaymentType>? = null
+        var updatedDistance: Int? = null
         override suspend fun today() = ApiResult.Success(DailySummary(this@LedgerViewModelTest.today, 0, 0))
         override suspend fun export(from: java.time.LocalDate, to: java.time.LocalDate): ApiResult<ByteArray> = ApiResult.Success(byteArrayOf(1, 2))
         override suspend fun receivables() = ApiResult.Success(Receivables(400_000, 0, 30_000, listOf(entry(1))))
@@ -63,8 +64,9 @@ class LedgerViewModelTest {
             return result
         }
         override suspend fun setExtraIncomePaid(extraIncomeId: Long, paid: Boolean) = ApiResult.Success(Unit)
-        override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType): ApiResult<LedgerEntry> {
+        override suspend fun update(entry: LedgerEntry, fare: Long, paymentType: PaymentType, distanceKm: Int?): ApiResult<LedgerEntry> {
             updated = fare to paymentType
+            updatedDistance = distanceKm
             return ApiResult.Success(entry)
         }
         override suspend fun addManual(entry: ManualEntry): ApiResult<LedgerEntry> {
@@ -207,10 +209,11 @@ class LedgerViewModelTest {
         vm.openManual()
         vm.onAmount("300000")
         assertFalse(vm.state.value.form!!.canSave)
-        vm.editForm { it.copy(description = "평택 → 대구", yesterday = true) }
+        vm.editForm { it.copy(description = "평택 → 대구", yesterday = true, distance = "312") }
         vm.saveForm()
         advanceUntilIdle()
         assertEquals(today.minusDays(1), fake.manual?.workDate)
+        assertEquals(312, fake.manual?.distanceKm)
     }
 
     @Test
@@ -222,10 +225,13 @@ class LedgerViewModelTest {
         vm.openEditFare()
         assertEquals(FormKind.EDIT_FARE, vm.state.value.form?.kind)
         assertEquals("400000", vm.state.value.form?.amount)
+        assertEquals("", vm.state.value.form?.distance)
         vm.onAmount("420000")
+        vm.editForm { it.copy(distance = "305") }
         vm.saveForm()
         advanceUntilIdle()
         assertEquals(420_000L to PaymentType.RECEIPT, fake.updated)
+        assertEquals(305, fake.updatedDistance)
     }
 
     @Test
