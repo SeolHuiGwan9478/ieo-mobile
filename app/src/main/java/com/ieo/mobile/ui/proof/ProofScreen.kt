@@ -332,7 +332,7 @@ private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, onEdit: () ->
         val amount = (record.chargeableAmount ?: 0) > 0
         Text(waitChargeText(record), fontSize = 16.sp, lineHeight = 23.sp, fontWeight = if (amount) FontWeight.Bold else FontWeight.Normal, color = if (amount) IeoStatus.colors.done else TextMid)
         StepTimeline(listOf("도착" to labels.time(record.arrivedAt), "작업" to record.workStartedAt?.let(labels::time), "출발" to record.departedAt?.let(labels::time)))
-        QuietButton("시각 고치기", onEdit)
+        QuietButton("시각 수정", onEdit)
     }
 }
 

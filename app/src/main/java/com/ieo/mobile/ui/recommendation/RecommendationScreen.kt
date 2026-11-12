@@ -120,7 +120,7 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
             confirmButton = {
                 TextButton(onClick = { leaving = false; viewModel.discard(); onBack() }) { Text("나가기", fontSize = 16.sp, color = IeoStatus.colors.warning) }
             },
-            dismissButton = { TextButton(onClick = { leaving = false }) { Text("계속 고치기", fontSize = 16.sp, color = TextMid) } },
+            dismissButton = { TextButton(onClick = { leaving = false }) { Text("계속 수정", fontSize = 16.sp, color = TextMid) } },
         )
     }
 }

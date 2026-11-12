@@ -112,7 +112,7 @@ class ProofViewModel(private val repository: ProofRepository) : ViewModel() {
     fun editWait(record: WaitRecord, times: WaitTimes) = run(ProofAction.EditWait(record.stopType)) { tripId ->
         when (val result = repository.editWait(tripId, record.stopType, times)) {
             is ApiResult.Success -> _state.update { state ->
-                state.copy(waits = state.waits.map { if (it.stopType == record.stopType) result.data else it }, message = "시각을 고쳤어요")
+                state.copy(waits = state.waits.map { if (it.stopType == record.stopType) result.data else it }, message = "시각을 수정했어요")
             }
             is ApiResult.Failure -> fail(result.error.message)
         }

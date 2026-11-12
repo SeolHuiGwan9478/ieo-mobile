@@ -93,7 +93,7 @@ private fun EntryDetail(entry: LedgerEntry, state: LedgerState, viewModel: Ledge
                 entry.expectedPaymentDate?.let { AmountLine("지급 예정일", "${it.monthValue}월 ${it.dayOfMonth}일") }
                 entry.distanceKm?.let { AmountLine("거리", "${it}km") }
                 entry.waitMinutes?.let { AmountLine("대기", "${it}분") }
-                QuietButton("운임·거리 고치기", viewModel::openEditFare)
+                QuietButton("운임·거리 수정", viewModel::openEditFare)
                 // 직접 추가한 줄만 지운다. 운행이 끝나 생긴 줄은 운행 기록과 짝이라 지우지 않는다
                 if (!entry.auto) QuietButton("이 운행 지우기", { viewModel.askDelete(entry) })
             }
@@ -161,7 +161,7 @@ private fun FormScreen(form: LedgerForm, state: LedgerState, viewModel: LedgerVi
     val title = when (form.kind) {
         FormKind.EXPENSE -> "얼마 쓰셨어요?"
         FormKind.MANUAL -> "어떤 운행이었어요?"
-        FormKind.EDIT_FARE -> "장부를 고칠게요"
+        FormKind.EDIT_FARE -> "장부를 수정할게요"
     }
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding().imePadding()) {
         BackBar("", viewModel)

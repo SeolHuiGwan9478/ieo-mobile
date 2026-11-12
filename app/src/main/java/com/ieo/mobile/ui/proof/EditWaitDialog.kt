@@ -39,10 +39,10 @@ fun EditWaitDialog(record: WaitRecord, labels: DayTimeFormatter, onSave: (WaitTi
     var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("대기 시각 고치기") },
+        title = { Text("대기 시각 수정") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("고치면 주선사가 보는 증빙에 '수정됨'과 원래 시각이 함께 남아요.", fontSize = 15.sp, lineHeight = 22.sp, color = TextMid)
+                Text("수정하면 주선사가 보는 증빙에 '수정됨'과 원래 시각이 함께 남아요.", fontSize = 15.sp, lineHeight = 22.sp, color = TextMid)
                 TimeField("도착", arrived) { arrived = it; error = null }
                 TimeField("작업 시작 (없으면 비워 두기)", work) { work = it; error = null }
                 TimeField("출발 (없으면 비워 두기)", depart) { depart = it; error = null }
@@ -54,7 +54,7 @@ fun EditWaitDialog(record: WaitRecord, labels: DayTimeFormatter, onSave: (WaitTi
                 WaitTimeInput.resolve(record.arrivedAt, arrived, work, depart, Instant.now())
                     .onSuccess(onSave)
                     .onFailure { error = it.message }
-            }) { Text("고치기", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong) }
+            }) { Text("수정", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("취소", fontSize = 16.sp, color = TextMid) } },
     )

@@ -105,7 +105,7 @@ private fun ExportDialog(format: ExportFormat, viewModel: LedgerViewModel) {
                     }
                 }
                 Text(
-                    if (format == ExportFormat.PDF) "보관하거나 주선사·세무사에게 보낼 때. 합계와 운행·경비 표가 들어가요" else "세금 신고용. 엑셀에서 열어 고칠 수 있어요",
+                    if (format == ExportFormat.PDF) "보관하거나 주선사·세무사에게 보낼 때. 합계와 운행·경비 표가 들어가요" else "세금 신고용. 엑셀에서 열어 수정할 수 있어요",
                     fontSize = 14.sp, lineHeight = 20.sp, color = TextMid,
                 )
                 Text("어느 기간을 내보낼까요?", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 4.dp))
