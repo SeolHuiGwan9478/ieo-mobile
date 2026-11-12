@@ -18,12 +18,15 @@ class PlanAndInvoiceDtoTest {
         val body = """{"plan":"PRO","planLabel":"프로","price":9900,"trial":true,"trialAvailable":false,"renews":false,
             "paidUntil":"2026-12-12","daysLeft":30,"features":["LEDGER_HISTORY"],
             "usage":{"waitProofsSent":1,"waitProofLimit":null,"taxInvoicesThisMonth":2,"taxInvoiceLimit":null},
-            "plans":[{"code":"BASIC","label":"베이직","price":0,"highlights":["a","b","c"]}],"demoPayment":true}"""
+            "plans":[{"code":"BASIC","label":"베이직","price":0,"highlights":["a","b","c"]}],
+            "coupons":[{"id":5,"days":3,"reason":"주선사 늦은 취소","issuedAt":"2026-11-12T16:30:00Z","expiresOn":"2027-02-11","usedAt":null,"usable":true}],"demoPayment":true}"""
         val plan = json.decodeFromString<DriverPlanResponse>(body).toDomain()
         assertEquals(PlanCode.PRO, plan.plan)
         assertEquals(30, plan.daysLeft)
         assertEquals(null, plan.usage.waitProofLimit)
         assertTrue(plan.trial)
+        assertEquals(java.time.LocalDate.of(2026, 11, 13), plan.coupons.single().issuedOn)
+        assertTrue(plan.coupons.single().usable)
     }
 
     @Test

@@ -9,6 +9,12 @@ enum class PlanCode { BASIC, PRO }
 /** 플랜 하나. highlights는 티켓에 적는 세 줄 */
 data class PlanOption(val code: PlanCode, val label: String, val price: Int, val highlights: List<String>)
 
+/**
+ * 보상 쿠폰 (주선사 늦은 취소). [사용하기]를 눌러야 프로 이용일이 더해진다.
+ * used면 쓴 것, used도 usable도 아니면 기간이 지난 것
+ */
+data class PlanCoupon(val id: Long, val days: Int, val reason: String, val issuedOn: LocalDate, val expiresOn: LocalDate, val used: Boolean, val usable: Boolean)
+
 /** 한도. null이면 무제한 */
 data class PlanUsage(val waitProofsSent: Long, val waitProofLimit: Int?, val taxInvoicesThisMonth: Long, val taxInvoiceLimit: Int?)
 
@@ -23,11 +29,15 @@ data class MyPlan(
     val trial: Boolean,
     val trialAvailable: Boolean,
     val renews: Boolean,
+    /** 쿠폰으로 받은 프로 이용일로만 쓰는 중. 끝나면 결제 없이 베이직 */
+    val gift: Boolean,
     val paidUntil: LocalDate?,
     val daysLeft: Int?,
     val usage: PlanUsage,
     val options: List<PlanOption>,
     val demoPayment: Boolean,
+    /** 보상 쿠폰, 최근 받은 것 먼저 */
+    val coupons: List<PlanCoupon> = emptyList(),
 ) {
     val paid: Boolean get() = plan != PlanCode.BASIC
 }
@@ -44,4 +54,7 @@ interface PlanRepository {
 
     /** 해지 취소 */
     suspend fun resume(): ApiResult<MyPlan>
+
+    /** 보상 쿠폰 쓰기: 프로 이용일이 지금 플랜 끝에 더해진다 */
+    suspend fun useCoupon(couponId: Long): ApiResult<MyPlan>
 }

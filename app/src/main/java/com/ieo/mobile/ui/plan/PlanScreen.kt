@@ -1,5 +1,7 @@
 package com.ieo.mobile.ui.plan
 
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -65,6 +67,16 @@ fun PlanScreen(viewModel: PlanViewModel, state: PlanState, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     LaunchedEffect(Unit) { viewModel.load() }
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
+    var showingGuide by rememberSaveable { mutableStateOf(false) }
+    var showingCoupons by rememberSaveable { mutableStateOf(false) }
+    if (showingCoupons) {
+        CouponBoxScreen(viewModel, state, onBack = { showingCoupons = false })
+        return
+    }
+    if (showingGuide) {
+        PlanGuideScreen(onBack = { showingGuide = false })
+        return
+    }
 
     Column(Modifier.fillMaxSize().background(White).safeDrawingPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)) {
@@ -86,6 +98,7 @@ fun PlanScreen(viewModel: PlanViewModel, state: PlanState, onBack: () -> Unit) {
             CurrentTicket(plan)
             StatusLine(plan, onResume = viewModel::resume)
             if (plan.usage.waitProofLimit != null || plan.usage.taxInvoiceLimit != null) UsageLine(plan)
+            CouponRow(plan.coupons.count { it.usable }, onClick = { showingCoupons = true })
 
             Text("플랜 고르기", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.padding(top = 28.dp, bottom = 4.dp))
             Text("30일 단위예요. 운행 건마다 돈을 받지 않아요.", fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(bottom = 12.dp))
@@ -95,6 +108,8 @@ fun PlanScreen(viewModel: PlanViewModel, state: PlanState, onBack: () -> Unit) {
                 OptionActions(option, plan, state.busy, onChoose = viewModel::choose, onTrial = viewModel::startTrial, onCancel = { confirmCancel = true })
                 Spacer(Modifier.height(18.dp))
             }
+            GuideRow(onClick = { showingGuide = true })
+            Spacer(Modifier.height(24.dp))
         }
         if (state.message != null || state.error != null) {
             val isError = state.error != null
@@ -146,12 +161,13 @@ private fun StatusLine(plan: MyPlan, onResume: () -> Unit) {
     val until = plan.paidUntil?.let(::dayLabel)
     val text = when {
         !plan.paid -> "베이직은 늘 무료예요. 필요한 기능이 생기면 프로로 바꿔 보세요."
+        plan.gift -> "쿠폰으로 받은 프로예요. ${until}까지 쓰고 결제 없이 베이직으로 돌아가요."
         plan.trial -> "무료 체험 중이에요. ${until}에 끝나면 결제 없이 베이직으로 돌아가요."
         plan.renews -> "${until}에 ${priceLabel(plan.price)}이 다시 결제돼요 (시연용)."
         else -> "해지했어요. ${until}까지 쓰고 베이직으로 바뀌어요."
     }
     Text(text, fontSize = 15.sp, color = TextMid, modifier = Modifier.padding(top = 10.dp))
-    if (plan.paid && !plan.trial && !plan.renews) {
+    if (plan.paid && !plan.trial && !plan.renews && !plan.gift) {
         TextButton(onClick = onResume) { Text("해지 취소", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Orange700) }
     }
 }
@@ -171,6 +187,7 @@ private fun OptionActions(option: PlanOption, plan: MyPlan, busy: Boolean, onCho
     val current = option.code == plan.plan
     Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
+            current && plan.gift -> PrimaryButton("프로 구독하기 · ${priceLabel(option.price)}", { onChoose(option.code) }, busy = busy)
             current && plan.paid && plan.renews && !plan.trial -> TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
                 Text("해지하기", fontSize = 15.sp, color = TextSub)
             }
@@ -193,3 +210,33 @@ private fun OptionActions(option: PlanOption, plan: MyPlan, busy: Boolean, onCho
 }
 
 internal fun dayLabel(day: LocalDate) = "${day.monthValue}월 ${day.dayOfMonth}일"
+
+
+/** 쿠폰함으로 가는 줄: 쓸 수 있는 쿠폰 수 */
+@Composable
+private fun CouponRow(usable: Int, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, LineGray, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("쿠폰함", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+        Text(if (usable > 0) "쓸 수 있는 쿠폰 ${usable}장" else "쿠폰 없음", fontSize = 15.sp, fontWeight = if (usable > 0) FontWeight.Bold else FontWeight.Normal,
+            color = if (usable > 0) Orange700 else TextSub)
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub)
+    }
+}
+
+/** 화면 맨 아래 "?" 줄. 누르면 요금·결제 안내(설명서)를 연다 */
+@Composable
+private fun GuideRow(onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)).background(CanvasGray).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Outlined.HelpOutline, contentDescription = null, tint = TextMid, modifier = Modifier.size(22.dp))
+        Text("요금·결제 안내", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f).padding(start = 10.dp))
+        Text("결제·해지·환불·쿠폰", fontSize = 14.sp, color = TextSub)
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub)
+    }
+}

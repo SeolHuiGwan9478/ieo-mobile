@@ -829,16 +829,20 @@ class ScreenshotTest {
         shot("M11_my_verified", content = { MyScreen(vm, VehiclesState(vehicles = listOf(sample)), 2, 0, "켬 · 30km", onVehicles = {}, onLinks = {}, onRecommendation = {}, documents = documents(approved, approved, approved, approved), record = com.ieo.mobile.domain.document.DriverRecord(true, 37, 1)) })
     }
 
-    private fun samplePlan(code: com.ieo.mobile.domain.plan.PlanCode, renews: Boolean = true, trial: Boolean = false): com.ieo.mobile.domain.plan.MyPlan {
+    private fun samplePlan(code: com.ieo.mobile.domain.plan.PlanCode, renews: Boolean = true, trial: Boolean = false, gift: Boolean = false): com.ieo.mobile.domain.plan.MyPlan {
         val options = listOf(
             com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.BASIC, "베이직", 0, listOf("오더·배차·운행 안내", "대기 증빙 30일 3건", "세금계산서 월 10장")),
             com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.PRO, "프로", 14_400, listOf("대기 증빙 무제한", "장부 전체 기간·내보내기", "세금계산서 월 40장·자동 발행")),
         )
         val paid = code != com.ieo.mobile.domain.plan.PlanCode.BASIC
         return com.ieo.mobile.domain.plan.MyPlan(
-            code, options.first { it.code == code }.label, options.first { it.code == code }.price, trial, !paid, renews && !trial,
-            if (paid) java.time.LocalDate.of(2026, 12, 12) else null, if (paid) 23 else null,
+            code, options.first { it.code == code }.label, options.first { it.code == code }.price, trial, !paid, renews && !trial && !gift, gift,
+            if (paid) java.time.LocalDate.of(2026, 12, 12) else null, if (paid) (if (gift) 3 else 23) else null,
             com.ieo.mobile.domain.plan.PlanUsage(2, if (paid) null else 3, 4, if (paid) 40 else 10), options, true,
+            if (gift) listOf(
+                com.ieo.mobile.domain.plan.PlanCoupon(2, 3, "주선사 늦은 취소", java.time.LocalDate.of(2026, 11, 13), java.time.LocalDate.of(2027, 2, 11), used = false, usable = true),
+                com.ieo.mobile.domain.plan.PlanCoupon(1, 3, "주선사 늦은 취소", java.time.LocalDate.of(2026, 11, 2), java.time.LocalDate.of(2027, 1, 31), used = true, usable = false),
+            ) else emptyList(),
         )
     }
 
@@ -847,6 +851,7 @@ class ScreenshotTest {
         override suspend fun choose(code: com.ieo.mobile.domain.plan.PlanCode) = ApiResult.Success(plan)
         override suspend fun startTrial() = ApiResult.Success(plan)
         override suspend fun resume() = ApiResult.Success(plan)
+        override suspend fun useCoupon(couponId: Long) = ApiResult.Success(plan)
     })
 
     @Test
@@ -860,6 +865,23 @@ class ScreenshotTest {
         val plan = samplePlan(com.ieo.mobile.domain.plan.PlanCode.PRO)
         shot("C02_plan_pro", content = { com.ieo.mobile.ui.plan.PlanScreen(planVm(plan), com.ieo.mobile.ui.plan.PlanState(plan), onBack = {}) })
     }
+
+    @Test
+    fun C03_플랜_보상() {
+        val plan = samplePlan(com.ieo.mobile.domain.plan.PlanCode.PRO, gift = true)
+        shot("C03_plan_bonus", content = { com.ieo.mobile.ui.plan.PlanScreen(planVm(plan), com.ieo.mobile.ui.plan.PlanState(plan), onBack = {}) })
+    }
+
+    @Test
+    fun C05_쿠폰함() {
+        val plan = samplePlan(com.ieo.mobile.domain.plan.PlanCode.PRO, gift = true)
+        shot("C05_coupon_box", content = {
+            com.ieo.mobile.ui.plan.CouponBoxScreen(planVm(plan), com.ieo.mobile.ui.plan.PlanState(plan), onBack = {}, today = java.time.LocalDate.of(2026, 11, 13))
+        })
+    }
+
+    @Test
+    fun C04_요금_결제_안내() = shot("C04_plan_guide", content = { com.ieo.mobile.ui.plan.PlanGuideScreen(onBack = {}) })
 
     @Test
     fun D07_서류_반려_상세() {

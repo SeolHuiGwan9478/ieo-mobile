@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.domain.plan.MyPlan
 import com.ieo.mobile.domain.plan.PlanCode
+import com.ieo.mobile.domain.plan.PlanCoupon
 import com.ieo.mobile.domain.plan.PlanRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,10 @@ class PlanViewModel(private val plans: PlanRepository) : ViewModel() {
     fun startTrial() = act({ plans.startTrial() }) { "프로 30일 무료 체험을 시작했어요" }
 
     fun resume() = act({ plans.resume() }) { "해지를 취소했어요. 계속 ${it.label}을 써요" }
+
+    fun useCoupon(coupon: PlanCoupon) = act({ plans.useCoupon(coupon.id) }) { plan ->
+        "프로 ${coupon.days}일을 더했어요. ${plan.paidUntil?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: ""}까지 프로를 써요"
+    }
 
     fun clearMessage() = _state.update { it.copy(message = null, error = null) }
 

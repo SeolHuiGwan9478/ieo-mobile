@@ -20,4 +20,7 @@ class DefaultPlanRepository(
     override suspend fun startTrial(): ApiResult<MyPlan> = caller.call { api.startTrial() }.mapResponse { it.toDomain() }
 
     override suspend fun resume(): ApiResult<MyPlan> = caller.call { api.resume() }.mapResponse { it.toDomain() }
+
+    override suspend fun useCoupon(couponId: Long): ApiResult<MyPlan> = caller.call { api.useCoupon(couponId) }.mapResponse { it.toDomain() }
+
 }

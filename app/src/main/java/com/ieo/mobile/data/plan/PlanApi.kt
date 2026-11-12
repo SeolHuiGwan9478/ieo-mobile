@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 
 interface PlanApi {
 
@@ -19,4 +20,7 @@ interface PlanApi {
 
     @POST("api/plans/me/resume")
     suspend fun resume(): Response<DriverPlanResponse>
+
+    @POST("api/plans/me/coupons/{couponId}/use")
+    suspend fun useCoupon(@Path("couponId") couponId: Long): Response<DriverPlanResponse>
 }

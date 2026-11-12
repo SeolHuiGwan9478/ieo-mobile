@@ -1,6 +1,7 @@
 package com.ieo.mobile.data.plan
 
 import com.ieo.mobile.domain.plan.MyPlan
+import com.ieo.mobile.domain.plan.PlanCoupon
 import com.ieo.mobile.domain.plan.PlanCode
 import com.ieo.mobile.domain.plan.PlanOption
 import com.ieo.mobile.domain.plan.PlanUsage
@@ -18,12 +19,25 @@ data class DriverPlanResponse(
     val trial: Boolean,
     val trialAvailable: Boolean,
     val renews: Boolean,
+    val gift: Boolean = false,
     val paidUntil: String? = null,
     val daysLeft: Int? = null,
     val usage: UsageResponse,
     val plans: List<OptionResponse>,
+    val coupons: List<CouponResponse> = emptyList(),
     val demoPayment: Boolean,
 ) {
+    @Serializable
+    data class CouponResponse(
+        val id: Long,
+        val days: Int,
+        val reason: String,
+        val issuedAt: String,
+        val expiresOn: String,
+        val usedAt: String? = null,
+        val usable: Boolean = false,
+    )
+
     @Serializable
     data class UsageResponse(val waitProofsSent: Long, val waitProofLimit: Int? = null, val taxInvoicesThisMonth: Long, val taxInvoiceLimit: Int? = null)
 
@@ -37,10 +51,16 @@ data class DriverPlanResponse(
         trial = trial,
         trialAvailable = trialAvailable,
         renews = renews,
+        gift = gift,
         paidUntil = paidUntil?.let(LocalDate::parse),
         daysLeft = daysLeft,
         usage = PlanUsage(usage.waitProofsSent, usage.waitProofLimit, usage.taxInvoicesThisMonth, usage.taxInvoiceLimit),
         options = plans.map { PlanOption(PlanCode.valueOf(it.code), it.label, it.price, it.highlights) },
         demoPayment = demoPayment,
+        coupons = coupons.map {
+            PlanCoupon(it.id, it.days, it.reason, java.time.Instant.parse(it.issuedAt).atZone(java.time.ZoneId.of("Asia/Seoul")).toLocalDate(),
+                LocalDate.parse(it.expiresOn), it.usedAt != null, it.usable)
+        },
     )
 }
+

@@ -6,6 +6,7 @@ import com.ieo.mobile.ui.component.LineGray
 import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.ieo.mobile.ui.plan.CouponBoxScreen
 import com.ieo.mobile.ui.plan.PlanScreen
 import com.ieo.mobile.ui.plan.PlanViewModel
 import com.ieo.mobile.ui.document.DocumentsScreen
@@ -226,6 +227,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     var registering by rememberSaveable { mutableStateOf(false) }
     var managingLinks by rememberSaveable { mutableStateOf(false) }
     var openingPlan by rememberSaveable { mutableStateOf(false) }
+    var openingCoupons by rememberSaveable { mutableStateOf(false) }
     var editingProfile by rememberSaveable { mutableStateOf(false) }
     var accountSection by rememberSaveable { mutableStateOf<AccountSection?>(null) }
     var editingRecommendation by rememberSaveable { mutableStateOf(false) }
@@ -323,6 +325,10 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         PlanScreen(plans, planState, onBack = { openingPlan = false })
         return
     }
+    if (openingCoupons) {
+        CouponBoxScreen(plans, planState, onBack = { openingCoupons = false })
+        return
+    }
     if (managingLinks) {
         LinksScreen(links, onBack = { managingLinks = false })
         return
@@ -384,7 +390,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                 )
                 Tab.TRIPS -> TripsScreen(trips, onRegister = { registering = true })
                 Tab.EARNINGS -> LedgerScreen(ledger, onPlan = { openingPlan = true })
-                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, plan = planState.plan, onPlan = { openingPlan = true }, onEditProfile = {
+                Tab.MY -> MyScreen(my, vehicleState, linkState.links.size, linkState.invitations.size, recommendationState.saved?.summary, onVehicles = { managingVehicles = true }, onLinks = { managingLinks = true }, carSessionCount = accountSettingsState.carSessions.size, onAccountSection = { accountSection = it }, onRecommendation = { editingRecommendation = true }, documents = documentState.documents, onDocuments = documents::open, record = documentState.record, plan = planState.plan, onPlan = { openingPlan = true }, onCoupons = { openingCoupons = true }, onEditProfile = {
                     myState.account?.let { account ->
                         profileEdit.start(account)
                         editingProfile = true

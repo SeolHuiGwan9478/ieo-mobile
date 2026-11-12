@@ -77,7 +77,7 @@ import com.ieo.mobile.ui.vehicle.VehiclesState
  * 자주 쓰는 바로가기 네 칸, 그리고 묶음별 메뉴. 메뉴마다 그림을 붙여 글을 덜 읽어도 찾게 한다
  */
 @Composable
-fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, plan: MyPlan? = null, onPlan: () -> Unit = {}, onEditProfile: () -> Unit = {}) {
+fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, invitationCount: Int, recommendationSummary: String?, onVehicles: () -> Unit, onLinks: () -> Unit, onRecommendation: () -> Unit, carSessionCount: Int = 0, onAccountSection: (AccountSection) -> Unit = {}, documents: DriverDocuments? = null, onDocuments: () -> Unit = {}, record: DriverRecord? = null, plan: MyPlan? = null, onPlan: () -> Unit = {}, onCoupons: () -> Unit = {}, onEditProfile: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var withdrawing by remember { mutableStateOf(false) }
     val name = state.account?.name.orEmpty()
@@ -101,7 +101,7 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
         }
 
         // 내 플랜 티켓 (크레딧 대신 30일 플랜, 2026-11-12)
-        PlanCard(plan, onPlan)
+        PlanCard(plan, onPlan, onCoupons)
         Spacer(Modifier.height(12.dp))
 
         // 주선사에게 보이는 내 기록
@@ -164,10 +164,13 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
 
 /** 지금 내 플랜 티켓. 누르면 플랜 화면 (PLAN-007). 아직 못 불러왔으면 자리만 둔다 */
 @Composable
-private fun PlanCard(plan: MyPlan?, onPlan: () -> Unit) {
+private fun PlanCard(plan: MyPlan?, onPlan: () -> Unit, onCoupons: () -> Unit) {
     Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("내 플랜", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
+            // 쓸 수 있는 보상 쿠폰이 있으면 쿠폰함으로 바로 (DSP-034)
+            val usable = plan?.coupons?.count { it.usable } ?: 0
+            if (usable > 0) TextButton(onClick = onCoupons) { Text("쿠폰 ${usable}장", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Orange700) }
             TextButton(onClick = onPlan) { Text("플랜 보기", fontSize = 15.sp, color = TextSub) }
         }
         if (plan != null) {
