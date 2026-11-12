@@ -5,6 +5,7 @@ import com.ieo.mobile.domain.proof.DeliveryProof
 import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
 import com.ieo.mobile.domain.proof.ProofRepository
+import com.ieo.mobile.domain.proof.ReceiptPhoto
 import com.ieo.mobile.domain.proof.WaitRecord
 import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.ui.proof.ProofScreen
@@ -677,26 +678,47 @@ class ScreenshotTest {
         shot("ST_note", content = { SiteCardScreen(vm) })
     }
 
-    private fun proofVm(signed: Boolean, noWaits: Boolean = false) = ProofViewModel(object : ProofRepository {
+    /** 종이 인수증처럼 보이는 사진 (흰 종이에 줄 몇 개와 빨간 도장) */
+    private fun paperJpeg(): ByteArray {
+        val bitmap = android.graphics.Bitmap.createBitmap(300, 400, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawColor(android.graphics.Color.rgb(250, 248, 240))
+        val ink = android.graphics.Paint().apply { color = android.graphics.Color.rgb(90, 90, 90) }
+        for (i in 0 until 9) canvas.drawRect(30f, 50f + i * 34, if (i % 3 == 2) 180f else 270f, 58f + i * 34, ink)
+        canvas.drawCircle(225f, 340f, 34f, android.graphics.Paint().apply { color = android.graphics.Color.rgb(210, 50, 40); style = android.graphics.Paint.Style.STROKE; strokeWidth = 6f })
+        return java.io.ByteArrayOutputStream().also { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, it) }.toByteArray()
+    }
+
+    private fun proofVm(status: DeliveryProofStatus, photos: Int = 0, noWaits: Boolean = false) = ProofViewModel(object : ProofRepository {
         val now = java.time.Instant.now()
+        val paper = paperJpeg()
         override suspend fun waits(tripId: Long) = ApiResult.Success(
             if (noWaits) emptyList() else listOf(
                 WaitRecord(StopType.PICKUP, "평택 포승", now.minusSeconds(14_400), now.minusSeconds(6_600), now.minusSeconds(4_000), 130, 10_000, true, false),
                 WaitRecord(StopType.DROPOFF, "대구 성서", now.minusSeconds(1_500), null, null, null, null, true, false),
             ),
         )
-        val proof = DeliveryProof("http://x/r/a", if (signed) DeliveryProofStatus.SIGNED else DeliveryProofStatus.PENDING, "김수하".takeIf { signed }, now.takeIf { signed }, null, 0, null)
+        val proof = DeliveryProof(
+            required = true,
+            status = status,
+            sentAt = now.takeIf { status == DeliveryProofStatus.SENT },
+            photos = (1..photos).map { ReceiptPhoto(it.toLong()) },
+            maxPhotos = 5,
+            canUpload = status != DeliveryProofStatus.SENT,
+        )
         override suspend fun waitProofLink(tripId: Long) = ApiResult.Success(ProofLink("http://x/w/a", now))
         override suspend fun editWait(tripId: Long, stop: StopType, times: WaitTimes) =
             ApiResult.Success(WaitRecord(stop, "평택 포승", times.arrivedAt, times.workStartedAt, times.departedAt, 0, 0, true, true))
-        override suspend fun deliveryProof(tripId: Long) = ApiResult.Success<DeliveryProof?>(proof)
-        override suspend fun issueDeliveryProof(tripId: Long) = ApiResult.Success(proof)
-        override suspend fun uploadPaperPhoto(tripId: Long, jpeg: ByteArray) = ApiResult.Success(proof)
+        override suspend fun deliveryProof(tripId: Long) = ApiResult.Success(proof)
+        override suspend fun uploadReceiptPhoto(tripId: Long, jpeg: ByteArray) = ApiResult.Success(proof)
+        override suspend fun deleteReceiptPhoto(tripId: Long, photoId: Long) = ApiResult.Success(proof)
+        override suspend fun sendReceipt(tripId: Long) = ApiResult.Success(proof)
+        override suspend fun receiptPhoto(tripId: Long, photoId: Long) = ApiResult.Success(paper)
     })
 
     @Test
     fun 증빙() {
-        val vm = proofVm(false)
+        val vm = proofVm(DeliveryProofStatus.NONE)
         vm.open(1)
         compose.waitForIdle()
         shot("PF_pending", content = { ProofScreen(vm, onClose = {}) })
@@ -704,21 +726,18 @@ class ScreenshotTest {
 
     @Test
     fun 증빙인수증() {
-        val vm = proofVm(false, noWaits = true)
-        vm.open(1, paperAllowed = false)
+        val vm = proofVm(DeliveryProofStatus.PENDING, photos = 5, noWaits = true)
+        vm.open(1)
         compose.waitForIdle()
-        vm.shareDeliveryLink()
-        compose.waitForIdle()
-        vm.shareConsumed()
         shot("PF_receipt", content = { ProofScreen(vm, onClose = {}) })
     }
 
     @Test
-    fun 증빙완료() {
-        val vm = proofVm(true, noWaits = true)
+    fun 증빙보냄() {
+        val vm = proofVm(DeliveryProofStatus.SENT, photos = 2, noWaits = true)
         vm.open(1)
         compose.waitForIdle()
-        shot("PF_signed", content = { ProofScreen(vm, onClose = {}) })
+        shot("PF_sent", content = { ProofScreen(vm, onClose = {}) })
     }
 
     @Test

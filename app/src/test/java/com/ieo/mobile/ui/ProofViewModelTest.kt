@@ -6,6 +6,7 @@ import com.ieo.mobile.domain.proof.DeliveryProof
 import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
 import com.ieo.mobile.domain.proof.ProofRepository
+import com.ieo.mobile.domain.proof.ReceiptPhoto
 import com.ieo.mobile.domain.proof.WaitRecord
 import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.domain.trip.StopType
@@ -18,7 +19,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -39,25 +39,32 @@ class ProofViewModelTest {
         policy: Boolean = true,
     ) = WaitRecord(StopType.PICKUP, "평택", at, workStartedAt, departedAt, wait, amount, policy, false)
 
-    private fun proof(status: DeliveryProofStatus = DeliveryProofStatus.PENDING, photos: Int = 0, signedAt: Instant? = null) =
-        DeliveryProof("http://x/r/a", status, null, signedAt, null, photos, null)
+    private fun proof(status: DeliveryProofStatus = DeliveryProofStatus.NONE, photos: List<Long> = emptyList(), canUpload: Boolean = true) =
+        DeliveryProof(true, status, null, photos.map { ReceiptPhoto(it) }, 5, canUpload)
 
-    private class Fake(var delivery: DeliveryProof? = null, val issued: DeliveryProof) : ProofRepository {
+    private class Fake(var delivery: DeliveryProof) : ProofRepository {
         val calls = mutableListOf<String>()
-        var uploadFails = false
+        var fails = false
         override suspend fun waits(tripId: Long) = ApiResult.Success(emptyList<WaitRecord>())
         override suspend fun waitProofLink(tripId: Long) = ApiResult.Success(ProofLink("http://x/w/a", Instant.EPOCH))
         override suspend fun editWait(tripId: Long, stop: StopType, times: WaitTimes) =
             ApiResult.Success(WaitRecord(stop, "평택", times.arrivedAt, times.workStartedAt, times.departedAt, 0, 0, true, true))
         override suspend fun deliveryProof(tripId: Long) = ApiResult.Success(delivery)
-        override suspend fun issueDeliveryProof(tripId: Long): ApiResult<DeliveryProof> {
-            calls += "issue"
-            delivery = issued
-            return ApiResult.Success(issued)
+        private fun change(name: String, next: () -> DeliveryProof): ApiResult<DeliveryProof> {
+            calls += name
+            if (fails) return ApiResult.Failure(ApiError.Network)
+            delivery = next()
+            return ApiResult.Success(delivery)
         }
-        override suspend fun uploadPaperPhoto(tripId: Long, jpeg: ByteArray): ApiResult<DeliveryProof> {
-            calls += "upload"
-            return if (uploadFails) ApiResult.Failure(ApiError.Network) else ApiResult.Success(issued.copy(status = DeliveryProofStatus.PHOTO, photoCount = 1))
+        override suspend fun uploadReceiptPhoto(tripId: Long, jpeg: ByteArray) =
+            change("upload") { delivery.copy(status = DeliveryProofStatus.PENDING, photos = delivery.photos + ReceiptPhoto(delivery.photos.size + 10L)) }
+        override suspend fun deleteReceiptPhoto(tripId: Long, photoId: Long) =
+            change("delete") { delivery.copy(photos = delivery.photos.filter { it.id != photoId }) }
+        override suspend fun sendReceipt(tripId: Long) =
+            change("send") { delivery.copy(status = DeliveryProofStatus.SENT, sentAt = Instant.EPOCH, canUpload = false) }
+        override suspend fun receiptPhoto(tripId: Long, photoId: Long): ApiResult<ByteArray> {
+            calls += "photo$photoId"
+            return ApiResult.Success(byteArrayOf(photoId.toByte()))
         }
     }
 
@@ -72,48 +79,55 @@ class ProofViewModelTest {
     }
 
     @Test
-    fun `서명 링크를 만들면 공유할 글이 생기고 한 번만 쓴다`() = runTest(main.dispatcher) {
-        val vm = ProofViewModel(Fake(issued = proof()))
-        vm.open(1)
-        advanceUntilIdle()
-        vm.shareDeliveryLink()
-        advanceUntilIdle()
-        assertTrue(vm.state.value.share!!.contains("http://x/r/a"))
-        vm.shareConsumed()
-        assertNull(vm.state.value.share)
-        assertNotNull(vm.state.value.delivery)
-    }
-
-    @Test
-    fun `인수증이 없으면 발급한 뒤 사진을 올린다`() = runTest(main.dispatcher) {
-        val fake = Fake(issued = proof())
+    fun `열면 올린 사진을 받아 둔다`() = runTest(main.dispatcher) {
+        val fake = Fake(proof(DeliveryProofStatus.PENDING, listOf(1, 2)))
         val vm = ProofViewModel(fake)
         vm.open(1)
         advanceUntilIdle()
+        assertEquals(listOf("photo1", "photo2"), fake.calls)
+        assertEquals(setOf(1L, 2L), vm.state.value.photoFiles.keys)
+    }
+
+    @Test
+    fun `찍은 사진을 올리면 바로 목록에 보이고 지울 수 있다`() = runTest(main.dispatcher) {
+        val fake = Fake(proof())
+        val vm = ProofViewModel(fake)
+        vm.open(1)
+        advanceUntilIdle()
+        vm.uploadPaper(byteArrayOf(7))
+        advanceUntilIdle()
+        val id = vm.state.value.delivery!!.photos.single().id
+        assertEquals(7.toByte(), vm.state.value.photoFiles.getValue(id)[0])
+        assertTrue(vm.state.value.delivery!!.canSend)
+
+        vm.deletePhoto(id)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.delivery!!.photos.isEmpty())
+        assertFalse(vm.state.value.photoFiles.containsKey(id))
+        assertFalse(vm.state.value.delivery!!.canSend)
+    }
+
+    @Test
+    fun `보내면 보냈다고 알려 주고 더는 못 올린다`() = runTest(main.dispatcher) {
+        val fake = Fake(proof(DeliveryProofStatus.PENDING, listOf(1)))
+        val vm = ProofViewModel(fake)
+        vm.open(1)
+        advanceUntilIdle()
+        vm.sendReceipt()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.delivery!!.isSent)
+        assertEquals("인수증을 주선사에게 보냈어요", vm.state.value.message)
+        assertFalse(vm.state.value.delivery!!.canSend)
         vm.uploadPaper(byteArrayOf(1))
         advanceUntilIdle()
-        assertEquals(listOf("issue", "upload"), fake.calls)
-        assertEquals(DeliveryProofStatus.PHOTO, vm.state.value.delivery?.status)
+        assertFalse("upload" in fake.calls)
     }
 
     @Test
-    fun `인수증이 있으면 바로 올리고 실패하면 이유를 보여 준다`() = runTest(main.dispatcher) {
-        val fake = Fake(delivery = proof(), issued = proof()).apply { uploadFails = true }
+    fun `하차지 도착 전에는 사진을 올리지 않는다`() = runTest(main.dispatcher) {
+        val fake = Fake(proof(canUpload = false))
         val vm = ProofViewModel(fake)
         vm.open(1)
-        advanceUntilIdle()
-        vm.uploadPaper(byteArrayOf(1))
-        advanceUntilIdle()
-        assertEquals(listOf("upload"), fake.calls)
-        assertEquals(ApiError.Network.message, vm.state.value.error)
-        assertNull(vm.state.value.busy)
-    }
-
-    @Test
-    fun `하차지 도착 전에는 사진을 보내지 않는다`() = runTest(main.dispatcher) {
-        val fake = Fake(delivery = proof(), issued = proof())
-        val vm = ProofViewModel(fake)
-        vm.open(1, paperAllowed = false)
         advanceUntilIdle()
         vm.uploadPaper(byteArrayOf(1))
         advanceUntilIdle()
@@ -121,19 +135,14 @@ class ProofViewModelTest {
     }
 
     @Test
-    fun `서명 전에 확인하면 아직이라고 알려 준다`() = runTest(main.dispatcher) {
-        val vm = ProofViewModel(Fake(delivery = proof(), issued = proof()))
+    fun `올리기에 실패하면 이유를 보여 준다`() = runTest(main.dispatcher) {
+        val fake = Fake(proof()).apply { fails = true }
+        val vm = ProofViewModel(fake)
         vm.open(1)
         advanceUntilIdle()
-        vm.checkSigned()
+        vm.uploadPaper(byteArrayOf(1))
         advanceUntilIdle()
-        assertEquals("아직 서명 전이에요", vm.state.value.message)
-    }
-
-    @Test
-    fun `서명됐거나 다섯 장이면 사진을 더 못 올린다`() {
-        assertFalse(proof(DeliveryProofStatus.SIGNED, signedAt = at).canAddPhoto)
-        assertFalse(proof(DeliveryProofStatus.PHOTO, photos = 5).canAddPhoto)
-        assertTrue(proof(DeliveryProofStatus.PHOTO, photos = 4).canAddPhoto)
+        assertEquals(ApiError.Network.message, vm.state.value.error)
+        assertNull(vm.state.value.busy)
     }
 }

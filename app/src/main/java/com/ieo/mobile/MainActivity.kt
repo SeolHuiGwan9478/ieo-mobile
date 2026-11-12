@@ -348,7 +348,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         return
     }
     tripState.selected?.let { trip ->
-        TripDetailScreen(trip, tripState, trips, onSite = site::open, onProof = { id -> proof.open(id, trip.canUploadPaperProof) })
+        TripDetailScreen(trip, tripState, trips, onSite = site::open, onProof = { id -> proof.open(id) })
         return
     }
     // 다른 탭에서 뒤로 가기를 누르면 앱을 끄지 않고 홈으로 돌아간다

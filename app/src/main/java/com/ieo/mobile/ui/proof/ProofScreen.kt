@@ -2,7 +2,17 @@ package com.ieo.mobile.ui.proof
 
 import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import com.ieo.mobile.domain.proof.ReceiptPhoto
+import com.ieo.mobile.ui.component.ZoomableImage
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.CheckCircle
 import com.ieo.mobile.ui.component.StepTimeline
@@ -113,6 +123,8 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
     var choosing by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<WaitRecord?>(null) }
     var preview by remember { mutableStateOf<ByteArray?>(null) }
+    var viewing by remember { mutableStateOf<ReceiptPhoto?>(null) }
+    var confirmingSend by remember { mutableStateOf(false) }
     var captureUri by remember { mutableStateOf<Uri?>(null) }
 
     val close = {
@@ -179,8 +191,12 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
                             modifier = Modifier.padding(top = 12.dp),
                         )
                     }
-                    Heading("인수증")
-                    DeliveryCard(state, labels, viewModel, onPhoto = { choosing = true })
+                    // 결제 방식이 인수증인 운행만 종이 인수증을 받는다 (04 인수증)
+                    state.delivery?.takeIf { it.required }?.let { delivery ->
+                        Heading("인수증")
+                        DeliveryCard(delivery, state, labels, onPhoto = { choosing = true }, onOpen = { viewing = it },
+                            onSend = { confirmingSend = true })
+                    }
                 }
             }
         }
@@ -225,7 +241,7 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     bitmap?.let { Image(it, contentDescription = "올릴 종이 인수증 사진", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp)) }
-                    Text("올리면 인수가 끝난 것으로 처리되고 되돌릴 수 없어요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
+                    Text("올린 사진은 주선사에게 보내기 전까지 지울 수 있어요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
                 }
             },
             confirmButton = {
@@ -235,6 +251,63 @@ fun ProofScreen(viewModel: ProofViewModel, onClose: () -> Unit) {
             },
             dismissButton = {
                 TextButton(onClick = { preview = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text("취소", fontSize = 16.sp, color = TextMid) }
+            },
+        )
+    }
+
+    viewing?.let { photo ->
+        val photos = state.delivery?.photos.orEmpty()
+        val index = photos.indexOfFirst { it.id == photo.id }.coerceAtLeast(0)
+        val file = state.photoFiles[photo.id]
+        val bitmap = remember(file) { file?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }
+        val sent = state.delivery?.isSent == true
+        // 화면 전체로 보고, 두 손가락으로 벌리거나 두 번 눌러 확대한다 (보내기 전에 글씨·도장이 잘 나왔는지 본다)
+        Dialog(onDismissRequest = { viewing = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Column(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black).safeDrawingPadding()) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp)) {
+                    Text(if (photos.size > 1) "종이 인수증 ${index + 1} / ${photos.size}" else "종이 인수증", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = White, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { viewing = null }, modifier = Modifier.size(56.dp)) {
+                        Icon(Icons.Outlined.Close, contentDescription = "닫기", tint = White)
+                    }
+                }
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    if (bitmap != null) {
+                        ZoomableImage(bitmap, contentDescription = "종이 인수증 사진 ${index + 1}", modifier = Modifier.fillMaxSize())
+                    } else {
+                        Text("사진을 불러오지 못했어요.", fontSize = 16.sp, color = White)
+                    }
+                }
+                Text("두 번 누르거나 두 손가락으로 벌리면 크게 보여요", fontSize = 14.sp, color = androidx.compose.ui.graphics.Color(0xFFBDBDBD),
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    // 끝에서 다음은 처음으로 돌아간다
+                    if (photos.size > 1) {
+                        TonalButton("이전", { viewing = photos[(index - 1 + photos.size) % photos.size] }, modifier = Modifier.weight(1f))
+                    }
+                    if (!sent) {
+                        TonalButton("지우기", { viewing = null; viewModel.deletePhoto(photo.id) }, modifier = Modifier.weight(1f))
+                    }
+                    if (photos.size > 1) {
+                        TonalButton("다음", { viewing = photos[(index + 1) % photos.size] }, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+
+    if (confirmingSend) {
+        val count = state.delivery?.photos?.size ?: 0
+        AlertDialog(
+            onDismissRequest = { confirmingSend = false },
+            title = { Text("주선사에게 보낼까요?") },
+            text = { Text("종이 인수증 사진 ${count}장을 보내요. 보낸 뒤에는 사진을 바꿀 수 없어요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid) },
+            confirmButton = {
+                TextButton(onClick = { confirmingSend = false; viewModel.sendReceipt() }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("보내기", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingSend = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text("취소", fontSize = 16.sp, color = TextMid) }
             },
         )
     }
@@ -263,49 +336,75 @@ private fun WaitCard(record: WaitRecord, labels: DayTimeFormatter, onEdit: () ->
     }
 }
 
+/** 종이 인수증 카드: 찍은 사진 목록, [찍기], [주선사에게 보내기]. 보낸 뒤에는 보낸 시각과 사진만 */
 @Composable
-private fun DoneTitle() {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        IconBadge(Icons.Outlined.CheckCircle, tint = IeoStatus.colors.done, background = androidx.compose.ui.graphics.Color(0xFFE6F4EA), size = 38.dp)
-        Text("인수 완료", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done)
-    }
-}
-
-@Composable
-private fun DeliveryCard(state: ProofState, labels: DayTimeFormatter, viewModel: ProofViewModel, onPhoto: () -> Unit) {
-    val delivery: DeliveryProof? = state.delivery
+private fun DeliveryCard(
+    delivery: DeliveryProof,
+    state: ProofState,
+    labels: DayTimeFormatter,
+    onPhoto: () -> Unit,
+    onOpen: (ReceiptPhoto) -> Unit,
+    onSend: () -> Unit,
+) {
     Card {
-        when {
-            delivery?.isSigned == true -> {
-                DoneTitle()
-                Text("${delivery.signerName ?: "수하인"}님이 ${labels.dayTime(delivery.signedAt!!)}에 서명했어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-                delivery.issueNote?.takeIf { it.isNotBlank() }?.let {
-                    Text("남긴 이상 사항: $it", fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.warning)
-                }
+        if (delivery.isSent) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                IconBadge(Icons.Outlined.CheckCircle, tint = IeoStatus.colors.done, background = androidx.compose.ui.graphics.Color(0xFFE6F4EA), size = 38.dp)
+                Text("주선사에게 보냈어요", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = IeoStatus.colors.done)
             }
-            delivery?.isDone == true -> {
-                DoneTitle()
-                Text("종이 인수증 사진 ${delivery.photoCount}장을 올렸어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-            }
-            else -> {
-                Text("아직 서명 전이에요", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-                Text("수하인이 링크를 열어 앱 없이 서명해요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
-                PrimaryButton("수하인에게 서명 요청", viewModel::shareDeliveryLink, busy = state.busy == ProofAction.DeliveryLink, icon = Icons.Outlined.Draw, modifier = Modifier.padding(top = 6.dp))
-                if (delivery != null) {
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { QuietButton("서명 확인", viewModel::checkSigned) }
+            Text("${labels.dayTime(delivery.sentAt!!)} · 사진 ${delivery.photos.size}장", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
+        } else {
+            Text(if (delivery.photos.isEmpty()) "종이 인수증을 찍어 보내요" else "사진 ${delivery.photos.size}장 · 아직 안 보냈어요",
+                fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+            Text(
+                if (delivery.canUpload || delivery.photos.isNotEmpty()) "글씨와 도장이 잘 보이게 찍어 주세요. 여러 장이면 ${delivery.maxPhotos}장까지 올려요"
+                else "하차지에 도착한 뒤 올릴 수 있어요",
+                fontSize = 16.sp, lineHeight = 23.sp, color = TextMid,
+            )
+        }
+        if (delivery.photos.isNotEmpty()) {
+            // 3칸까지. 더 있으면 마지막 칸에 남은 장수를 덮어 쓴다
+            val more = delivery.photos.size - THUMBS
+            Row(Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                delivery.photos.take(THUMBS).forEachIndexed { index, photo ->
+                    PhotoThumb(photo, state.photoFiles[photo.id], more = if (index == THUMBS - 1 && more > 0) more + 1 else 0, onClick = { onOpen(photo) })
                 }
             }
         }
-        if (!state.paperAllowed && delivery?.isDone != true) {
-            Text("종이 인수증 사진은 하차지에 도착한 뒤 올릴 수 있어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextSub)
-        } else if (delivery == null || delivery.canAddPhoto) {
+        if (delivery.canUpload) {
             TonalButton(
-                if (delivery?.isDone == true) "사진 추가" else "종이 인수증 찍기",
+                if (delivery.photos.isEmpty()) "종이 인수증 찍기" else "한 장 더 찍기",
                 onPhoto,
                 enabled = state.busy == null,
                 icon = Icons.Outlined.PhotoCamera,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        if (delivery.canSend) {
+            PrimaryButton("주선사에게 보내기", onSend, busy = state.busy == ProofAction.SendReceipt, icon = Icons.AutoMirrored.Outlined.Send)
+        }
+    }
+}
+
+private const val THUMBS = 3
+
+/** [more]가 0보다 크면 사진 위에 "+N장"을 덮는다 */
+@Composable
+private fun PhotoThumb(photo: ReceiptPhoto, file: ByteArray?, more: Int, onClick: () -> Unit) {
+    val bitmap = remember(file) { file?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }
+    Box(
+        Modifier.size(88.dp).clip(RoundedCornerShape(10.dp)).background(CanvasGray).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (bitmap != null) {
+            Image(bitmap, contentDescription = "종이 인수증 사진 ${photo.id}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else {
+            Icon(Icons.Outlined.Image, contentDescription = "종이 인수증 사진", tint = TextSub)
+        }
+        if (more > 0) {
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f)), contentAlignment = Alignment.Center) {
+                Text("+${more}장", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = White)
+            }
         }
     }
 }

@@ -1,23 +1,27 @@
 package com.ieo.mobile.data.proof
 
 import com.ieo.mobile.core.network.ApiCaller
-import com.ieo.mobile.core.network.ApiError
 import com.ieo.mobile.core.network.ApiResult
 import com.ieo.mobile.core.network.mapResponse
 import com.ieo.mobile.domain.proof.DeliveryProof
 import com.ieo.mobile.domain.proof.DeliveryProofStatus
 import com.ieo.mobile.domain.proof.ProofLink
 import com.ieo.mobile.domain.proof.ProofRepository
+import com.ieo.mobile.domain.proof.ReceiptPhoto
 import com.ieo.mobile.domain.proof.WaitRecord
 import com.ieo.mobile.domain.proof.WaitTimes
 import com.ieo.mobile.domain.trip.StopType
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
@@ -39,12 +43,18 @@ interface ProofApi {
     @GET("api/trips/{tripId}/delivery-proof")
     suspend fun deliveryProof(@Path("tripId") tripId: Long): Response<DeliveryProofBody>
 
-    @POST("api/trips/{tripId}/delivery-proof")
-    suspend fun issue(@Path("tripId") tripId: Long): Response<DeliveryProofBody>
-
     @Multipart
-    @POST("api/trips/{tripId}/delivery-proof/paper-photos")
-    suspend fun uploadPaper(@Path("tripId") tripId: Long, @Part file: MultipartBody.Part): Response<DeliveryProofBody>
+    @POST("api/trips/{tripId}/delivery-proof/photos")
+    suspend fun uploadPhoto(@Path("tripId") tripId: Long, @Part file: MultipartBody.Part): Response<DeliveryProofBody>
+
+    @DELETE("api/trips/{tripId}/delivery-proof/photos/{photoId}")
+    suspend fun deletePhoto(@Path("tripId") tripId: Long, @Path("photoId") photoId: Long): Response<DeliveryProofBody>
+
+    @POST("api/trips/{tripId}/delivery-proof/send")
+    suspend fun send(@Path("tripId") tripId: Long): Response<DeliveryProofBody>
+
+    @GET("api/trips/{tripId}/delivery-proof/photos/{photoId}")
+    suspend fun photo(@Path("tripId") tripId: Long, @Path("photoId") photoId: Long): Response<ResponseBody>
 }
 
 @Serializable
@@ -89,26 +99,24 @@ data class ProofPhotoBody(val id: Long)
 
 @Serializable
 data class DeliveryProofBody(
-    val path: String,
+    val required: Boolean,
     val status: String,
-    val signerName: String? = null,
-    val signedAt: String? = null,
-    val issueNote: String? = null,
+    val sentAt: String? = null,
     val photos: List<ProofPhotoBody> = emptyList(),
-    val expiresAt: String? = null,
+    val maxPhotos: Int = 5,
+    val canUpload: Boolean = false,
 ) {
-    fun toDomain(baseUrl: String) = DeliveryProof(
-        baseUrl.trimEnd('/') + path,
+    fun toDomain() = DeliveryProof(
+        required,
         DeliveryProofStatus.valueOf(status),
-        signerName,
-        signedAt?.let(Instant::parse),
-        issueNote,
-        photos.size,
-        expiresAt?.let(Instant::parse),
+        sentAt?.let(Instant::parse),
+        photos.map { ReceiptPhoto(it.id) },
+        maxPhotos,
+        canUpload,
     )
 }
 
-/** [publicBaseUrl]: 주선사·수하인이 여는 링크의 앞부분. 지금은 API 서버가 직접 보여 준다 */
+/** [publicBaseUrl]: 주선사가 여는 대기 증빙 링크의 앞부분. 지금은 API 서버가 직접 보여 준다 */
 class DefaultProofRepository(
     private val api: ProofApi,
     private val caller: ApiCaller,
@@ -126,24 +134,20 @@ class DefaultProofRepository(
             api.editWait(tripId, stop.name, EditWaitBody(times.arrivedAt.toString(), times.workStartedAt?.toString(), times.departedAt?.toString()))
         }.mapResponse { it.toDomain() }
 
-    override suspend fun deliveryProof(tripId: Long): ApiResult<DeliveryProof?> =
-        when (val result = caller.call { api.deliveryProof(tripId) }) {
-            is ApiResult.Success -> ApiResult.Success(result.data.toDomain(publicBaseUrl))
-            is ApiResult.Failure -> {
-                val error = result.error
-                if (error is ApiError.Server && error.code == NOT_ISSUED) ApiResult.Success(null) else result
-            }
-        }
+    override suspend fun deliveryProof(tripId: Long): ApiResult<DeliveryProof> =
+        caller.call { api.deliveryProof(tripId) }.mapResponse { it.toDomain() }
 
-    override suspend fun issueDeliveryProof(tripId: Long): ApiResult<DeliveryProof> =
-        caller.call { api.issue(tripId) }.mapResponse { it.toDomain(publicBaseUrl) }
-
-    override suspend fun uploadPaperPhoto(tripId: Long, jpeg: ByteArray): ApiResult<DeliveryProof> {
+    override suspend fun uploadReceiptPhoto(tripId: Long, jpeg: ByteArray): ApiResult<DeliveryProof> {
         val part = MultipartBody.Part.createFormData("file", "paper.jpg", jpeg.toRequestBody("image/jpeg".toMediaType()))
-        return caller.call { api.uploadPaper(tripId, part) }.mapResponse { it.toDomain(publicBaseUrl) }
+        return caller.call { api.uploadPhoto(tripId, part) }.mapResponse { it.toDomain() }
     }
 
-    private companion object {
-        const val NOT_ISSUED = "DELIVERY_404"
-    }
+    override suspend fun deleteReceiptPhoto(tripId: Long, photoId: Long): ApiResult<DeliveryProof> =
+        caller.call { api.deletePhoto(tripId, photoId) }.mapResponse { it.toDomain() }
+
+    override suspend fun sendReceipt(tripId: Long): ApiResult<DeliveryProof> =
+        caller.call { api.send(tripId) }.mapResponse { it.toDomain() }
+
+    override suspend fun receiptPhoto(tripId: Long, photoId: Long): ApiResult<ByteArray> =
+        caller.call { api.photo(tripId, photoId) }.mapResponse { body -> withContext(Dispatchers.IO) { body.use { it.bytes() } } }
 }

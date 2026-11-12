@@ -26,24 +26,25 @@ data class WaitRecord(
 
 data class ProofLink(val url: String, val expiresAt: Instant)
 
-enum class DeliveryProofStatus { PENDING, SIGNED, PHOTO, DELIVERED }
+/** 인수증 상태 (04 인수증). 사진이 없으면 NONE, 올렸지만 안 보냈으면 PENDING, 주선사에게 보냈으면 SENT */
+enum class DeliveryProofStatus { NONE, PENDING, SENT }
 
+data class ReceiptPhoto(val id: Long)
+
+/**
+ * 종이 인수증 사진. 결제 방식이 인수증인 운행만 [required].
+ * [canUpload]는 서버가 정한다: 하차지 도착 뒤, 아직 안 보냄, [maxPhotos]장 미만
+ */
 data class DeliveryProof(
-    val url: String,
+    val required: Boolean,
     val status: DeliveryProofStatus,
-    val signerName: String?,
-    val signedAt: Instant?,
-    val issueNote: String?,
-    val photoCount: Int,
-    val expiresAt: Instant?,
+    val sentAt: Instant?,
+    val photos: List<ReceiptPhoto>,
+    val maxPhotos: Int,
+    val canUpload: Boolean,
 ) {
-    val isSigned: Boolean get() = signedAt != null
-    val isDone: Boolean get() = status != DeliveryProofStatus.PENDING
-    val canAddPhoto: Boolean get() = !isSigned && photoCount < MAX_PHOTOS
-
-    companion object {
-        const val MAX_PHOTOS = 5
-    }
+    val isSent: Boolean get() = status == DeliveryProofStatus.SENT
+    val canSend: Boolean get() = !isSent && photos.isNotEmpty()
 }
 
 interface ProofRepository {
@@ -56,13 +57,18 @@ interface ProofRepository {
     /** 대기 시각 고치기 (WAIT-006). 고친 기록에는 "수정됨"과 원래 값이 남는다 */
     suspend fun editWait(tripId: Long, stop: StopType, times: WaitTimes): ApiResult<WaitRecord>
 
-    /** 아직 발급하지 않았으면 null */
-    suspend fun deliveryProof(tripId: Long): ApiResult<DeliveryProof?>
+    suspend fun deliveryProof(tripId: Long): ApiResult<DeliveryProof>
 
-    /** 이미 있으면 같은 인수증 */
-    suspend fun issueDeliveryProof(tripId: Long): ApiResult<DeliveryProof>
+    suspend fun uploadReceiptPhoto(tripId: Long, jpeg: ByteArray): ApiResult<DeliveryProof>
 
-    suspend fun uploadPaperPhoto(tripId: Long, jpeg: ByteArray): ApiResult<DeliveryProof>
+    /** 보내기 전에만 지울 수 있다 */
+    suspend fun deleteReceiptPhoto(tripId: Long, photoId: Long): ApiResult<DeliveryProof>
+
+    /** [주선사에게 보내기]. 보낸 뒤에는 사진을 바꿀 수 없다 */
+    suspend fun sendReceipt(tripId: Long): ApiResult<DeliveryProof>
+
+    /** 사진 파일 (로그인 토큰이 있어야 받는다) */
+    suspend fun receiptPhoto(tripId: Long, photoId: Long): ApiResult<ByteArray>
 }
 
 /** 고칠 대기 시각. 작업 시작·출발은 비울 수 있다 */

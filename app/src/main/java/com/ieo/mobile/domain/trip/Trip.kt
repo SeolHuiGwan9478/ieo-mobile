@@ -49,9 +49,6 @@ data class Trip(
     /** 상차 예정 2시간 이내 취소는 "늦은 취소"로 주선사에게 보이는 내 기록에 남는다 (DSP-031, 033) */
     fun isLateCancel(now: Instant): Boolean =
         !isManual && pickup.plannedAt?.let { !now.isBefore(it.minus(LATE_CANCEL_WINDOW)) } == true
-
-    /** 사진을 올리면 인수가 끝난 것으로 치고 되돌릴 수 없어, 하차지에 도착한 뒤에만 연다 (POD-009) */
-    val canUploadPaperProof: Boolean get() = status == TripStatus.AT_DROPOFF || status == TripStatus.COMPLETED
 }
 
 private val BEFORE_LOADING = setOf(TripStatus.SCHEDULED, TripStatus.TO_PICKUP, TripStatus.AT_PICKUP)
