@@ -453,7 +453,7 @@ private fun ProfitCard(order: Order, profit: OrderProfit?, texts: OrderTexts) {
         profit?.let {
             it.tollFare?.let { toll -> ProfitLine("예상 통행료", formatWon(toll)) }
             ProfitLine("기름값", formatWon(it.fuelCost))
-            ProfitLine("상차지까지", "${(it.emptyMeters + 500) / 1000}km")
+            ProfitLine("상차지까지", it.emptyRunLabel)
         }
         // 실제 경로를 받기 전에는 목록과 같은 어림 거리
         if (profit == null) texts.distance(order)?.let { ProfitLine("상차지까지", it) }

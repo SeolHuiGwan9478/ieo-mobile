@@ -67,8 +67,14 @@ data class OrderResponse(
 }
 
 @Serializable
-data class ProfitEstimateResponse(val netProfit: Long, val fuelCost: Long, val tollFare: Long? = null, val emptyMeters: Long) {
-    fun toDomain() = OrderProfit(netProfit, fuelCost, tollFare, emptyMeters)
+data class ProfitEstimateResponse(
+    val netProfit: Long,
+    val fuelCost: Long,
+    val tollFare: Long? = null,
+    val emptyMeters: Long,
+    val originName: String? = null,
+) {
+    fun toDomain() = OrderProfit(netProfit, fuelCost, tollFare, emptyMeters, originName)
 }
 
 @Serializable

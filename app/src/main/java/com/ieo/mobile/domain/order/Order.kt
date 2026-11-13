@@ -52,7 +52,12 @@ data class Order(
 }
 
 /** 오더 상세의 실수익 내역. 통행료를 계산하지 못하면 [tollFare]가 null이다 */
-data class OrderProfit(val netProfit: Long, val fuelCost: Long, val tollFare: Long?, val emptyMeters: Long)
+/** 오더 상세 실수익 (DSP-011). [originName]은 상하차지에 있어 그곳에서 잰 경우 그 이름, 현 위치에서 쟀으면 null */
+data class OrderProfit(val netProfit: Long, val fuelCost: Long, val tollFare: Long?, val emptyMeters: Long, val originName: String? = null) {
+
+    /** "부산 신항에서 2km", "현 위치에서 2km" */
+    val emptyRunLabel: String get() = "${originName ?: "현 위치"}에서 ${(emptyMeters + 500) / 1000}km"
+}
 
 data class OrderSite(
     val name: String,
