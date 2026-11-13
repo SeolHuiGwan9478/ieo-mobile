@@ -603,8 +603,18 @@ class ScreenshotTest {
     @Test
     fun 단골() {
         val vm = LinksViewModel(object : DriverLinkRepository {
-            override suspend fun invitations() = ApiResult.Success(listOf(DriverLink(1, "한빛물류", DriverLinkStatus.PENDING, Instant.now().plusSeconds(86_400 * 3), null)))
-            override suspend fun links() = ApiResult.Success(listOf(DriverLink(2, "○○물류", DriverLinkStatus.LINKED, null, Instant.now().minusSeconds(86_400))))
+            override suspend fun invitations() = ApiResult.Success(listOf(
+                DriverLink(1, "한빛물류", DriverLinkStatus.PENDING, Instant.now().plusSeconds(86_400 * 7), null,
+                    com.ieo.mobile.domain.order.BrokerMetrics(true, 12, 5, 90, 40), tripsTogether = 4),
+                DriverLink(3, "대한운송", DriverLinkStatus.PENDING, Instant.now().plusSeconds(86_400 * 6), null,
+                    com.ieo.mobile.domain.order.BrokerMetrics(false, null, null, null, null)),
+                DriverLink(4, "○○로지스", DriverLinkStatus.PENDING, Instant.now().plusSeconds(86_400 * 5), null,
+                    com.ieo.mobile.domain.order.BrokerMetrics(true, 24, 30, 60, 70), tripsTogether = 1),
+            ))
+            override suspend fun links() = ApiResult.Success(listOf(
+                DriverLink(2, "○○물류", DriverLinkStatus.LINKED, null, Instant.now().minusSeconds(86_400), tripsTogether = 12),
+                DriverLink(5, "△△운송", DriverLinkStatus.LINKED, null, Instant.now().minusSeconds(86_400 * 40), tripsTogether = 3),
+            ))
             override suspend fun accept(linkId: Long) = ApiResult.Failure(ApiError.Network)
             override suspend fun decline(linkId: Long) = ApiResult.Success(Unit)
             override suspend fun unlink(linkId: Long) = ApiResult.Success(Unit)

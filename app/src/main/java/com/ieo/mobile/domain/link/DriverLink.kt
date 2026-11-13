@@ -16,6 +16,10 @@ data class DriverLink(
     val expiresAt: Instant?,
     /** 연결됨(LINKED)이면 수락한 때 */
     val linkedAt: Instant?,
+    /** 그 회사의 신뢰 지표 (지급 평균 등). 고를 근거로 보여 준다 */
+    val brokerMetrics: com.ieo.mobile.domain.order.BrokerMetrics? = null,
+    /** 이 회사와 끝낸 운행 수 */
+    val tripsTogether: Long = 0,
 )
 
 /** 서버 DriverLinkStatus와 같은 값 */

@@ -14,6 +14,8 @@ data class DriverLinkResponse(
     val status: String,
     val expiresAt: String? = null,
     val linkedAt: String? = null,
+    val brokerMetrics: com.ieo.mobile.data.order.BrokerMetricsResponse? = null,
+    val tripsTogether: Long = 0,
 ) {
     fun toDomain() = DriverLink(
         id = id,
@@ -21,5 +23,7 @@ data class DriverLinkResponse(
         status = DriverLinkStatus.valueOf(status),
         expiresAt = expiresAt?.let(Instant::parse),
         linkedAt = linkedAt?.let(Instant::parse),
+        brokerMetrics = brokerMetrics?.toDomain(),
+        tripsTogether = tripsTogether,
     )
 }
