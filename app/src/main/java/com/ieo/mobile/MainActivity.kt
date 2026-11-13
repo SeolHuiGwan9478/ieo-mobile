@@ -253,8 +253,12 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     val vehicleState by vehicles.state.collectAsStateWithLifecycle()
     LaunchedEffect(notifications) {
         notifications.received.collect {
-            trips.refresh()
-            orders.refresh()
+            if (it.type == NotificationType.DRIVER_LINK_REQUESTED) {
+                links.refresh()
+            } else {
+                trips.refresh()
+                orders.refresh()
+            }
         }
     }
 
@@ -298,7 +302,12 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
             notifications,
             onOpen = {
                 notifications.close()
-                tab = if (it.type == NotificationType.DISPATCH_CONFIRMED) Tab.TRIPS else Tab.ORDERS
+                when (it.type) {
+                    // 단골 요청은 휴대폰에서만 수락·거절한다 (BRK-002)
+                    NotificationType.DRIVER_LINK_REQUESTED -> { links.refresh(); managingLinks = true }
+                    NotificationType.DISPATCH_CONFIRMED -> tab = Tab.TRIPS
+                    else -> tab = Tab.ORDERS
+                }
             },
             onBack = notifications::close,
         )

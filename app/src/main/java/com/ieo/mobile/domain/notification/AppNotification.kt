@@ -9,8 +9,11 @@ data class AppNotification(
     val id: Long,
     val type: NotificationType,
     val message: String,
-    val orderId: Long,
+    /** 배차 알림의 오더. 단골 요청 알림이면 null */
+    val orderId: Long?,
     val createdAt: Instant,
+    /** 단골 요청 알림의 요청 id. 배차 알림이면 null */
+    val driverLinkId: Long? = null,
 )
 
 /** [label]은 색 없이도 뜻이 읽히게 붙이는 말, [action]은 눌렀을 때 가는 곳의 이름 */
@@ -18,6 +21,7 @@ enum class NotificationType(val label: String, val action: String) {
     DISPATCH_CONFIRMED("배차 확정", "내 배차 보기"),
     DISPATCH_DECLINED("마감", "다른 오더 찾기"),
     DISPATCH_EXPIRED("시간 초과", "다른 오더 찾기"),
+    DRIVER_LINK_REQUESTED("단골 요청", "단골 주선사 보기"),
 }
 
 sealed interface NotificationStreamEvent {

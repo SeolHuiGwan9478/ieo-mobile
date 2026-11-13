@@ -99,14 +99,14 @@ private fun LinkRow(link: DriverLink, busy: Boolean, viewModel: LinksViewModel, 
             Text(link.brokerName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextStrong)
             link.linkedAt?.let { Text("${labels.day(it)} 연결", fontSize = 15.sp, color = TextSub) }
         }
-        QuietButton("끊기", { if (!busy) unlinking = true })
+        QuietButton("해제", { if (!busy) unlinking = true })
     }
     if (unlinking) {
         AlertDialog(
             onDismissRequest = { unlinking = false },
-            title = { Text("${link.brokerName} 연결을 끊을까요?") },
+            title = { Text("${link.brokerName} 연결을 해제할까요?") },
             text = { Text("위치 공유와 새 지정 배차가 끝나요. 이미 잡은 배차는 그대로예요.", fontSize = 16.sp, color = TextMid) },
-            confirmButton = { TextButton(onClick = { unlinking = false; viewModel.unlink(link) }) { Text("끊기", fontSize = 16.sp, color = IeoStatus.colors.warning) } },
+            confirmButton = { TextButton(onClick = { unlinking = false; viewModel.unlink(link) }) { Text("해제", fontSize = 16.sp, color = IeoStatus.colors.warning) } },
             dismissButton = { TextButton(onClick = { unlinking = false }) { Text("취소", fontSize = 16.sp, color = TextMid) } },
         )
     }

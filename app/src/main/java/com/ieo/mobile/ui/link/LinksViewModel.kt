@@ -21,7 +21,7 @@ data class LinksState(
     val notice: String? = null,
 )
 
-/** 단골 주선사 (BRK-002): 받은 요청 수락·거절, 연결된 회사, 연결 끊기 */
+/** 단골 주선사 (BRK-002): 받은 요청 수락·거절, 연결된 회사, 연결 해제. 단골 관리는 휴대폰에서만 한다 */
 class LinksViewModel(private val repository: DriverLinkRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(LinksState())
@@ -43,7 +43,7 @@ class LinksViewModel(private val repository: DriverLinkRepository) : ViewModel()
 
     fun decline(link: DriverLink) = change("요청을 거절했어요") { repository.decline(link.id) }
 
-    fun unlink(link: DriverLink) = change("연결을 끊었어요") { repository.unlink(link.id) }
+    fun unlink(link: DriverLink) = change("연결을 해제했어요") { repository.unlink(link.id) }
 
     fun dismissNotice() = _state.update { it.copy(notice = null) }
 

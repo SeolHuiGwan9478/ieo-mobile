@@ -36,13 +36,14 @@ data class NotificationBody(
     val id: Long,
     val type: String,
     val message: String,
-    val orderId: Long,
+    val orderId: Long? = null,
+    val driverLinkId: Long? = null,
     val createdAt: String,
 ) {
     /** 앱이 모르는 종류(서버가 새로 늘린 것)는 건너뛴다 */
     fun toDomain(): AppNotification? {
         val known = NotificationType.entries.firstOrNull { it.name == type } ?: return null
-        return AppNotification(id, known, message, orderId, Instant.parse(createdAt))
+        return AppNotification(id, known, message, orderId, Instant.parse(createdAt), driverLinkId)
     }
 }
 
