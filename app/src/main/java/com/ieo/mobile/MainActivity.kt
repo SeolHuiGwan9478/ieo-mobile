@@ -21,6 +21,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.ieo.mobile.domain.notification.NotificationType
+import com.ieo.mobile.push.PushIntent
+import com.ieo.mobile.domain.notification.AppNotification
 import com.ieo.mobile.ui.notification.NotificationBanner
 import com.ieo.mobile.ui.notification.NotificationsScreen
 import com.ieo.mobile.ui.notification.NotificationsViewModel
@@ -114,6 +116,9 @@ class MainActivity : ComponentActivity() {
     /** 기본 카메라로 QR을 찍어 들어온 코드. 로그인 전이면 로그인 뒤에 승인 화면을 띄운다 */
     private val deepLinkCode = MutableStateFlow<String?>(null)
 
+    /** 푸시 알림을 눌러 열렸으면 그 알림. 로그인한 화면이 받아 그 화면으로 옮긴다 */
+    private val pushOpening = MutableStateFlow<AppNotification?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -122,7 +127,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             IeoTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    IeoApp(container, deepLinkCode)
+                    IeoApp(container, deepLinkCode, pushOpening)
                 }
             }
         }
@@ -135,6 +140,8 @@ class MainActivity : ComponentActivity() {
 
     private fun readDeepLink(intent: Intent?) {
         intent?.dataString?.let(CarLoginCode::fromQr)?.let { deepLinkCode.value = it }
+        PushIntent.read(intent)?.let { pushOpening.value = it }
+        PushIntent.clear(intent)
     }
 }
 
@@ -156,19 +163,31 @@ class LoginScope : ViewModel(), ViewModelStoreOwner {
 }
 
 @Composable
-private fun IeoApp(container: AppContainer, deepLinkCode: MutableStateFlow<String?>) {
+private fun IeoApp(container: AppContainer, deepLinkCode: MutableStateFlow<String?>, pushOpening: MutableStateFlow<AppNotification?>) {
     val loggedIn by container.session.isLoggedIn.collectAsStateWithLifecycle()
     val scope: LoginScope = androidx.lifecycle.viewmodel.compose.viewModel()
     scope.sync(loggedIn)
     CompositionLocalProvider(LocalViewModelStoreOwner provides scope) {
-        IeoContent(container, deepLinkCode, loggedIn)
+        IeoContent(container, deepLinkCode, pushOpening, loggedIn)
     }
 }
 
 @Composable
-private fun IeoContent(container: AppContainer, deepLinkCode: MutableStateFlow<String?>, loggedIn: Boolean) {
+private fun IeoContent(container: AppContainer, deepLinkCode: MutableStateFlow<String?>, pushOpening: MutableStateFlow<AppNotification?>, loggedIn: Boolean) {
     val linked by deepLinkCode.collectAsStateWithLifecycle()
     LaunchedEffect(loggedIn) { if (!loggedIn) container.notificationSeenStore.lastSeenId = null }
+    // 로그인하면 이 휴대폰의 푸시 토큰을 올리고, 안드로이드 13 이상이면 알림 권한을 한 번 묻는다
+    val askNotifications = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) {}
+    LaunchedEffect(loggedIn) {
+        if (loggedIn && container.pushRegistrar.available) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+            container.pushRegistrar.register()
+        }
+    }
     var scanning by remember { mutableStateOf(false) }
 
     if (!loggedIn) {
@@ -192,7 +211,7 @@ private fun IeoContent(container: AppContainer, deepLinkCode: MutableStateFlow<S
                 onClose = { scanning = false },
             )
         }
-        else -> Tabs(container, onScan = { scanning = true })
+        else -> Tabs(container, pushOpening, onScan = { scanning = true })
     }
 }
 
@@ -206,16 +225,24 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 
 /** 시안의 아래 탭 */
 @Composable
-private fun Tabs(container: AppContainer, onScan: () -> Unit) {
+private fun Tabs(container: AppContainer, pushOpening: MutableStateFlow<AppNotification?>, onScan: () -> Unit) {
     val notifications: NotificationsViewModel = viewModel(key = "notifications") {
         NotificationsViewModel(container.notificationRepository, container.notificationSeenStore)
     }
     val notificationState by notifications.state.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(notifications) { lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { notifications.listen() } }
+    // 푸시 알림을 눌러 들어왔으면 배너를 누른 것처럼 그 화면으로 간다
+    val pushed by pushOpening.collectAsStateWithLifecycle()
+    LaunchedEffect(pushed) {
+        pushed?.let {
+            notifications.openBanner(it)
+            pushOpening.value = null
+        }
+    }
     Box(Modifier.fillMaxSize()) {
         TabsContent(container, onScan, notifications)
-        notificationState.banner?.let { NotificationBanner(it, notifications::dismissBanner) }
+        notificationState.banner?.let { NotificationBanner(it, notifications::dismissBanner, onOpen = { notifications.openBanner(it) }) }
     }
 }
 
@@ -235,7 +262,7 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     val recommendationState by recommendation.state.collectAsStateWithLifecycle()
     val links: LinksViewModel = viewModel(key = "links") { LinksViewModel(container.driverLinkRepository) }
     val linkState by links.state.collectAsStateWithLifecycle()
-    val my: MyViewModel = viewModel(key = "my") { MyViewModel(container.accountRepository) }
+    val my: MyViewModel = viewModel(key = "my") { MyViewModel(container.accountRepository, container.pushRegistrar::unregister) }
     val profileEdit: ProfileEditViewModel = viewModel(key = "profileEdit") { ProfileEditViewModel(container.accountRepository, container.authRepository) }
     val accountSettings: AccountSettingsViewModel = viewModel(key = "accountSettings") { AccountSettingsViewModel(container.accountSettingsRepository) }
     val accountSettingsState by accountSettings.state.collectAsStateWithLifecycle()
@@ -297,17 +324,28 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         SiteCardScreen(site)
         return
     }
+    // 알림함·배너·푸시 알림에서 누른 알림의 화면으로 간다
+    val openNotification: (com.ieo.mobile.domain.notification.AppNotification) -> Unit = {
+        when (it.type) {
+            // 단골 요청은 휴대폰에서만 수락·거절한다 (BRK-002)
+            NotificationType.DRIVER_LINK_REQUESTED -> { links.refresh(); managingLinks = true }
+            NotificationType.DISPATCH_CONFIRMED -> tab = Tab.TRIPS
+            else -> tab = Tab.ORDERS
+        }
+    }
+    LaunchedEffect(notificationState.opening) {
+        notificationState.opening?.let {
+            notifications.close()
+            openNotification(it)
+            notifications.opened()
+        }
+    }
     if (notificationState.isOpen) {
         NotificationsScreen(
             notifications,
             onOpen = {
                 notifications.close()
-                when (it.type) {
-                    // 단골 요청은 휴대폰에서만 수락·거절한다 (BRK-002)
-                    NotificationType.DRIVER_LINK_REQUESTED -> { links.refresh(); managingLinks = true }
-                    NotificationType.DISPATCH_CONFIRMED -> tab = Tab.TRIPS
-                    else -> tab = Tab.ORDERS
-                }
+                openNotification(it)
             },
             onBack = notifications::close,
         )

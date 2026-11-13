@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- 근처 오더를 찾는다 -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- 배차·단골 요청 푸시 (안드로이드 13 이상은 한 번 묻는다) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
@@ -33,6 +35,15 @@
                 <data android:scheme="ieo" android:host="car-login" />
             </intent-filter>
         </activity>
+
+        <!-- 휴대폰 푸시 (FCM, 09 알림). google-services.json 없이 빌드하면 받을 것이 없다 -->
+        <service
+            android:name=".push.IeoMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

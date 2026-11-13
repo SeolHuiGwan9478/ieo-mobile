@@ -15,6 +15,19 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        // 휴대폰 푸시 (FCM). Firebase 콘솔에서 받은 app/google-services.json이 있으면 그 값으로 켜고, 없으면 꺼 둔다.
+        // google-services 플러그인 없이 직접 읽어 FirebaseApp을 만든다 (IeoApplication). 파일은 커밋하지 않는다 (.gitignore)
+        val firebase = file("google-services.json").takeIf { it.exists() }?.let { groovy.json.JsonSlurper().parse(it) as Map<*, *> }
+        val project = firebase?.get("project_info") as? Map<*, *>
+        val client = (firebase?.get("client") as? List<*>)?.map { it as Map<*, *> }?.firstOrNull { c ->
+            ((c["client_info"] as Map<*, *>)["android_client_info"] as Map<*, *>)["package_name"] == "com.ieo.mobile"
+        }
+        fun field(name: String, value: Any?) = buildConfigField("String", name, "\"${value ?: ""}\"")
+        field("FIREBASE_APP_ID", (client?.get("client_info") as? Map<*, *>)?.get("mobilesdk_app_id"))
+        field("FIREBASE_API_KEY", ((client?.get("api_key") as? List<*>)?.firstOrNull() as? Map<*, *>)?.get("current_key"))
+        field("FIREBASE_PROJECT_ID", project?.get("project_id"))
+        field("FIREBASE_SENDER_ID", project?.get("project_number"))
     }
 
     buildTypes {
@@ -56,6 +69,8 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 

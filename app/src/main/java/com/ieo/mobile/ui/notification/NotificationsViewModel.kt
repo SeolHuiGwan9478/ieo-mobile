@@ -31,6 +31,8 @@ data class NotificationsState(
     val error: String? = null,
     /** 지금 도착해 위에 잠깐 띄울 알림 */
     val banner: AppNotification? = null,
+    /** 배너나 푸시 알림을 눌러 그 화면으로 가야 하는 알림. 화면이 옮긴 뒤 [NotificationsViewModel.opened]로 지운다 */
+    val opening: AppNotification? = null,
 ) {
     val unreadCount: Int get() = lastSeenId?.let { seen -> items.count { it.id > seen } } ?: 0
 
@@ -114,6 +116,14 @@ class NotificationsViewModel(
     fun close() = _state.update { it.copy(isOpen = false, highlightAfter = null) }
 
     fun dismissBanner() = _state.update { it.copy(banner = null) }
+
+    /** 배너를 눌렀다. 누른 것은 사용자가 고른 것이라 그 화면으로 옮긴다 */
+    fun openBanner(notification: AppNotification) {
+        markSeen(maxOf(notification.id, _state.value.lastSeenId ?: 0))
+        _state.update { it.copy(banner = null, opening = notification) }
+    }
+
+    fun opened() = _state.update { it.copy(opening = null) }
 
     private fun markSeen(id: Long) {
         store.lastSeenId = id

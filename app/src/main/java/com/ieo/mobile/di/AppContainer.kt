@@ -107,6 +107,11 @@ class AppContainer(context: Context) {
         BuildConfig.API_BASE_URL,
         network.json,
     )
+    val pushRegistrar = com.ieo.mobile.push.PushRegistrar(
+        context,
+        network.authenticated.create(NotificationApi::class.java),
+        network.caller,
+    )
     val siteRepository: SiteRepository =
         DefaultSiteRepository(network.authenticated.create(SiteApi::class.java), network.caller)
     val proofRepository: ProofRepository =

@@ -153,9 +153,9 @@ private fun NotificationRow(item: AppNotification, isNew: Boolean, onClick: () -
     }
 }
 
-/** 어느 화면에서든 잠깐 뜬다. 쓰던 내용을 잃지 않게 화면을 옮기지 않는다. 사라져도 알림함에 남는다 */
+/** 어느 화면에서든 잠깐 뜬다. 저절로는 화면을 옮기지 않고, 눌렀을 때만 그 화면으로 간다. 사라져도 알림함에 남는다 */
 @Composable
-fun NotificationBanner(notification: AppNotification, onDismiss: () -> Unit) {
+fun NotificationBanner(notification: AppNotification, onDismiss: () -> Unit, onOpen: () -> Unit) {
     LaunchedEffect(notification.id) {
         delay(BANNER_MILLIS)
         onDismiss()
@@ -168,6 +168,7 @@ fun NotificationBanner(notification: AppNotification, onDismiss: () -> Unit) {
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(18.dp))
             .ruled()
+            .clickable(onClick = onOpen)
             .padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 4.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
     ) {

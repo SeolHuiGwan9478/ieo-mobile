@@ -631,7 +631,7 @@ class ScreenshotTest {
         shot("NT_inbox", content = {
             Box(Modifier.fillMaxSize()) {
                 NotificationsScreen(vm, onOpen = {}, onBack = {})
-                Box(Modifier.align(androidx.compose.ui.Alignment.BottomCenter)) { NotificationBanner(items[0], onDismiss = {}) }
+                Box(Modifier.align(androidx.compose.ui.Alignment.BottomCenter)) { NotificationBanner(items[0], onDismiss = {}, onOpen = {}) }
                 Box(Modifier.align(androidx.compose.ui.Alignment.TopEnd)) { NotificationBell(12, onClick = {}) }
             }
         })

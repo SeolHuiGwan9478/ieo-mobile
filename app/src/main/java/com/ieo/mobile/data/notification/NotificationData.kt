@@ -29,7 +29,18 @@ interface NotificationApi {
 
     @GET("api/notifications")
     suspend fun recent(): retrofit2.Response<List<NotificationBody>>
+
+    /** 로그인한 휴대폰의 FCM 토큰 (09 알림) */
+    @retrofit2.http.PUT("api/notifications/push-token")
+    suspend fun registerPushToken(@retrofit2.http.Body body: PushTokenBody): retrofit2.Response<Unit>
+
+    /** 로그아웃할 때. 이 휴대폰으로 더는 푸시를 보내지 않는다 */
+    @retrofit2.http.POST("api/notifications/push-token/remove")
+    suspend fun removePushToken(@retrofit2.http.Body body: PushTokenBody): retrofit2.Response<Unit>
 }
+
+@Serializable
+data class PushTokenBody(val token: String)
 
 @Serializable
 data class NotificationBody(

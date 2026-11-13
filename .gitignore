@@ -5,3 +5,5 @@ build/
 *.apk
 .DS_Store
 *.iml
+# Firebase 앱 설정 (FCM). 빌드할 때 app/에 두고 커밋하지 않는다
+app/google-services.json
