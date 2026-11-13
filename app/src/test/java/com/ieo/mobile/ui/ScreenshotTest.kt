@@ -832,7 +832,7 @@ class ScreenshotTest {
     private fun samplePlan(code: com.ieo.mobile.domain.plan.PlanCode, renews: Boolean = true, trial: Boolean = false, gift: Boolean = false): com.ieo.mobile.domain.plan.MyPlan {
         val options = listOf(
             com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.BASIC, "베이직", 0, listOf("오더·배차·운행 안내", "대기 증빙 30일 3건", "세금계산서 월 10장")),
-            com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.PRO, "프로", 14_400, listOf("대기 증빙 무제한", "장부 전체 기간·내보내기", "세금계산서 월 40장·자동 발행")),
+            com.ieo.mobile.domain.plan.PlanOption(com.ieo.mobile.domain.plan.PlanCode.PRO, "프로", 30_000, listOf("대기 증빙 무제한", "장부 전체 기간·내보내기", "세금계산서 월 40장·자동 발행")),
         )
         val paid = code != com.ieo.mobile.domain.plan.PlanCode.BASIC
         return com.ieo.mobile.domain.plan.MyPlan(

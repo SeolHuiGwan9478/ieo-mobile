@@ -70,7 +70,7 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
             if (state.loadFailed) state.error?.let { ErrorNotice(it, viewModel::load) }
             if (state.isLoading) SkeletonCards(2)
             if (state.saved != null) {
-                Text("차를 세우면 세운 곳 근처 오더 중 실수익 높은 3건을 차량 화면에 보여 드려요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
+                Text("상차지·하차지에 도착해 차를 세우면 그 근처 오더 중 실수익 1등을 차량 화면에 보여 드려요. 운행이 없을 때는 세운 곳 근처예요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
                 Spacer(Modifier.height(20.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("추천 받기", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong, modifier = Modifier.weight(1f))
@@ -78,7 +78,7 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
                 }
                 if (draft.enabled) {
                     Spacer(Modifier.height(24.dp))
-                    Label("찾는 범위 · 세운 곳에서")
+                    Label("찾는 범위 · 상하차지에서")
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         TonalButton("−5", { viewModel.stepRadius(-RecommendationPreference.RADIUS_STEP_KM) }, modifier = Modifier.width(88.dp))
                         Text("${draft.radiusKm}km", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TextStrong)

@@ -44,7 +44,7 @@ internal data class GuideSection(val title: String, val lines: List<String>)
  */
 internal val PLAN_GUIDE = listOf(
     GuideSection("플랜과 가격", listOf(
-        "베이직은 늘 무료, 프로는 30일에 14,400원이에요.",
+        "베이직은 늘 무료, 프로는 30일에 30,000원이에요.",
         "운행이나 배차 건마다 받는 돈은 없어요. 30일 단위로만 결제해요.",
         "베이직은 지난 장부·내보내기가 잠기고, 대기 증빙은 30일에 3건, 세금계산서는 한 달 10장까지예요. 프로는 대기 증빙 무제한, 세금계산서 한 달 40장이에요.",
     )),
