@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -30,6 +32,21 @@ android {
         field("FIREBASE_SENDER_ID", project?.get("project_number"))
     }
 
+    // 제출용 서명. 차량 앱과 같은 키를 쓰고, 키와 비밀번호는 git에 올라가지 않는 local.properties에서 읽는다
+    val signing = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+    }
+    signingConfigs {
+        if (signing.getProperty("release.storeFile") != null) {
+            create("release") {
+                storeFile = file(signing.getProperty("release.storeFile"))
+                storePassword = signing.getProperty("release.storePassword")
+                keyAlias = signing.getProperty("release.keyAlias")
+                keyPassword = signing.getProperty("release.keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // 기본은 에뮬레이터에서 본 내 컴퓨터의 서버.
@@ -39,6 +56,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
             // 배포 서버 주소는 빌드할 때 넘긴다: ./gradlew assembleRelease -PieoApiBaseUrl=https://.../
             val apiBaseUrl = providers.gradleProperty("ieoApiBaseUrl").getOrElse("https://api.ieo.invalid/")
             buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")

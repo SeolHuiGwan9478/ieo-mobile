@@ -273,7 +273,11 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
     val ledgerState by ledger.state.collectAsStateWithLifecycle()
     val plans: PlanViewModel = viewModel(key = "plans") { PlanViewModel(container.planRepository) }
     val planState by plans.state.collectAsStateWithLifecycle()
-    LaunchedEffect(tab) { if (tab == Tab.MY) plans.load() }
+    LaunchedEffect(tab) {
+        if (tab == Tab.MY) plans.load()
+        // 홈의 오더 찾기 버튼에 모집 중 건수를 보여 주려고 홈에 올 때도 오더를 받는다
+        if (tab == Tab.HOME) orders.refresh()
+    }
     val orderState by orders.state.collectAsStateWithLifecycle()
     val tripState by trips.state.collectAsStateWithLifecycle()
     val myState by my.state.collectAsStateWithLifecycle()
@@ -416,12 +420,11 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
             when (tab) {
                 Tab.HOME -> HomeScreen(
                     name = myState.account?.name,
-                    vehicles = vehicleState,
                     nextTrip = tripState.next,
                     monthNet = ledgerState.ledger.takeIf { !ledgerState.isLoading }?.netProfit,
                     owed = ledgerState.owedTotal,
                     invitationCount = linkState.invitations.size,
-                    onInvitations = { managingLinks = true },
+                    onLinks = { managingLinks = true },
                     onEarnings = { tab = Tab.EARNINGS },
                     onScan = onScan,
                     onVehicles = { managingVehicles = true },
@@ -431,6 +434,12 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
                     onNotifications = notifications::open,
                     documents = documentState.documents,
                     onDocuments = documents::open,
+                    openOrderCount = orders.visible(orderState).size,
+                    onTrips = { tab = Tab.TRIPS },
+                    onRegisterTrip = { registering = true },
+                    onReceivables = ledger::openReceivables,
+                    recommendationLocked = recommendationState.saved?.available == false,
+                    onRecommendation = { editingRecommendation = true },
                 )
                 Tab.ORDERS -> OrdersScreen(
                     orders,

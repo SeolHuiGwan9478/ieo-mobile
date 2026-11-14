@@ -789,7 +789,7 @@ class ScreenshotTest {
 
     @Test
     fun 홈() {
-        shot("M07_home", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), trip(1, TripStatus.IN_TRANSIT), 4_120_000, 870_000, 1, {}, {}, {}, {}, {}, {}) })
+        shot("M07_home", content = { HomeScreen("김도윤", trip(1, TripStatus.IN_TRANSIT), 4_120_000, 870_000, 1, {}, {}, {}, {}, {}, {}, openOrderCount = 6) })
     }
     private fun documents(vararg statuses: com.ieo.mobile.domain.document.DocumentStatus?): com.ieo.mobile.domain.document.DriverDocuments {
         val types = listOf("BUSINESS_REGISTRATION" to "사업자등록증", "VEHICLE_REGISTRATION" to "자동차등록증", "DRIVER_LICENSE" to "운전면허증", "FREIGHT_QUALIFICATION" to "화물운송종사 자격증")
@@ -824,13 +824,13 @@ class ScreenshotTest {
     @Test
     fun D03_홈_서류카드() {
         val s = com.ieo.mobile.domain.document.DocumentStatus.entries
-        shot("D03_home_documents", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), null, 4_120_000, 0, 0, {}, {}, {}, {}, {}, {}, documents = documents(s[1], s[1], null, null)) })
+        shot("D03_home_documents", content = { HomeScreen("김도윤", null, 4_120_000, 0, 0, {}, {}, {}, {}, {}, {}, documents = documents(s[1], s[1], null, null)) })
     }
 
     @Test
     fun D04_홈_인증차주() {
         val s = com.ieo.mobile.domain.document.DocumentStatus.APPROVED
-        shot("D04_home_verified", content = { HomeScreen("김도윤", VehiclesState(vehicles = listOf(sample)), null, 4_120_000, 0, 0, {}, {}, {}, {}, {}, {}, documents = documents(s, s, s, s)) })
+        shot("D04_home_verified", content = { HomeScreen("김도윤", null, 4_120_000, 0, 0, {}, {}, {}, {}, {}, {}, documents = documents(s, s, s, s)) })
     }
 
     @Test
