@@ -79,4 +79,11 @@ class RecommendationViewModelTest {
     fun `빼는 화물을 다 지워도 빈 목록을 보낸다`() {
         assertEquals(emptyList<String>(), RecommendationPreferenceBody.of(RecommendationPreference()).excludedCargoCategories)
     }
+
+    @Test
+    fun `베이직이면 내 정보 한 줄이 프로에서 받아요다`() {
+        val basic = RecommendationPreferenceBody(true, 30, available = false).toDomain()
+        assertFalse(basic.available)
+        assertEquals("프로에서 받아요", basic.summary)
+    }
 }

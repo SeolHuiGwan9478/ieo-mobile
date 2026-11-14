@@ -9,9 +9,15 @@ data class RecommendationPreference(
     val radiusKm: Int = DEFAULT_RADIUS_KM,
     val minNetProfit: Long? = null,
     val excludedCargo: Set<CargoCategory> = emptySet(),
+    /** 지금 플랜으로 추천을 받을 수 있는지. 베이직이면 false (프로만, 2026-11-14) */
+    val available: Boolean = true,
 ) {
     /** 내 정보에 보여 줄 한 줄 */
-    val summary: String get() = if (enabled) "켬 · ${radiusKm}km" else "꺼짐"
+    val summary: String get() = when {
+        !available -> "프로에서 받아요"
+        enabled -> "켬 · ${radiusKm}km"
+        else -> "꺼짐"
+    }
 
     companion object {
         const val DEFAULT_RADIUS_KM = 30

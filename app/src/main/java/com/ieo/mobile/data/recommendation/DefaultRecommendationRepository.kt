@@ -28,12 +28,15 @@ data class RecommendationPreferenceBody(
     val radiusKm: Int,
     val minNetProfit: Long? = null,
     val excludedCargoCategories: List<String>? = null,
+    /** 응답에만 온다. 기본값이면 보내지 않는다 */
+    val available: Boolean = true,
 ) {
     fun toDomain() = RecommendationPreference(
         enabled,
         radiusKm,
         minNetProfit,
         excludedCargoCategories.orEmpty().mapNotNull(CargoCategory::fromName).toSet(),
+        available,
     )
 
     companion object {

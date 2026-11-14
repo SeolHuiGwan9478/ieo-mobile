@@ -69,7 +69,11 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
             if (state.loadFailed) state.error?.let { ErrorNotice(it, viewModel::load) }
             if (state.isLoading) SkeletonCards(2)
-            if (state.saved != null) {
+            if (state.saved?.available == false) {
+                Text("배차 추천은 프로 기능이에요", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextStrong)
+                Spacer(Modifier.height(8.dp))
+                Text("상하차지에 차를 세우면 근처 오더 중 실수익 1등을 차량 화면에 보여 드려요. 내 정보의 플랜에서 프로로 바꾸거나 무료 체험을 시작하면 바로 받을 수 있어요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
+            } else if (state.saved != null) {
                 Text("상차지·하차지에 도착해 차를 세우면 그 근처 오더 중 실수익 1등을 차량 화면에 보여 드려요. 운행이 없을 때는 세운 곳 근처예요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid)
                 Spacer(Modifier.height(20.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -108,7 +112,7 @@ fun RecommendationScreen(viewModel: RecommendationViewModel, onBack: () -> Unit)
             }
         }
         Column(Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
-            PrimaryButton("저장", viewModel::save, enabled = state.hasChanges, busy = state.isBusy)
+            if (state.saved?.available != false) PrimaryButton("저장", viewModel::save, enabled = state.hasChanges, busy = state.isBusy)
         }
     }
 
