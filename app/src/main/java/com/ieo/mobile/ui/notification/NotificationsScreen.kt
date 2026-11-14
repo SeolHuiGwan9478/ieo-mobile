@@ -4,6 +4,7 @@ import com.ieo.mobile.ui.component.ruled
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.Inventory2
 import com.ieo.mobile.ui.component.IconBadge
@@ -88,6 +89,7 @@ private fun typeIcon(type: NotificationType) = when (type) {
     NotificationType.DISPATCH_CONFIRMED -> Icons.Outlined.CheckCircle
     NotificationType.DISPATCH_DECLINED -> Icons.Outlined.Block
     NotificationType.DISPATCH_EXPIRED -> Icons.Outlined.Schedule
+    NotificationType.DISPATCH_CANCELED -> Icons.Outlined.EventBusy
     NotificationType.DRIVER_LINK_REQUESTED -> Icons.Outlined.Handshake
     NotificationType.ORDER_TARGETED -> Icons.Outlined.Inventory2
 }

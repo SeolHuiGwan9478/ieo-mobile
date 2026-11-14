@@ -21,6 +21,8 @@ enum class NotificationType(val label: String, val action: String) {
     DISPATCH_CONFIRMED("배차 확정", "내 배차 보기"),
     DISPATCH_DECLINED("마감", "다른 오더 찾기"),
     DISPATCH_EXPIRED("시간 초과", "다른 오더 찾기"),
+    /** 주선사가 확정된 배차를 취소했다 (DSP-030) */
+    DISPATCH_CANCELED("배차 취소", "다른 오더 찾기"),
     DRIVER_LINK_REQUESTED("단골 요청", "단골 주선사 보기"),
     ORDER_TARGETED("지정 오더", "오더 보기"),
 }

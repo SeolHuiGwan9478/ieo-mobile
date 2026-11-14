@@ -627,11 +627,13 @@ class ScreenshotTest {
     fun 알림() {
         val now = java.time.Instant.now()
         val items = listOf(
-            AppNotification(3, NotificationType.DISPATCH_CONFIRMED, "한빛물류에서 배차를 확정했어요. 이천 물류센터에서 부산 신항까지, 내 배차에 넣었어요", 1, now.minusSeconds(120)),
-            AppNotification(2, NotificationType.DISPATCH_DECLINED, "평택항에서 대전 복합터미널까지 가는 배차는 마감됐어요", 2, now.minusSeconds(7200)),
+            AppNotification(5, NotificationType.ORDER_TARGETED, "한빛물류에서 단골 오더를 보냈어요. 대전 산업단지에서 김포 한강 물류까지예요", 5, now.minusSeconds(60)),
+            AppNotification(4, NotificationType.DISPATCH_CANCELED, "한빛물류에서 배차를 취소했어요. 평택항에서 대전 복합터미널까지, 내 배차에서 뺐어요", 4, now.minusSeconds(1800)),
+            AppNotification(3, NotificationType.DISPATCH_CONFIRMED, "한빛물류에서 배차를 확정했어요. 이천 물류센터에서 부산 신항까지, 내 배차에 넣었어요", 1, now.minusSeconds(7200)),
+            AppNotification(2, NotificationType.DRIVER_LINK_REQUESTED, "대성운송에서 단골 연결을 요청했어요. 휴대폰 앱에서 수락하거나 거절할 수 있어요", null, now.minusSeconds(90_000), driverLinkId = 3),
             AppNotification(1, NotificationType.DISPATCH_EXPIRED, "안산 공단에서 광주 하남까지 가는 배차 요청이 10분 안에 확정되지 않았어요", 3, now.minusSeconds(200_000)),
         )
-        val store = object : NotificationSeenStore { override var lastSeenId: Long? = 2 }
+        val store = object : NotificationSeenStore { override var lastSeenId: Long? = 3 }
         val vm = NotificationsViewModel(object : NotificationRepository {
             override suspend fun recent() = ApiResult.Success(items)
             override fun stream(after: Long?) = kotlinx.coroutines.flow.emptyFlow<NotificationStreamEvent>()

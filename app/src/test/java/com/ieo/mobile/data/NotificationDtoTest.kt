@@ -31,9 +31,18 @@ class NotificationDtoTest {
     }
 
     @Test
+    fun `주선사가 배차를 취소한 알림을 읽는다`() {
+        val notification = json.decodeFromString<NotificationBody>(
+            """{"id":10,"type":"DISPATCH_CANCELED","message":"한빛로지스에서 배차를 취소했어요","dispatchRequestId":4,"orderId":12,"createdAt":"2026-11-14T05:00:00Z"}""",
+        ).toDomain()!!
+        assertEquals(NotificationType.DISPATCH_CANCELED, notification.type)
+        assertEquals(12L, notification.orderId)
+    }
+
+    @Test
     fun `지정 오더 알림과 오더의 지정 표시를 읽는다`() {
         val notification = json.decodeFromString<NotificationBody>(
-            """{"id":9,"type":"ORDER_TARGETED","message":"한빛로지스에서 나에게만 보이는 오더를 보냈어요","orderId":12,"createdAt":"2026-11-13T05:00:00Z"}""",
+            """{"id":9,"type":"ORDER_TARGETED","message":"한빛로지스에서 단골 오더를 보냈어요","orderId":12,"createdAt":"2026-11-13T05:00:00Z"}""",
         ).toDomain()!!
         assertEquals(NotificationType.ORDER_TARGETED, notification.type)
         assertEquals(12L, notification.orderId)
