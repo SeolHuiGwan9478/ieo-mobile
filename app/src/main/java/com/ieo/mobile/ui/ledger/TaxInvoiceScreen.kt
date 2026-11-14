@@ -79,7 +79,7 @@ fun TaxInvoiceScreen(invoice: TaxInvoice, busy: Boolean, error: String?, onBack:
                 Column(Modifier.fillMaxWidth().padding(top = 14.dp).background(Orange50, RoundedCornerShape(12.dp)).padding(14.dp)) {
                     Text("발행하려면 채워야 해요", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Orange700)
                     invoice.missing.forEach { Text("· $it", fontSize = 15.sp, color = TextStrong, modifier = Modifier.padding(top = 4.dp)) }
-                    Text("사업자 정보는 내 정보 > 내 정보 수정에서 넣을 수 있어요.", fontSize = 14.sp, color = TextMid, modifier = Modifier.padding(top = 8.dp))
+                    Text("사업자 정보는 내 정보 > 사업자 정보에서 넣을 수 있어요.", fontSize = 14.sp, color = TextMid, modifier = Modifier.padding(top = 8.dp))
                 }
             }
             Text("운임은 부가세 별도로 보고 10%를 더했어요.", fontSize = 14.sp, color = TextSub, modifier = Modifier.padding(top = 12.dp, bottom = 16.dp))

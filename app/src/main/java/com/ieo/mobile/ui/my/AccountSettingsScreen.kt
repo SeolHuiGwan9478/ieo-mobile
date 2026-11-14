@@ -153,7 +153,7 @@ private fun ConsentRow(item: ConsentItem, onChange: (Boolean) -> Unit) {
 @Composable
 private fun BusinessFields(state: AccountSettingsState, viewModel: AccountSettingsViewModel) {
     var clearing by remember { mutableStateOf(false) }
-    Text("장부 내보내기에 사용해요. 없으면 비워 두세요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp))
+    Text("세금계산서 발행과 장부 내보내기에 써요. 세금계산서를 발행하려면 꼭 넣어 주세요", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(horizontal = 4.dp))
     FormField(state.form.name, viewModel::onBusinessName, "상호")
     FormField(state.form.number, viewModel::onBusinessNumber, "사업자등록번호 (숫자 10자리)", KeyboardType.Number)
     FormField(state.form.representative, viewModel::onRepresentative, "대표자 이름")

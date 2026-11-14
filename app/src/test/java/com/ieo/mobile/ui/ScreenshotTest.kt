@@ -650,6 +650,25 @@ class ScreenshotTest {
         })
     }
 
+    /** 운송료 세금계산서 (LEDG-041~045): 빈 정보 있음 / 발행 전 / 발행 후. 지금은 시연용 발행 */
+    private fun invoice(issued: Boolean, missing: List<String>) = com.ieo.mobile.domain.ledger.TaxInvoice(
+        entryId = 1, issued = issued, writeDate = java.time.LocalDate.of(2026, 11, 14),
+        supplier = com.ieo.mobile.domain.ledger.InvoiceParty(if (missing.isEmpty()) "1234567891" else null, "김소연 운송", "김소연"),
+        buyer = com.ieo.mobile.domain.ledger.InvoiceParty("2208123456", "한빛물류", "박주선"),
+        item = "운송료 · 이천 냉동창고 → 부산 신항 CY",
+        fareAmount = 580_000, waitFeeAmount = 20_000, supplyAmount = 600_000, vat = 60_000, totalAmount = 660_000,
+        missing = missing, demo = true, approvalNumber = if (issued) "20261114-99999999-00012345" else null,
+    )
+
+    @Test
+    fun 세금계산서_빈_정보() = shot("TX_missing", content = { com.ieo.mobile.ui.ledger.TaxInvoiceScreen(invoice(false, listOf("내 사업자등록번호")), busy = false, error = null, onBack = {}, onIssue = {}) })
+
+    @Test
+    fun 세금계산서_발행_전() = shot("TX_ready", content = { com.ieo.mobile.ui.ledger.TaxInvoiceScreen(invoice(false, emptyList()), busy = false, error = null, onBack = {}, onIssue = {}) })
+
+    @Test
+    fun 세금계산서_발행_후() = shot("TX_issued", content = { com.ieo.mobile.ui.ledger.TaxInvoiceScreen(invoice(true, emptyList()), busy = false, error = null, onBack = {}, onIssue = {}) })
+
     private fun siteVm() = SiteCardViewModel(object : SiteRepository {
         val now = java.time.Instant.now()
         override suspend fun card(siteId: Long) = ApiResult.Success(
