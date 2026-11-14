@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.plan
 
+import com.ieo.mobile.ui.component.IeoLoadingIndicator
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.activity.compose.BackHandler
@@ -25,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -50,7 +50,6 @@ import com.ieo.mobile.ui.component.PrimaryButton
 import com.ieo.mobile.ui.theme.CanvasGray
 import com.ieo.mobile.ui.theme.IeoStatus
 import com.ieo.mobile.ui.theme.Orange50
-import com.ieo.mobile.ui.theme.Orange600
 import com.ieo.mobile.ui.theme.Orange700
 import com.ieo.mobile.ui.theme.TextMid
 import com.ieo.mobile.ui.theme.TextStrong
@@ -86,7 +85,7 @@ fun PlanScreen(viewModel: PlanViewModel, state: PlanState, onBack: () -> Unit) {
         val plan = state.plan
         if (plan == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (state.loading) CircularProgressIndicator(color = Orange600)
+                if (state.loading) IeoLoadingIndicator(width = 96.dp)
                 else state.error?.let { Text(it, fontSize = 16.sp, color = TextSub) }
             }
             return@Column

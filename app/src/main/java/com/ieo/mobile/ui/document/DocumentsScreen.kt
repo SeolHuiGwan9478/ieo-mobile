@@ -1,5 +1,6 @@
 package com.ieo.mobile.ui.document
 
+import com.ieo.mobile.ui.component.IeoLoadingIndicator
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import com.ieo.mobile.R
@@ -45,7 +46,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -347,7 +347,7 @@ private fun DocumentTile(item: DocumentItem, uploading: Boolean, modifier: Modif
             }
             Spacer(Modifier.weight(1f))
             when {
-                uploading -> CircularProgressIndicator(strokeWidth = 2.dp, color = Orange600, modifier = Modifier.size(22.dp))
+                uploading -> IeoLoadingIndicator(width = 36.dp)
                 else -> Icon(statusIcon(item.status), contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
             }
         }
@@ -379,7 +379,7 @@ private fun DocumentRow(item: DocumentItem, uploading: Boolean, onClick: () -> U
             if (item.status != null) Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color)
         }
         if (uploading) {
-            CircularProgressIndicator(strokeWidth = 2.dp, color = Orange600, modifier = Modifier.size(22.dp))
+            IeoLoadingIndicator(width = 36.dp)
         } else {
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextSub)
         }

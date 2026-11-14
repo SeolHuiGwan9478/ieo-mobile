@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,7 +65,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean = true, mo
         modifier = modifier.fillMaxWidth().heightIn(min = 52.dp),
     ) {
         if (busy) {
-            CircularProgressIndicator(color = TextMid, strokeWidth = 3.dp, modifier = Modifier.size(24.dp))
+            IeoLoadingIndicator(width = 44.dp, color = TextMid)
         } else {
             icon?.let { Icon(it, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(22.dp)) }
             Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)

@@ -1,18 +1,20 @@
 package com.ieo.mobile.ui.carlogin
 
+import com.ieo.mobile.ui.component.IeoLoadingIndicator
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,7 +34,7 @@ fun CarLoginScreen(code: String, viewModel: CarLoginViewModel, onClose: () -> Un
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp)) {
         when (val current = state) {
-            CarLoginState.Loading -> CircularProgressIndicator()
+            CarLoginState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { IeoLoadingIndicator(width = 96.dp) }
             is CarLoginState.Asking -> Asking(current, viewModel)
             CarLoginState.Approved -> Finished("차량에 로그인했어요", "차량 화면을 확인해 주세요", onClose)
             CarLoginState.Rejected -> Finished("로그인을 거절했어요", "다른 차량의 로그인을 막았어요", onClose)
