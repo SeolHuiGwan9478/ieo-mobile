@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ieo.mobile.domain.document.DriverDocuments
@@ -100,9 +101,11 @@ fun HomeScreen(
     ) {
         Row(Modifier.padding(start = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             IeoSymbol(size = 32.dp)
-            Text(name?.takeIf { it.isNotBlank() }?.let { "${it}님" } ?: "이에오", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-            if (documents?.verified == true) VerifiedBadge()
-            Spacer(Modifier.weight(1f))
+            // 이름이 길면 이름을 줄이고(…) 인증 표시와 알림 종은 그대로 둔다
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(name?.takeIf { it.isNotBlank() }?.let { "${it}님" } ?: "이에오", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TextStrong, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (documents?.verified == true) VerifiedBadge()
+            }
             NotificationBell(unreadNotifications, onNotifications)
         }
         documents?.takeIf { !it.verified }?.let { DocumentsCard(it, onDocuments) }

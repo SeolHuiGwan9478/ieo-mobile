@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,10 +92,9 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
             Image(painterResource(R.drawable.ic_avatar_driver), contentDescription = null, modifier = Modifier.size(64.dp))
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(name.ifBlank { "이름 없음" }, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong)
-                    if (verified) VerifiedBadge(Modifier.padding(start = 8.dp))
-                }
+                // 이름 옆에 붙이면 [내 정보 수정]과 자리를 다퉈 표시가 두 줄로 꺾여서, 인증 표시는 이름 아래 줄에 둔다
+                Text(name.ifBlank { "이름 없음" }, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextStrong, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (verified) VerifiedBadge(Modifier.padding(top = 4.dp))
                 Text(PhoneFormat.hyphen(state.account?.phone.orEmpty()), fontSize = 15.sp, color = TextSub, modifier = Modifier.padding(top = 2.dp))
             }
             QuietButton("내 정보 수정", onEditProfile)

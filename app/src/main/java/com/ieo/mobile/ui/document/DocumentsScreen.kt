@@ -446,7 +446,8 @@ fun VerifiedBadge(modifier: Modifier = Modifier) {
     ) {
         Icon(Icons.Filled.Verified, contentDescription = null, tint = Orange600, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(4.dp))
-        Text("인증 차주", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Orange700)
+        // 이름이 길어 자리가 좁아도 두 줄로 꺾이지 않게 한 줄로 둔다. 줄어드는 쪽은 이름이다
+        Text("인증 차주", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Orange700, maxLines = 1, softWrap = false)
     }
 }
 
