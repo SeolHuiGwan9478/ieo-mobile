@@ -451,4 +451,4 @@ fun VerifiedBadge(modifier: Modifier = Modifier) {
 
 /** 주선사에게 보이는 내 이력 한 줄 */
 fun recordSummary(record: DriverRecord): String =
-    "완료 운행 ${record.completedTripCount}건 · 상차 직전 취소 ${record.lateCancelCount}건"
+    "완료 운행 ${record.completedTripCount}건 · 늦은 취소 ${record.lateCancelCount}건"

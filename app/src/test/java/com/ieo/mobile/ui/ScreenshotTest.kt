@@ -372,7 +372,7 @@ class ScreenshotTest {
         shot("M06_add", content = { VehiclesScreen(vm, onBack = {}) })
     }
 
-    private fun order(id: Long, route: Pair<String, String>, fare: Long, payment: String, days: Int?, mine: Boolean = false, cargo: CargoCategory? = null) = Order(
+    private fun order(id: Long, route: Pair<String, String>, fare: Long, payment: String, days: Int?, mine: Boolean = false, cargo: CargoCategory? = null, regular: Boolean = false) = Order(
         id = id,
         brokerName = "□□로지스틱스",
         pickup = OrderSite(route.first, "경기 화성시 향남읍 발안산단", 37.0, 127.0),
@@ -392,12 +392,13 @@ class ScreenshotTest {
         myRequest = if (mine) DispatchRequest(9, id, DispatchRequestStatus.PENDING, Instant.now().plusSeconds(540)) else null,
         cargoCategory = cargo,
         brokerMetrics = BrokerMetrics(published = days != null, avgPaymentDays = days, latePaymentPercent = days?.let { 8 }, avgWaitMinutes = days?.let { 35 }),
+        forMeOnly = regular,
     )
 
     private fun orders(): OrdersViewModel = OrdersViewModel(object : OrderRepository {
         override suspend fun openOrders(limit: Int, near: GeoPoint?, search: com.ieo.mobile.domain.order.OrderSearch) = ApiResult.Success(listOf(
             order(1, "화성 향남" to "창원 성산", 580_000, "인수증", 25),
-            order(2, "평택 포승" to "부산 강서", 550_000, "선불", null),
+            order(2, "평택 포승" to "부산 강서", 550_000, "선불", null, regular = true),
             order(3, "평택 청북" to "대구 북구", 470_000, "인수증", 12, mine = true),
             order(4, "오산 가장" to "광주 광산", 410_000, "선불", 9, cargo = CargoCategory.MOVING),
         ))

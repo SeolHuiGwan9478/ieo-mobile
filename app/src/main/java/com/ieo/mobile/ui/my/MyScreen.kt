@@ -113,7 +113,7 @@ fun MyScreen(viewModel: MyViewModel, vehicles: VehiclesState, linkCount: Int, in
             Spacer(Modifier.height(12.dp))
             Row {
                 Stat("${record?.completedTripCount ?: 0}건", "완료 운행", Modifier.weight(1f))
-                Stat("${record?.lateCancelCount ?: 0}건", "직전 취소", Modifier.weight(1f))
+                Stat("${record?.lateCancelCount ?: 0}건", "늦은 취소", Modifier.weight(1f))
                 Stat("${linkCount}곳", "단골 주선사", Modifier.weight(1f))
             }
             if (!verified) {
