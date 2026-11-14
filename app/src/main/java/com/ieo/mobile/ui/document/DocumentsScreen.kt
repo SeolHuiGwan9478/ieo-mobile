@@ -219,7 +219,8 @@ private fun DocumentPage(item: DocumentItem, state: DocumentsState, viewModel: D
             }
             when (item.status) {
                 DocumentStatus.PENDING -> StatusNote("담당자가 서류를 보고 있어요. 결과가 나오면 홈과 이 화면에서 알려 드려요.")
-                DocumentStatus.APPROVED -> StatusNote("새 서류로 바꿔야 할 때만 다시 올려 주세요.")
+                // 다시 올리면 새 서류를 확인할 때까지 인증이 풀린다 (2026-11-14 결정, 13 운영자 서류 심사)
+                DocumentStatus.APPROVED -> StatusNote("새 서류로 바꿔야 할 때만 다시 올려 주세요. 다시 올리면 확인이 끝날 때까지 배차 요청을 할 수 없어요.")
                 else -> Text("서류 전체와 글씨가 잘 보이는 사진을 골라 주세요.", fontSize = 16.sp, lineHeight = 23.sp, color = TextMid, modifier = Modifier.padding(top = 12.dp))
             }
             if (item.canSubmit) {
