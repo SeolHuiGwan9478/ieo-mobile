@@ -38,6 +38,7 @@ class OrderTexts(private val labels: DayTimeFormatter = DayTimeFormatter()) {
 
     /** 상세 제목 아래 태그: 차량, 일반이 아닌 화물 종류, 결제 방식. 주선사 태그는 이름 옆에 따로 둔다 */
     fun detailTags(order: Order): List<OrderTag> = listOfNotNull(
+        mineTag(order),
         OrderTag(order.vehicleLabel, IeoTag.Navy),
         order.specialCargo?.let(::cargoTag),
         OrderTag(order.paymentTypeLabel, paymentColor(order.paymentTypeLabel)),
@@ -54,11 +55,15 @@ class OrderTexts(private val labels: DayTimeFormatter = DayTimeFormatter()) {
     }
 
     fun tags(order: Order): List<OrderTag> = listOfNotNull(
+        mineTag(order),
         OrderTag(order.vehicleLabel, IeoTag.Navy),
         order.specialCargo?.let(::cargoTag),
         OrderTag(order.paymentTypeLabel, paymentColor(order.paymentTypeLabel)),
         order.brokerMetrics?.let(::brokerTag),
     )
+
+    /** 단골 주선사가 나에게만 보낸 지정 오더면 맨 앞에 "단골"을 붙인다 */
+    private fun mineTag(order: Order): OrderTag? = if (order.forMeOnly) OrderTag("단골", IeoTag.Mine) else null
 
     private fun paymentColor(type: String): TagColor = when (type) {
         "선불" -> IeoTag.Teal

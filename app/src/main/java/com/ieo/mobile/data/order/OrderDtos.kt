@@ -38,6 +38,8 @@ data class OrderResponse(
     val limited: Boolean = false,
     val routeAverageFare: Long? = null,
     val reportedByMe: Boolean = false,
+    /** 지정 오더면 그 차주(나). 나에게 보이는 지정 오더는 나에게만 온 것이다 (BRK-011) */
+    val targetDriverId: Long? = null,
 ) {
     fun toDomain() = Order(
         id = id,
@@ -63,6 +65,7 @@ data class OrderResponse(
         myRequest = myRequest?.toDomain(),
         cargoCategory = cargoCategory?.let(CargoCategory::fromName),
         brokerMetrics = brokerMetrics?.toDomain(),
+        forMeOnly = targetDriverId != null,
     )
 }
 

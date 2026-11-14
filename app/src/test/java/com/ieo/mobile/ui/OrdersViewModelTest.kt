@@ -314,6 +314,10 @@ class OrdersViewModelTest {
         assertEquals(listOf("5톤 카고", "냉동·냉장", "인수증", "지급 평균 12일"), texts.tags(order).map { it.text })
         assertEquals(listOf("5톤 카고", "냉동·냉장", "인수증"), texts.detailTags(order).map { it.text })
         assertEquals("거래 기록 적음", texts.metrics(BrokerMetrics(published = false)))
+        // 단골 주선사가 나에게만 보낸 지정 오더는 맨 앞에 "단골" (BRK-011)
+        val mine = order.copy(forMeOnly = true)
+        assertEquals("단골", texts.tags(mine).first().text)
+        assertEquals("단골", texts.detailTags(mine).first().text)
         assertEquals("30만 원", formatWon(300_000))
     }
 }

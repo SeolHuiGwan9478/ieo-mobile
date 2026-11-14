@@ -50,6 +50,7 @@ object IeoTag {
     val Sage = TagColor(Color(0xFFE6EFE2), Color(0xFF3F5F31))   // 지급이 빠른 주선사 (15일 이하)
     val Plum = TagColor(Color(0xFFF3E6F5), Color(0xFF74307F))   // 지급이 늦은 주선사 (20일 초과)
     val Gray = TagColor(CanvasGray, TextMid)                    // 보통이거나 판단할 근거가 없을 때
+    val Mine = TagColor(Orange50, Orange700)                    // 단골 주선사가 나에게만 보낸 지정 오더
 }
 
 // 상태색: 운행 상황을 알릴 때만 사용

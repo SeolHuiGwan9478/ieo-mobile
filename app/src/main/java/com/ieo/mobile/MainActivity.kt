@@ -329,6 +329,8 @@ private fun TabsContent(container: AppContainer, onScan: () -> Unit, notificatio
         when (it.type) {
             // 단골 요청은 휴대폰에서만 수락·거절한다 (BRK-002)
             NotificationType.DRIVER_LINK_REQUESTED -> { links.refresh(); managingLinks = true }
+            // 지정 오더는 오더 탭에서 그 오더를 연다 (BRK-011)
+            NotificationType.ORDER_TARGETED -> { tab = Tab.ORDERS; orders.refresh(); it.orderId?.let(orders::open) }
             NotificationType.DISPATCH_CONFIRMED -> tab = Tab.TRIPS
             else -> tab = Tab.ORDERS
         }

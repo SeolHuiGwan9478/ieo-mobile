@@ -22,6 +22,7 @@ enum class NotificationType(val label: String, val action: String) {
     DISPATCH_DECLINED("마감", "다른 오더 찾기"),
     DISPATCH_EXPIRED("시간 초과", "다른 오더 찾기"),
     DRIVER_LINK_REQUESTED("단골 요청", "단골 주선사 보기"),
+    ORDER_TARGETED("지정 오더", "오더 보기"),
 }
 
 sealed interface NotificationStreamEvent {

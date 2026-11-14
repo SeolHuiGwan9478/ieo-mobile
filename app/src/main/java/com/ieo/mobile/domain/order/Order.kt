@@ -41,6 +41,8 @@ data class Order(
     val routeAverageFare: Long? = null,
     /** 내가 이미 신고한 오더. 신고는 오더마다 한 번이다 (DSP-042) */
     val reportedByMe: Boolean = false,
+    /** 단골 주선사가 나에게만 보낸 지정 오더 (BRK-011) */
+    val forMeOnly: Boolean = false,
 ) {
     val vehicleLabel: String get() = "$tonnageLabel $bodyTypeLabel"
 

@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Handshake
+import androidx.compose.material.icons.outlined.Inventory2
 import com.ieo.mobile.ui.component.IconBadge
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
@@ -88,6 +89,7 @@ private fun typeIcon(type: NotificationType) = when (type) {
     NotificationType.DISPATCH_DECLINED -> Icons.Outlined.Block
     NotificationType.DISPATCH_EXPIRED -> Icons.Outlined.Schedule
     NotificationType.DRIVER_LINK_REQUESTED -> Icons.Outlined.Handshake
+    NotificationType.ORDER_TARGETED -> Icons.Outlined.Inventory2
 }
 
 @Composable
